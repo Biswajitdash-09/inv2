@@ -140,10 +140,13 @@ export default function DashboardPage() {
   // Show loading state while checking authentication or redirecting vendors
   if (authLoading || !user || user?.role === ROLES.VENDOR) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FC]/50 backdrop-blur-sm">
         <div className="text-center">
-          <span className="loading loading-spinner loading-lg text-primary"></span>
-          <p className="mt-4 text-gray-500">Loading...</p>
+          <div className="relative inline-flex items-center justify-center mb-4">
+            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+            <span className="loading loading-spinner loading-lg text-primary relative z-10 w-12 h-12"></span>
+          </div>
+          <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-slate-400 animate-pulse">Initializing Data...</p>
         </div>
       </div>
     );
@@ -194,6 +197,7 @@ export default function DashboardPage() {
             <li><a onClick={() => setStatusFilter("PENDING_APPROVAL")} className="text-xs font-bold text-amber-600 py-2">Pending Approval</a></li>
             <li><a onClick={() => setStatusFilter("PAID")} className="text-xs font-bold text-emerald-600 py-2">Paid</a></li>
             <li><a onClick={() => setStatusFilter("MATCH_DISCREPANCY")} className="text-xs font-bold text-orange-600 py-2">Discrepancies</a></li>
+            <li><a onClick={() => setStatusFilter("REJECTED")} className="text-xs font-bold text-error py-2">Rejected</a></li>
           </ul>
         </div>
       </div>
@@ -225,9 +229,9 @@ export default function DashboardPage() {
       ) : user?.role === ROLES.ADMIN ? (
         <AdminDashboard invoices={invoices} onRefresh={fetchData} />
       ) : user?.role === ROLES.FINANCE_USER ? (
-        <FinanceUserDashboard invoices={invoices} onUploadComplete={handleUploadComplete} />
+        <FinanceUserDashboard invoices={filteredInvoices} onUploadComplete={handleUploadComplete} />
       ) : user?.role === ROLES.PROJECT_MANAGER ? (
-        <ProjectManagerDashboard user={user} invoices={invoices} />
+        <ProjectManagerDashboard user={user} invoices={filteredInvoices} />
       ) : (
         <>
           {activeTab === 'analytics' ? (

@@ -1,8 +1,8 @@
 import "./globals.css";
-import GlassLayout from "@/components/Layout/GlassLayout";
 import Providers from "./providers";
-
 import ErrorBoundary from "@/components/ErrorBoundary";
+import ClientLayoutContent from "@/components/Layout/ClientLayoutContent";
+import Script from "next/script";
 
 export const metadata = {
   title: "InvoiceFlow - Intelligent Invoice Processing",
@@ -15,17 +15,13 @@ export const metadata = {
   },
 };
 
-import Script from "next/script";
-
 export default function RootLayout({ children }) {
   return (
     <html lang="en" data-theme="light">
       <body>
         <ErrorBoundary>
           <Providers>
-            <GlassLayout>
-              {children}
-            </GlassLayout>
+            <ClientLayoutContent>{children}</ClientLayoutContent>
           </Providers>
         </ErrorBoundary>
         <Script

@@ -29,7 +29,7 @@ const GlassLayout = ({ children }) => {
           />
           <main className="flex-1 flex flex-col h-full overflow-hidden relative">
             <div className="pt-6 px-6 pb-0">
-              <div className="glass-panel rounded-t-3xl h-[calc(100dvh-1.5rem)] flex flex-col backdrop-blur-lg border-b-0">
+              <div className="glass-panel-white rounded-t-3xl h-[calc(100dvh-1.5rem)] flex flex-col border-b-0">
                 <Navbar
                   onMenuClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
                 />

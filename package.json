@@ -1,6 +1,6 @@
 {
   "name": "0236120b-6d4d-4c10-8833-99940f850c0e",
-  "version": "1.0.18",
+  "version": "1.0.21",
   "private": true,
   "scripts": {
     "dev": "next dev",

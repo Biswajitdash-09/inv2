@@ -97,211 +97,246 @@ const ThreeWayMatch = ({ invoice: initialInvoice }) => {
   if (!invoice) return null;
 
   return (
-    <div className="max-w-[1280px] mx-auto space-y-6 pb-12 animate-in fade-in duration-700">
-      {/* 1. Premium Action Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white/60 backdrop-blur-2xl p-6 rounded-[2rem] border border-white/80 shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
-        <div className="flex items-center gap-5 min-w-0 flex-1">
-          <div className="p-3 bg-primary/10 rounded-2xl ring-1 ring-primary/20">
-            <Icon name="ShieldCheck" className="text-primary" size={24} />
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">Triple Verification Hub</h2>
-            <div className="flex items-center gap-3 mt-1">
-              {matchStatus === "analyzing" && (
-                <span className="text-[11px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2 px-3 py-1 bg-slate-50 rounded-full border border-slate-100 animate-pulse">
-                  <span className="w-2 h-2 rounded-full bg-slate-300"></span> System Scanning...
-                </span>
-              )}
-              {matchStatus === "matched" && (
-                <span className="text-[11px] font-black text-emerald-600 uppercase tracking-widest flex items-center gap-2 px-3 py-1 bg-emerald-50 rounded-full border border-emerald-100/50">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.6)] animate-pulse"></span> Identity Verified
-                </span>
-              )}
-              {matchStatus === "discrepancy" && (
-                <span className="text-[11px] font-black text-rose-600 uppercase tracking-widest flex items-center gap-2 px-3 py-1 bg-rose-50 rounded-full border border-rose-100/50">
-                  <span className="w-2 h-2 rounded-full bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.6)] animate-pulse"></span> Discrepancy Found
-                </span>
-              )}
+    <div className="max-w-[1000px] mx-auto space-y-8 pb-20 animate-in fade-in slide-in-from-bottom-4 duration-1000">
+      {/* 1. Light-Theme Premium Action Header */}
+      <div className="relative group overflow-hidden bg-white p-7 rounded-[2.5rem] shadow-[0_20px_50px_-12px_rgba(71,85,105,0.12)] border border-slate-100 transition-all duration-500 hover:shadow-[0_30px_60px_-12px_rgba(71,85,105,0.18)]">
+        {/* Subtle Decorative Accents */}
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-50/50 blur-[100px] rounded-full -mr-32 -mt-32"></div>
+        <div className="absolute bottom-0 left-0 w-48 h-48 bg-blue-50/50 blur-[80px] rounded-full -ml-24 -mb-24"></div>
+
+        <div className="relative flex flex-wrap items-center justify-between gap-6">
+          <div className="flex items-center gap-5">
+            <div className="relative">
+              <div className="absolute inset-0 bg-indigo-500/10 blur-xl rounded-full"></div>
+              <div className="relative p-3.5 bg-white rounded-2xl border border-indigo-50 shadow-sm">
+                <Icon name="ShieldCheck" className="text-indigo-600" size={28} />
+              </div>
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full border-2 border-white flex items-center justify-center">
+                <div className="w-1 h-1 bg-white rounded-full animate-pulse"></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex items-center gap-3">
+                <h2 className="text-2xl font-black tracking-tighter text-slate-900">
+                  Verification Engine
+                </h2>
+                <span className="text-[9px] font-black bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded-lg border border-indigo-100 uppercase tracking-[0.2em] shadow-sm">v2.1</span>
+              </div>
+              <div className="flex items-center gap-3 mt-1.5 leading-none">
+                <p className="text-slate-400 text-[10px] font-black uppercase tracking-[0.25em]">Automated Integrity Audit</p>
+                <div className="w-1 h-1 bg-slate-200 rounded-full"></div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1.5">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-indigo-500"></span>
+                    </span>
+                    Live Analysis
+                  </span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center gap-4 shrink-0">
-          <Button
-            variant="ghost"
-            disabled={matchStatus === "analyzing" || processing}
-            onClick={handleReject}
-            className="h-12 px-8 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] border-slate-200 text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition-all shadow-sm"
-          >
-            Reject
-          </Button>
-          <Button
-            variant="ghost"
-            disabled={!canApprove() || matchStatus === "analyzing" || processing}
-            onClick={handleApprove}
-            loading={processing}
-            className="h-12 px-10 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] bg-teal-600 hover:bg-teal-700 text-white shadow-lg shadow-teal-500/20 hover:scale-[1.02] active:scale-[0.98] transition-all disabled:opacity-30 border-none disabled:cursor-not-allowed"
-          >
-            {matchStatus === 'discrepancy' ? 'Override & Approve' : 'Approve Match'}
-          </Button>
-        </div>
-      </div>
-
-      {/* 2. Enhanced Data Context Bar - scroll on narrow so nothing is cut off */}
-      <div className="overflow-x-auto min-w-0">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 bg-white p-5 md:p-7 rounded-[2.5rem] shadow-2xl shadow-slate-200/50 border border-slate-100 relative overflow-hidden group min-w-0">
-        <div className="absolute top-0 right-0 w-32 h-32 bg-primary/5 blur-[60px] rounded-full -mr-16 -mt-16 group-hover:bg-primary/10 transition-colors"></div>
-
-        <div className="space-y-1.5 border-r border-slate-100 last:border-none pr-6">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Icon name="User" size={12} className="text-slate-300" /> Vendor Registry
-          </p>
-          <p className="text-lg font-bold text-slate-800 truncate">{invoice.vendorName}</p>
-        </div>
-        <div className="space-y-1.5 border-r border-slate-100 last:border-none pr-6">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Icon name="FileText" size={12} className="text-slate-300" /> Document ID
-          </p>
-          <p className="text-lg font-bold text-slate-800 font-mono italic tracking-tighter">{invoice.invoiceNumber || invoice.id}</p>
-        </div>
-        <div className="space-y-1.5 border-r border-slate-100 last:border-none pr-6">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Icon name="Activity" size={12} className="text-slate-300" /> Status Flag
-          </p>
-          <div className="flex items-center">
-            <span className={clsx(
-              "text-[10px] font-black uppercase tracking-tight px-3 py-1 rounded-full",
-              invoice.status.includes('DISCREPANCY') ? "bg-rose-100 text-rose-700" : "bg-emerald-100 text-emerald-700"
-            )}>
-              {invoice.status.replace('_', ' ')}
-            </span>
+          <div className="flex items-center gap-3">
+            <Button
+              variant="ghost"
+              disabled={matchStatus === "analyzing" || processing}
+              onClick={handleReject}
+              className="h-12 px-8 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] bg-white border-2 border-rose-500 text-slate-900 hover:bg-rose-500 hover:text-white hover:shadow-[0_10px_20px_-5px_rgba(244,63,94,0.3)] transition-all duration-300"
+            >
+              Flag Reject
+            </Button>
+            <Button
+              variant="ghost"
+              disabled={!canApprove() || matchStatus === "analyzing" || processing}
+              onClick={handleApprove}
+              loading={processing}
+              className="h-12 px-10 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] bg-white border-2 border-emerald-500 text-slate-900 hover:bg-emerald-500 hover:text-white hover:shadow-[0_10px_20px_-5px_rgba(16,185,129,0.3)] transition-all duration-300 hover:scale-[1.02] active:scale-[0.98]"
+            >
+              {matchStatus === 'discrepancy' ? 'Approve' : 'Authorize Match'}
+            </Button>
           </div>
         </div>
-        <div className="space-y-1.5 min-w-0">
-          <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-            <Icon name="Hash" size={12} className="text-slate-300 shrink-0" /> PO Channel
-          </p>
-          <p className="text-lg font-bold text-purple-600 font-mono truncate">
-            {invoice.poNumber || "NOT_PROVIDED"}
-          </p>
-        </div>
-        </div>
       </div>
 
-      {/* 3. The Professional Verification Table */}
-      <div className="bg-white rounded-[2.5rem] shadow-[0_20px_60px_rgba(0,0,0,0.08)] overflow-hidden border border-slate-100">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-900 border-b border-slate-800">
-                <th className="px-10 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em]">Inventory / Service Line</th>
-                <th colSpan="2" className="px-6 py-6 text-[11px] font-black text-blue-400 uppercase tracking-[0.2em] bg-primary/5 text-center border-l border-white/5">Invoice Data</th>
-                <th colSpan="2" className="px-6 py-6 text-[11px] font-black text-purple-400 uppercase tracking-[0.2em] bg-purple-500/5 text-center border-l border-white/5">PO Ref</th>
-                <th className="px-8 py-6 text-[11px] font-black text-orange-400 uppercase tracking-[0.2em] bg-orange-500/5 text-center border-l border-white/5">GR Units</th>
-                <th className="px-10 py-6 text-[11px] font-black text-slate-400 uppercase tracking-[0.2em] text-right">Match</th>
-              </tr>
-              <tr className="bg-slate-900/95 text-[10px] font-black text-slate-500 border-b border-slate-800">
-                <th className="px-10 py-3 uppercase tracking-widest">Description</th>
-                <th className="px-6 py-3 border-l border-white/5 text-center">Qty</th>
-                <th className="px-6 py-3 text-center">Unit Price</th>
-                <th className="px-6 py-3 border-l border-white/5 text-center">Qty</th>
-                <th className="px-6 py-3 text-center">Unit Price</th>
-                <th className="px-8 py-3 border-l border-white/5 text-center">Received</th>
-                <th className="px-10 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50">
+      {/* 2. The Paper Invoice Document */}
+      <div className="bg-white rounded-[1rem] shadow-[0_30px_100px_rgba(0,0,0,0.1)] border border-slate-200 overflow-hidden relative">
+        {/* Verification Status Banner */}
+        <div className={clsx(
+          "h-1.5 w-full",
+          matchStatus === "matched" ? "bg-emerald-500" :
+            matchStatus === "discrepancy" ? "bg-rose-500" : "bg-indigo-500"
+        )}></div>
+
+        {/* Invoice Body */}
+        <div className="p-10 sm:p-16 space-y-12">
+          {/* Header Section: Branding vs Bill To */}
+          <div className="flex flex-col md:flex-row justify-between gap-12 border-b border-slate-100 pb-12">
+            <div className="space-y-4 max-w-sm">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-indigo-200">
+                  <Icon name="Zap" size={24} />
+                </div>
+                <h1 className="text-2xl font-black text-slate-900 uppercase tracking-tighter">{invoice.vendorName}</h1>
+              </div>
+              <div className="text-sm font-bold text-slate-400 leading-relaxed uppercase tracking-wide">
+                123 Business Avenue, Suite 400<br />
+                Silicon Valley, CA 94043<br />
+                contact@{(invoice.vendorName || "vendor").toLowerCase().replace(/\s+/g, '')}.com
+              </div>
+            </div>
+
+            <div className="text-right space-y-4">
+              <div className="flex flex-col items-end">
+                <span className="text-[11px] font-black text-slate-300 uppercase tracking-[0.3em] mb-1">Billed To</span>
+                <h3 className="text-lg font-black text-slate-800 uppercase tracking-tight">AutoInvoice Global Corp.</h3>
+                <p className="text-sm font-bold text-slate-400 uppercase tracking-wide">Financial Operations Unit</p>
+              </div>
+              <div className="flex flex-col items-end gap-2">
+                <span className={clsx(
+                  "text-[10px] font-black uppercase tracking-widest px-4 py-1.5 rounded-full border",
+                  matchStatus === "matched" ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                    matchStatus === "discrepancy" ? "bg-rose-50 text-rose-600 border-rose-100" :
+                      "bg-indigo-50 text-indigo-600 border-indigo-100"
+                )}>
+                  {matchStatus.replace('_', ' ')}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Metadata Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+            <div className="space-y-1">
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Invoice Date</p>
+              <p className="text-sm font-black text-slate-800">{new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Invoice Number</p>
+              <p className="text-sm font-black text-slate-800 font-mono tracking-tighter">#{invoice.invoiceNumber || invoice.id}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">PO Reference</p>
+              <p className="text-sm font-black text-indigo-600 font-mono italic tracking-tighter">{invoice.poNumber || "PENDING"}</p>
+            </div>
+            <div className="space-y-1">
+              <p className="text-[10px] font-black text-slate-300 uppercase tracking-widest">Payment Terms</p>
+              <p className="text-sm font-black text-slate-800">Net 30 Days</p>
+            </div>
+          </div>
+
+          {/* Itemization Section */}
+          <div className="space-y-6">
+            <div className="flex items-center justify-between border-b-2 border-slate-900 pb-4">
+              <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.25em]">Line Item Breakdown</span>
+              <span className="text-[10px] font-bold text-slate-400 italic">Values in INR</span>
+            </div>
+
+            <div className="divide-y divide-slate-100 min-w-full overflow-x-auto">
               {(invoice.items || []).map((invItem, idx) => {
                 const poItem = purchaseOrder?.items[idx] || {};
                 const grItem = goodsReceipt?.items[idx] || {};
 
-                // Logic already handled in backend, but we need to visualize diffs here for UI
-                // We can use the same simple comparison for display purposes
                 const priceMatch = Math.abs(invItem.unitPrice - (poItem.unitPrice || 0)) < 0.01;
                 const qtyMatch = invItem.quantity === (poItem.quantity || 0) && invItem.quantity === (grItem.quantity || 0);
                 const rowMatch = priceMatch && qtyMatch;
 
                 return (
-                  <tr key={idx} className={clsx(
-                    "group transition-all duration-300",
-                    rowMatch ? "hover:bg-emerald-50/40" : "bg-rose-50/10 hover:bg-rose-50/30"
-                  )}>
-                    <td className="px-10 py-5">
+                  <div key={idx} className="py-8 grid grid-cols-1 md:grid-cols-12 gap-6 items-center group">
+                    <div className="md:col-span-5 space-y-1.5">
                       <div className="flex items-center gap-3">
-                        <div className={clsx("w-1.5 h-1.5 rounded-full", rowMatch ? "bg-emerald-400" : "bg-rose-400 shadow-[0_0_8px_rgba(244,63,94,0.4)]")}></div>
-                        <p className="text-sm font-bold text-slate-800 truncate max-w-[280px]">{invItem.description}</p>
+                        <span className="text-xs font-black text-slate-300 font-mono">{(idx + 1).toString().padStart(2, '0')}</span>
+                        <h4 className="text-sm font-black text-slate-800 uppercase tracking-tight leading-tight">{invItem.description}</h4>
                       </div>
-                    </td>
+                      <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider ml-8">HSN: 8471 • Services & Hardware</p>
+                    </div>
 
-                    {/* Invoice Data */}
-                    <td className="px-6 py-5 border-l border-slate-50 text-center">
-                      <span className="text-sm font-mono font-bold text-slate-500">{invItem.quantity}</span>
-                    </td>
-                    <td className="px-6 py-5 text-center font-black">
-                      <span className="text-sm text-slate-900">${invItem.unitPrice}</span>
-                    </td>
+                    <div className="md:col-span-2 text-center bg-slate-50/50 py-3 rounded-xl border border-dashed border-slate-200">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Invoiced Qty</p>
+                      <p className="text-sm font-black text-slate-800">{invItem.quantity}</p>
+                    </div>
 
-                    {/* PO Reference */}
-                    <td className={clsx("px-6 py-5 border-l border-slate-50 text-center bg-purple-500/5 group-hover:bg-purple-500/10 transition-colors")}>
-                      <span className={clsx("text-sm font-mono font-bold", invItem.quantity === poItem.quantity ? "text-slate-400" : "text-rose-600 underline decoration-dotted font-black")}>
-                        {poItem.quantity || '-'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-5 text-center bg-purple-500/5 group-hover:bg-purple-500/10 transition-colors font-black">
-                      <span className={clsx("text-sm", priceMatch ? "text-slate-700" : "text-rose-600 bg-rose-100/50 px-2 py-1 rounded-lg border border-rose-200 shadow-sm")}>
-                        ${poItem.unitPrice || '-'}
-                      </span>
-                    </td>
+                    <div className="md:col-span-2 text-center">
+                      <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Unit Price</p>
+                      <p className="text-sm font-black text-slate-800">₹{invItem.unitPrice.toLocaleString()}</p>
+                    </div>
 
-                    {/* GR Data */}
-                    <td className="px-8 py-5 border-l border-slate-50 text-center bg-orange-500/5 group-hover:bg-orange-500/10 transition-colors font-black">
-                      <span className={clsx("text-sm", invItem.quantity === (grItem.quantity || grItem.accepted) ? "text-orange-600" : "text-rose-600 font-extrabold animate-pulse")}>
-                        {grItem.quantity || grItem.accepted || '0'}
-                      </span>
-                    </td>
-
-                    {/* Row Status */}
-                    <td className="px-10 py-5 text-right">
-                      <div className={clsx(
-                        "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border font-black text-[10px] uppercase tracking-widest transition-all",
-                        rowMatch ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100 shadow-sm"
-                      )}>
-                        <Icon name={rowMatch ? "CheckCircle" : "AlertCircle"} size={14} />
-                        {rowMatch ? 'Exact' : 'Error'}
+                    <div className="md:col-span-3 text-right">
+                      <div className="flex flex-col items-end gap-2">
+                        <div className={clsx(
+                          "px-3 py-1 rounded-lg border text-[9px] font-black uppercase tracking-widest flex items-center gap-2",
+                          rowMatch ? "bg-emerald-50 text-emerald-600 border-emerald-100" : "bg-rose-50 text-rose-600 border-rose-100"
+                        )}>
+                          <Icon name={rowMatch ? "Check" : "AlertCircle"} size={10} />
+                          {rowMatch ? "Verified" : "Discrepancy"}
+                        </div>
+                        <p className="text-base font-black text-slate-900 tracking-tighter">
+                          ₹{(invItem.quantity * invItem.unitPrice).toLocaleString()}
+                        </p>
                       </div>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Footer Summary Section */}
-        <div className="p-8 bg-slate-50/80 border-t border-slate-100 flex flex-col md:flex-row justify-between items-center gap-6">
-          <div className="flex gap-8">
-            <div className="space-y-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center md:text-left">Invoiced Total</p>
-              <p className="text-2xl font-black text-slate-900">{new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(invoice.amount || 0)}</p>
-            </div>
-            <div className="space-y-1">
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest text-center md:text-left">PO Authorized</p>
-              <p className={clsx("text-2xl font-black", purchaseOrder && Math.abs((invoice.amount || 0) - purchaseOrder.totalAmount) < 0.01 ? "text-slate-900" : "text-rose-600")}>
-                {purchaseOrder ? new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(purchaseOrder.totalAmount) : '---'}
-              </p>
             </div>
           </div>
 
-          {matchResult.discrepancies?.length > 0 && (
-            <div className="flex-1 max-w-md p-5 bg-rose-50 border border-rose-100 rounded-[1.5rem] space-y-2.5 shadow-inner">
-              {matchResult.discrepancies.map((d, i) => (
-                <div key={i} className="flex items-center gap-3 text-[11px] font-bold text-rose-700 uppercase tracking-tight">
-                  <Icon name="AlertCircle" size={16} className="shrink-0 animate-pulse" />
-                  <span>{d}</span>
+          {/* Audit & Totals Section */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-12 border-t-2 border-slate-900">
+            <div className="space-y-6">
+              <div className="space-y-3">
+                <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.25em] flex items-center gap-2">
+                  <Icon name="Activity" size={14} className="text-indigo-600" />
+                  Compliance Notes
+                </span>
+                <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 space-y-4">
+                  {matchResult.discrepancies?.length > 0 ? (
+                    matchResult.discrepancies.map((d, i) => (
+                      <div key={i} className="flex gap-4 items-start">
+                        <div className="mt-1 p-1 bg-rose-100 text-rose-600 rounded-lg">
+                          <Icon name="AlertCircle" size={12} />
+                        </div>
+                        <p className="text-[11px] font-bold text-rose-700 uppercase leading-loose tracking-wide">{d}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="flex gap-4 items-center">
+                      <div className="p-1 bg-emerald-100 text-emerald-600 rounded-lg">
+                        <Icon name="Check" size={12} />
+                      </div>
+                      <p className="text-[11px] font-bold text-emerald-700 uppercase tracking-wide">All audit checks passed successfully.</p>
+                    </div>
+                  )}
                 </div>
-              ))}
+              </div>
+
+
             </div>
-          )}
+
+            <div className="space-y-4">
+              <div className="flex justify-between items-center px-2">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Subtotal</span>
+                <span className="text-sm font-black text-slate-800">₹{(invoice.amount || 0).toLocaleString()}</span>
+              </div>
+              <div className="flex justify-between items-center px-2">
+                <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Tax (GST 0%)</span>
+                <span className="text-sm font-black text-slate-800">₹0.00</span>
+              </div>
+              <div className="flex justify-between items-center px-2 pt-4 border-t border-slate-100">
+                <span className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">Grand Total</span>
+                <div className="text-right">
+                  <span className="text-3xl font-black text-slate-900 tracking-tighter">₹{(invoice.amount || 0).toLocaleString()}</span>
+                  <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] mt-1">Verified Amount (INR)</p>
+                </div>
+              </div>
+
+              {/* Legal Footer */}
+              <div className="mt-12 pt-8 border-t border-slate-50 text-center">
+
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>

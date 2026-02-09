@@ -116,17 +116,18 @@ const FinanceUserDashboard = ({ invoices, onUploadComplete }) => {
                                                 </td>
                                                 <td>
                                                     <span className={`badge badge-sm border-0 font-bold py-3 px-3 uppercase text-[10px] tracking-wide
-                                                        ${inv.status === 'APPROVED' || inv.status === 'VERIFIED' ? 'bg-success/10 text-success' :
-                                                            inv.status === 'MATCH_DISCREPANCY' ? 'bg-error/10 text-error' :
-                                                                inv.status === 'VALIDATION_REQUIRED' ? 'bg-info/10 text-info' :
-                                                                    inv.status === 'PENDING_APPROVAL' ? 'bg-warning/10 text-warning' :
-                                                                        'bg-slate-100 text-slate-500'
+                                                        ${inv.status === 'PAID' || inv.status === 'APPROVED' || inv.status === 'VERIFIED' ? 'bg-success/10 text-success' :
+                                                            inv.status === 'REJECTED' ? 'bg-error/10 text-error' :
+                                                                inv.status === 'MATCH_DISCREPANCY' ? 'bg-warning/10 text-warning' :
+                                                                    inv.status === 'VALIDATION_REQUIRED' ? 'bg-info/10 text-info' :
+                                                                        inv.status === 'PENDING_APPROVAL' ? 'bg-warning/10 text-warning' :
+                                                                            'bg-slate-100 text-slate-500'
                                                         }`}>
                                                         {inv.status.replace('_', ' ')}
                                                     </span>
                                                 </td>
                                                 <td className="text-right pr-6">
-                                                    <button className="btn btn-ghost btn-xs text-slate-400 hover:text-primary">
+                                                    <button className="btn btn-ghost btn-xs text-slate-400 hover:text-success hover:bg-success/5">
                                                         <Icon name="ArrowRight" size={14} />
                                                     </button>
                                                 </td>
@@ -147,7 +148,7 @@ const FinanceUserDashboard = ({ invoices, onUploadComplete }) => {
 
                 {/* Right Column: Upload Queue & System Status */}
                 <div className="space-y-6">
-                    <Card className="h-auto border-0 shadow-lg bg-indigo-600 text-white overflow-hidden relative">
+                    <Card className="h-auto border-0 shadow-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white overflow-hidden relative shadow-indigo-200">
                         {/* Abstract background pattern */}
                         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
                         <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
@@ -157,7 +158,7 @@ const FinanceUserDashboard = ({ invoices, onUploadComplete }) => {
                                 <Icon name="UploadCloud" size={20} />
                                 Quick Ingestion
                             </h3>
-                            <p className="text-indigo-100 text-sm mb-6">Drag & drop files here to immediately start the IDP extraction process.</p>
+                            <p className="text-indigo-50 text-sm mb-6 font-medium">Drag & drop files here to immediately start the IDP extraction process.</p>
                             <div className="bg-white/10 rounded-2xl p-1 backdrop-blur-sm">
                                 <DropZone onUploadComplete={onUploadComplete} theme="dark" />
                             </div>

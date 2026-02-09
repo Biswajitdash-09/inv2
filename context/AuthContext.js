@@ -10,6 +10,7 @@ const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
     const [user, setUser] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isLoggingOut, setIsLoggingOut] = useState(false);
     const router = useRouter();
 
     // Check for existing session on mount
@@ -119,11 +120,17 @@ export const AuthProvider = ({ children }) => {
     };
 
     const logout = async () => {
-        // Clear local state immediately for instant UI response
-        setUser(null);
-        // Redirect immediately (no waiting)
-        router.push("/login");
-        // Fire logout API in background (don't await)
+        // Trigger premium logout UI
+        setIsLoggingOut(true);
+
+        // Short delay to allow overlay to fade in and feel "premium"
+        setTimeout(() => {
+            if (typeof window !== 'undefined') {
+                window.location.href = "/login";
+            }
+        }, 800);
+
+        // Fire logout API in background
         fetch('/api/auth/logout', { method: 'POST', credentials: 'include' })
             .catch(error => console.error("Logout API error:", error));
     };
@@ -137,7 +144,7 @@ export const AuthProvider = ({ children }) => {
     };
 
     return (
-        <AuthContext.Provider value={{ user, login, signup, logout, switchRole, isLoading }}>
+        <AuthContext.Provider value={{ user, login, signup, logout, switchRole, isLoading, isLoggingOut }}>
             {children}
         </AuthContext.Provider>
     );

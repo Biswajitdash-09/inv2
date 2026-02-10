@@ -66,6 +66,7 @@ export async function POST(request) {
             id: invoiceId,
             vendorName: session.user.name || session.user.email,
             submittedByUserId: session.user.id,
+            vendorId: session.user.vendorId || null,
             originalName: invoiceFile.name,
             receivedAt: new Date(),
             invoiceNumber: invoiceNumber || null,

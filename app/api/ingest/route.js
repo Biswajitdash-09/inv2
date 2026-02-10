@@ -52,6 +52,7 @@ export async function POST(request) {
             id: invoiceId,
             vendorName: user.role === ROLES.VENDOR ? user.name : 'Pending Identification',
             submittedByUserId: user.id, // So vendor list filters by user.id and updates correctly
+            vendorId: user.role === ROLES.VENDOR && user.vendorId ? user.vendorId : undefined, // Uniquely identify which vendor uploaded (admin/PM)
             originalName: file.name,
             fileUrl: fileUrl,
             status: 'RECEIVED',
@@ -80,6 +81,7 @@ export async function POST(request) {
                 // Preserve vendor identity & Project/PM
                 submittedByUserId: invoiceMetadata.submittedByUserId,
                 vendorName: invoiceMetadata.vendorName,
+                vendorId: invoiceMetadata.vendorId,
                 project: invoiceMetadata.project,
                 assignedPM: invoiceMetadata.assignedPM,
 

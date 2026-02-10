@@ -34,51 +34,56 @@ export default function VendorPortal() {
         }
     }, []);
 
-    // Project & PM Selection State
+    // Project & PM Selection State — Project optional; PM list = all signed-up project managers
     const [projects, setProjects] = useState([]);
     const [pms, setPms] = useState([]);
     const [selectedProject, setSelectedProject] = useState("");
     const [selectedPM, setSelectedPM] = useState("");
-    const [metadataLoading, setMetadataLoading] = useState(false);
+    const [vendorProfile, setVendorProfile] = useState(null); // { vendorCode, name } for display
 
     const fetchProjects = useCallback(async () => {
         try {
             const res = await fetch('/api/vendor/projects');
             if (res.ok) {
                 const data = await res.json();
-                setProjects(data);
+                setProjects(Array.isArray(data) ? data : []);
             }
         } catch (error) {
             console.error("Failed to fetch projects", error);
         }
     }, []);
 
-    const handleProjectChange = async (projectId) => {
-        setSelectedProject(projectId);
-        setSelectedPM("");
-        setPms([]);
-
-        if (!projectId) return;
-
-        setMetadataLoading(true);
+    const fetchAllPms = useCallback(async () => {
         try {
-            const res = await fetch(`/api/projects/${projectId}/pms`);
+            const res = await fetch('/api/pms');
             if (res.ok) {
                 const data = await res.json();
-                setPms(data);
+                setPms(data.pms || []);
             }
         } catch (error) {
             console.error("Failed to fetch PMs", error);
-        } finally {
-            setMetadataLoading(false);
         }
-    };
+    }, []);
+
+    const fetchVendorProfile = useCallback(async () => {
+        try {
+            const res = await fetch('/api/vendor/me');
+            if (res.ok) {
+                const data = await res.json();
+                setVendorProfile(data);
+            }
+        } catch (error) {
+            console.error("Failed to fetch vendor profile", error);
+        }
+    }, []);
 
     useEffect(() => {
         if (user) {
             fetchProjects();
+            fetchAllPms();
+            if (user.role === "Vendor") fetchVendorProfile();
         }
-    }, [user, fetchProjects]);
+    }, [user, fetchProjects, fetchAllPms, fetchVendorProfile]);
 
     useEffect(() => {
         if (!authLoading && !user) {
@@ -177,9 +182,14 @@ export default function VendorPortal() {
                 subtitle="Seamlessly manage your billing, track payments in real-time, and resolve discrepancies instantly."
                 icon="Package"
                 accent="teal"
-                roleLabel="Vendor"
+                roleLabel={vendorProfile?.vendorCode ? `Vendor · ${vendorProfile.vendorCode}` : "Vendor"}
                 actions={
                     <div className="flex items-center gap-2">
+                        {vendorProfile?.vendorCode && (
+                            <span className="text-xs font-mono font-bold text-slate-600 bg-slate-100 px-2.5 py-1.5 rounded-lg border border-slate-200" title="Your vendor ID across the portal">
+                                {vendorProfile.vendorCode}
+                            </span>
+                        )}
                         <button
                             type="button"
                             onClick={() => { setLoading(true); fetchSubmissions(); }}
@@ -251,8 +261,8 @@ export default function VendorPortal() {
 
                         <form onSubmit={async (e) => {
                             e.preventDefault();
-                            if (!selectedProject || !selectedPM) {
-                                alert("Please select a Project and PM.");
+                            if (!selectedPM) {
+                                alert("Please select a PM to assign this invoice to.");
                                 return;
                             }
                             const form = e.target;
@@ -266,7 +276,7 @@ export default function VendorPortal() {
                             setLoading(true);
                             try {
                                 const metadata = {
-                                    projectId: selectedProject,
+                                    ...(selectedProject && { projectId: selectedProject }),
                                     assignedPM: selectedPM,
                                     invoiceNumber: formData.get('invoiceNumber'),
                                     date: formData.get('date'),
@@ -294,19 +304,17 @@ export default function VendorPortal() {
                                         <select
                                             className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium focus:ring-2 focus:ring-teal-500 outline-none"
                                             value={selectedProject}
-                                            onChange={(e) => handleProjectChange(e.target.value)}
-                                            required
+                                            onChange={(e) => setSelectedProject(e.target.value)}
                                         >
-                                            <option value="">Select Project</option>
+                                            <option value="">Select Project (Optional)</option>
                                             {projects.map(p => (
                                                 <option key={p.id} value={p.id}>{p.name}</option>
                                             ))}
                                         </select>
                                         <select
-                                            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium focus:ring-2 focus:ring-teal-500 outline-none disabled:opacity-50"
+                                            className="w-full h-10 px-3 rounded-xl border border-slate-200 bg-slate-50/50 text-xs font-medium focus:ring-2 focus:ring-teal-500 outline-none"
                                             value={selectedPM}
                                             onChange={(e) => setSelectedPM(e.target.value)}
-                                            disabled={!selectedProject || metadataLoading}
                                             required
                                         >
                                             <option value="">Select PM</option>
@@ -315,6 +323,11 @@ export default function VendorPortal() {
                                             ))}
                                         </select>
                                     </div>
+                                    {selectedPM && (
+                                        <p className="mt-1.5 text-[10px] text-teal-600 font-medium">
+                                            Invoice will be assigned to: {pms.find(p => p.id === selectedPM)?.name || selectedPM}
+                                        </p>
+                                    )}
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-3">

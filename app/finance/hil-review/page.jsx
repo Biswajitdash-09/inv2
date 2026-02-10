@@ -172,7 +172,7 @@ export default function HILReviewPage() {
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                             <div>
                                                 <p className="text-gray-400">Vendor</p>
-                                                <p className="text-white">{invoice.vendorName}</p>
+                                                <p className="text-white">{invoice.vendorCode && <span className="font-mono text-purple-300 mr-1">{invoice.vendorCode}</span>}{invoice.vendorName}</p>
                                             </div>
                                             <div>
                                                 <p className="text-gray-400">Amount</p>

@@ -243,8 +243,18 @@ export default function PMMessagesPage() {
                             >
                                 <div className="flex justify-between items-start mb-8">
                                     <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-purple-600 mb-1">Message Center</p>
-                                        <h2 className="text-2xl font-black text-slate-800 tracking-tight">Compose New Message</h2>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">To (Vendor)</label>
+                                        <select
+                                            value={composeData.recipientId}
+                                            onChange={(e) => setComposeData({ ...composeData, recipientId: e.target.value })}
+                                            required
+                                            className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        >
+                                            <option value="">Select Vendor</option>
+                                            {vendors.map(v => (
+                                                <option key={v.id} value={v.linkedUserId || v.id}>{v.vendorCode ? `${v.vendorCode} · ${v.name}` : v.name}</option>
+                                            ))}
+                                        </select>
                                     </div>
                                     <button onClick={() => setShowComposeModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
                                         <Icon name="X" size={20} className="text-slate-400" />

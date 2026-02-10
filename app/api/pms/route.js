@@ -1,17 +1,21 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { ROLES } from '@/constants/roles';
-import { getNormalizedRole } from '@/constants/roles';
+import { getCurrentUser } from '@/lib/server-auth';
 
 export const dynamic = 'force-dynamic';
 
 /**
- * GET /api/pms - Get list of Project Managers
- * Accessible to authenticated users (for vendor invoice submission)
+ * GET /api/pms - Get list of Project Managers (signed up as PM)
+ * Accessible to authenticated users (e.g. vendors) for invoice assignment.
  */
 export async function GET() {
     try {
-        // Allow any authenticated user to get PM list for assignment
+        const user = await getCurrentUser();
+        if (!user) {
+            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+        }
+
         const users = await db.getAllUsers();
 
         // Filter to only return PMs with limited info (no sensitive data)

@@ -15,6 +15,7 @@ const PerformanceMetricsSchema = new mongoose.Schema({
 
 const VendorSchema = new mongoose.Schema({
     id: { type: String, required: true, unique: true },
+    vendorCode: { type: String, unique: true, sparse: true }, // Display ID e.g. ve-001, ve-002 (shown across portal)
     name: { type: String, required: true },
     email: { type: String, required: true },
     phone: { type: String },

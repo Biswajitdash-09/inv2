@@ -35,22 +35,37 @@ export async function POST(request) {
         // Hash password
         const passwordHash = await bcrypt.hash(password, 10);
 
-        // Create user
+        const userId = uuidv4();
+        let vendorId = null;
+
+        // For Vendor role: create a Vendor record with unique vendorCode and link to user
+        if (role === 'Vendor') {
+            const vendorRecord = await db.createVendor({
+                id: 'v-' + userId.slice(0, 8),
+                name,
+                email: email.toLowerCase(),
+                linkedUserId: userId,
+            });
+            vendorId = vendorRecord.id;
+        }
+
         const newUser = {
-            id: uuidv4(),
+            id: userId,
             name,
             email,
             passwordHash,
             role,
+            vendorId,
         };
 
         const savedUser = await db.createUser(newUser);
+        const sessionUser = { ...savedUser, vendorId: savedUser.vendorId ?? vendorId };
 
-        // Start session
-        await login(savedUser);
+        // Start session (include vendorId so vendor portal can show vendorCode)
+        await login(sessionUser);
 
         return NextResponse.json({
-            user: savedUser,
+            user: sessionUser,
             message: 'User created successfully'
         });
     } catch (error) {

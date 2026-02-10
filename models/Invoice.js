@@ -24,6 +24,7 @@ const InvoiceSchema = new mongoose.Schema({
     id: { type: String, required: true, unique: true },
     vendorName: { type: String, required: true },
     submittedByUserId: { type: String }, // User id of submitter (vendor) - reliable filter for vendor list
+    vendorId: { type: String }, // Vendor record id — uniquely identifies which vendor uploaded (for admin/PM display)
     originalName: { type: String },
     receivedAt: { type: Date },
     invoiceNumber: { type: String },

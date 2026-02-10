@@ -142,18 +142,16 @@ export default function PMApprovalsPage() {
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: idx * 0.05 }}
                             >
-                                <Card className="h-full hover:shadow-md transition-all border-slate-200/60">
-                                    <div className="flex justify-between items-start mb-6">
-                                        <div className="min-w-0">
-                                            <h3 className="text-lg font-bold text-slate-800 truncate">
+                                <Card className="p-6 h-full flex flex-col border-slate-200/60 hover:shadow-xl hover:shadow-slate-200/40 transition-all group">
+                                    <div className="flex justify-between items-start mb-4">
+                                        <div>
+                                            <h3 className="text-lg font-semibold text-slate-800">
                                                 {invoice.invoiceNumber || `Invoice ${invoice.id.slice(0, 8)}`}
                                             </h3>
-                                            <p className="text-sm font-medium text-slate-500 truncate">{invoice.vendorName}</p>
-                                        </div>
-                                        <div className="text-right shrink-0">
-                                            <span className="text-xl font-black text-indigo-600">
-                                                ₹{invoice.amount?.toLocaleString() || '-'}
-                                            </span>
+                                            <p className="text-slate-500 font-medium">
+                                                {invoice.vendorCode && <span className="font-mono text-indigo-600 mr-1.5 px-1.5 py-0.5 bg-indigo-50 rounded italic">{invoice.vendorCode}</span>}
+                                                {invoice.vendorName}
+                                            </p>
                                         </div>
                                     </div>
 
@@ -193,7 +191,7 @@ export default function PMApprovalsPage() {
                                     )}
 
                                     {/* Actions */}
-                                    <div className="flex flex-wrap gap-2 pt-6 border-t border-slate-100">
+                                    <div className="mt-auto flex flex-wrap gap-2 pt-6 border-t border-slate-100">
                                         <button
                                             onClick={() => setActionModal({ invoice, action: 'APPROVE' })}
                                             disabled={processingId === invoice.id}
@@ -244,31 +242,19 @@ export default function PMApprovalsPage() {
                                 exit={{ scale: 0.95, opacity: 0 }}
                                 className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl border border-slate-100"
                             >
-                                <div className="flex justify-between items-start mb-6">
-                                    <div>
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-1">Confirm Action</p>
-                                        <h2 className="text-2xl font-black text-slate-800 tracking-tight">
-                                            {actionModal.action === 'APPROVE' ? 'Approve' :
-                                                actionModal.action === 'REJECT' ? 'Reject' : 'Request Info'}
-                                        </h2>
-                                    </div>
-                                    <button onClick={() => { setActionModal(null); setNotes(''); }} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
-                                        <Icon name="X" size={20} className="text-slate-400" />
-                                    </button>
-                                </div>
-
-                                <div className="p-4 bg-slate-50 rounded-2xl mb-6 border border-slate-100">
-                                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Invoice Details</p>
-                                    <p className="font-bold text-slate-800">
-                                        {actionModal.invoice.invoiceNumber || actionModal.invoice.id.slice(0, 8)}
-                                    </p>
-                                    <p className="text-sm font-medium text-slate-500">
-                                        ₹{actionModal.invoice.amount?.toLocaleString()} • {actionModal.invoice.vendorName}
-                                    </p>
-                                </div>
-
-                                <div className="mb-8">
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">
+                                <h2 className="text-xl font-bold text-white mb-4">
+                                    {actionModal.action === 'APPROVE' ? 'Approve' :
+                                        actionModal.action === 'REJECT' ? 'Reject' : 'Request Info for'} Invoice?
+                                </h2>
+                                <p className="text-gray-300 mb-4">
+                                    {actionModal.invoice.invoiceNumber || actionModal.invoice.id.slice(0, 8)}
+                                    <br />
+                                    <span className="text-white font-medium">
+                                        ₹{actionModal.invoice.amount?.toLocaleString()} - {actionModal.invoice.vendorCode && <span className="font-mono text-purple-300">{actionModal.invoice.vendorCode}</span>} {actionModal.invoice.vendorCode && '· '}{actionModal.invoice.vendorName}
+                                    </span>
+                                </p>
+                                <div className="mb-6">
+                                    <label className="block text-sm text-gray-400 mb-1">
                                         {actionModal.action === 'REJECT' ? 'Rejection Reason' :
                                             actionModal.action === 'REQUEST_INFO' ? 'Information Needed' : 'Notes (Optional)'}
                                         {actionModal.action !== 'APPROVE' && <span className="text-rose-500 ml-1">*</span>}
@@ -311,6 +297,6 @@ export default function PMApprovalsPage() {
                     )}
                 </AnimatePresence>
             </div>
-        </div>
+        </div >
     );
 }

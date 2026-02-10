@@ -141,41 +141,34 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                         </Link>
                     </div>
 
-                    <div className="p-4 flex-1">
-                        {pendingApprovals.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-16">
-                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
-                                    <Icon name="CheckCircle" size={32} className="opacity-40" />
-                                </div>
-                                <p className="font-bold text-sm">All caught up!</p>
-                                <p className="text-xs mt-1">No pending approvals found.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {pendingApprovals.slice(0, 5).map(inv => (
-                                    <Link key={inv.id} href={`/pm/approvals`}>
-                                        <div className="group flex items-center justify-between p-4 rounded-2xl border border-transparent hover:border-amber-100 hover:bg-amber-50/30 transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center font-black text-[10px] text-slate-400 uppercase group-hover:bg-white transition-colors">
-                                                    #{inv.id.slice(-4)}
-                                                </div>
-                                                <div>
-                                                    <p className="font-black text-slate-800 text-sm tracking-tight">{inv.vendorName}</p>
-                                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mt-0.5">{inv.project || 'General Project'}</p>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="font-black text-sm text-slate-900">{formatCurrency(inv.amount)}</p>
-                                                <div className="flex justify-end mt-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-100 px-2 py-0.5 rounded-lg">Review</span>
-                                                </div>
-                                            </div>
+                    {pendingApprovals.length === 0 ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 py-10">
+                            <Icon name="CheckCircle" size={40} className="mb-2 opacity-50" />
+                            <p>No pending approvals</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3 p-3">
+                            {pendingApprovals.slice(0, 5).map(inv => (
+                                <div key={inv.id} className="group flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-amber-200 hover:bg-amber-50/30 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center font-bold text-xs text-gray-500">
+                                            {inv.id.slice(-4)}
                                         </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                                        <div>
+                                            <p className="font-semibold text-gray-800 text-sm">{inv.vendorName}{inv.vendorCode && <span className="text-indigo-600 font-mono text-xs ml-1.5">({inv.vendorCode})</span>}</p>
+                                            <p className="text-xs text-gray-500">{inv.project || 'General Project'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-sm text-gray-900">{formatCurrency(inv.amount)}</p>
+                                        <Link href={`/approvals/${inv.id}`}>
+                                            <button className="text-xs font-medium text-amber-600 hover:text-amber-700 mt-1">Review</button>
+                                        </Link>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </Card>
 
                 {/* Discrepancies List */}
@@ -195,44 +188,33 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                         </Link>
                     </div>
 
-                    <div className="p-4 flex-1">
-                        {discrepancies.length === 0 ? (
-                            <div className="flex-1 flex flex-col items-center justify-center text-slate-400 py-16">
-                                <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mb-4 border border-slate-100">
-                                    <Icon name="ShieldCheck" size={32} className="opacity-40" />
-                                </div>
-                                <p className="font-bold text-sm">Perfect match!</p>
-                                <p className="text-xs mt-1">No discrepancies at this time.</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-2">
-                                {discrepancies.slice(0, 5).map(inv => (
-                                    <Link key={inv.id} href={`/digitization/${inv.id}`}>
-                                        <div className="group flex items-center justify-between p-4 rounded-2xl border border-transparent hover:border-rose-100 hover:bg-rose-50/30 transition-all">
-                                            <div className="flex items-center gap-4">
-                                                <div className="w-12 h-12 rounded-xl bg-slate-50 border border-slate-100 flex items-center justify-center font-black text-[10px] text-slate-400 uppercase group-hover:bg-white transition-colors">
-                                                    #{inv.id.slice(-4)}
-                                                </div>
-                                                <div>
-                                                    <p className="font-black text-slate-800 text-sm tracking-tight">{inv.vendorName}</p>
-                                                    <div className="flex items-center gap-1.5 mt-0.5">
-                                                        <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shadow-sm shadow-rose-200"></span>
-                                                        <p className="text-[10px] text-rose-600 font-black uppercase tracking-wider">{inv.matching?.discrepancies?.length || 1} Issues</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="text-right">
-                                                <p className="font-black text-sm text-slate-900">{formatCurrency(inv.amount)}</p>
-                                                <div className="flex justify-end mt-1">
-                                                    <span className="text-[9px] font-black uppercase tracking-widest text-rose-600 bg-rose-100 px-2 py-0.5 rounded-lg">Details</span>
-                                                </div>
-                                            </div>
+                    {discrepancies.length === 0 ? (
+                        <div className="flex-1 flex flex-col items-center justify-center text-gray-400 py-10">
+                            <Icon name="ShieldCheck" size={40} className="mb-2 opacity-50" />
+                            <p>No discrepancies found</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3 p-3">
+                            {discrepancies.slice(0, 5).map(inv => (
+                                <div key={inv.id} className="group flex items-center justify-between p-3 rounded-xl border border-gray-100 hover:border-rose-200 hover:bg-rose-50/30 transition-all">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-white border border-gray-200 flex items-center justify-center font-bold text-xs text-gray-500">
+                                            {inv.id.slice(-4)}
                                         </div>
-                                    </Link>
-                                ))}
-                            </div>
-                        )}
-                    </div>
+                                        <div>
+                                            <p className="font-semibold text-gray-800 text-sm">{inv.vendorName}{inv.vendorCode && <span className="text-indigo-600 font-mono text-xs ml-1.5">({inv.vendorCode})</span>}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-black text-sm text-slate-900">{formatCurrency(inv.amount)}</p>
+                                        <Link href={`/matching`}>
+                                            <span className="text-[9px] font-black uppercase tracking-widest text-rose-600 bg-rose-100 px-2 py-0.5 rounded-lg">Resolve</span>
+                                        </Link>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </Card>
             </div>
 
@@ -398,6 +380,7 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                     </div>
                 )}
             </AnimatePresence>
+
             {/* All Invoices / Recent Activity Section */}
             <Card className="border-slate-200/60 p-0 overflow-hidden shadow-xl shadow-slate-200/20">
                 <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
@@ -447,13 +430,13 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                                         <td className="px-6 py-4">
                                             <div className="flex justify-center">
                                                 <span className={`
-                                                    px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest
-                                                    ${inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-600' :
+                                                px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest
+                                                ${inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-600' :
                                                         inv.status === 'PENDING_APPROVAL' ? 'bg-amber-100 text-amber-600' :
                                                             inv.status === 'MATCH_DISCREPANCY' ? 'bg-rose-100 text-rose-600' :
                                                                 inv.status === 'VERIFIED' ? 'bg-blue-100 text-blue-600' :
                                                                     'bg-slate-100 text-slate-500'}
-                                                `}>
+                                            `}>
                                                     {inv.status.replace(/_/g, ' ')}
                                                 </span>
                                             </div>

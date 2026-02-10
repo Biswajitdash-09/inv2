@@ -266,7 +266,7 @@ export default function UserManagementPage() {
                                                 </div>
                                             )}
                                             {user.vendorId && (
-                                                <span className="text-xs text-gray-500">Vendor: {user.vendorId}</span>
+                                                <span className="text-xs text-gray-500">Vendor: {user.vendorCode || user.vendorId}</span>
                                             )}
                                             {!user.assignedProjects?.length && !user.vendorId && (
                                                 <span className="text-xs text-gray-400">Global Access</span>

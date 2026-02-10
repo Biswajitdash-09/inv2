@@ -104,7 +104,7 @@ const FinanceUserDashboard = ({ invoices, onUploadComplete }) => {
                                                         </div>
                                                         <div>
                                                             <div className="font-bold text-slate-800">{inv.invoiceNumber || "Processing..."}</div>
-                                                            <div className="text-xs text-slate-500">{inv.vendorName || "Unknown Vendor"}</div>
+                                                            <div className="text-xs text-slate-500">{inv.vendorCode && <span className="font-mono text-indigo-600 font-medium">{inv.vendorCode}</span>}{inv.vendorCode && ' · '}{inv.vendorName || "Unknown Vendor"}</div>
                                                         </div>
                                                     </div>
                                                 </td>

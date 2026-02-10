@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
+import { getCurrentUser } from '@/lib/server-auth';
 import { performThreeWayMatch } from '@/lib/services/matching';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET(request, { params }) {
     const { id } = await params;
-    const invoice = await db.getInvoice(id);
+    const user = await getCurrentUser();
+    const invoice = await db.getInvoice(id, user);
 
     if (!invoice) {
         return NextResponse.json({ error: 'Invoice not found' }, { status: 404 });

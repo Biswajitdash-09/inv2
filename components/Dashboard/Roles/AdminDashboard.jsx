@@ -158,7 +158,11 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
                                                 </div>
                                                 <div className="min-w-0">
                                                     <p className="font-semibold text-sm text-gray-900 truncate">{inv.originalName || inv.vendorName || inv.id}</p>
-                                                    <p className="text-xs text-slate-500 mt-0.5">{inv.vendorName} • <span className="font-medium text-slate-600">{inv.status?.replace(/_/g, " ")}</span></p>
+                                                    <p className="text-xs text-slate-500 mt-0.5">
+                                                        {inv.vendorCode && <span className="font-mono font-semibold text-indigo-600">{inv.vendorCode}</span>}
+                                                        {inv.vendorCode && ' · '}
+                                                        {inv.vendorName} · <span className="font-medium text-slate-600">{inv.status?.replace(/_/g, " ")}</span>
+                                                    </p>
                                                 </div>
                                             </div>
                                             <div className="text-right shrink-0">

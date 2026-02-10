@@ -23,6 +23,7 @@ export default function ConfigurationPage() {
     const [saving, setSaving] = useState(false);
     const [testing, setTesting] = useState({});
     const [testResults, setTestResults] = useState({});
+    const [backfillVendorIdsLoading, setBackfillVendorIdsLoading] = useState(false);
 
     useEffect(() => {
         fetchConfig();
@@ -99,6 +100,21 @@ export default function ConfigurationPage() {
         }
     };
 
+    const handleBackfillVendorIds = async () => {
+        try {
+            setBackfillVendorIdsLoading(true);
+            const res = await axios.post("/api/admin/backfill-vendor-ids");
+            toast.success(res.data.message || "Vendor IDs assigned.");
+            if (res.data.details?.created?.length) {
+                toast.info(`${res.data.created} new vendor record(s) created and linked.`);
+            }
+        } catch (error) {
+            toast.error(error.response?.data?.error || "Failed to run backfill");
+        } finally {
+            setBackfillVendorIdsLoading(false);
+        }
+    };
+
     return (
         <div className="p-8 max-w-5xl mx-auto space-y-8">
             <div className="flex justify-between items-center mb-8">
@@ -169,6 +185,25 @@ export default function ConfigurationPage() {
                         </button>
                     </div>
                 </div>
+            </section>
+
+            {/* Vendor IDs — assign vendor ID to existing vendor users */}
+            <section className="bg-white/80 backdrop-blur-xl rounded-3xl border border-white/20 shadow-xl p-8">
+                <div className="flex items-center gap-4 mb-6">
+                    <div className="w-10 h-10 rounded-xl bg-indigo-50 flex items-center justify-center text-indigo-600">
+                        <Icon name="Users" size={24} />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-900">Vendor IDs</h2>
+                </div>
+                <p className="text-sm text-gray-500 mb-4">Vendors are uniquely identified by a vendor ID (e.g. ve-001). Run this to assign a vendor ID to any existing user who signed up as Vendor but does not have one yet.</p>
+                <button
+                    onClick={handleBackfillVendorIds}
+                    disabled={backfillVendorIdsLoading}
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors disabled:opacity-50 flex items-center gap-2"
+                >
+                    {backfillVendorIdsLoading ? <Icon name="Loader" size={18} className="animate-spin" /> : <Icon name="UserPlus" size={18} />}
+                    {backfillVendorIdsLoading ? "Running…" : "Assign vendor IDs to existing vendors"}
+                </button>
             </section>
 
             {/* Matching & OCR Settings */}

@@ -181,7 +181,7 @@ export default function RateCardManagementPage() {
                             >
                                 <option value="">All Vendors</option>
                                 {vendors.map(v => (
-                                    <option key={v.id} value={v.id}>{v.name}</option>
+                                    <option key={v.id} value={v.id}>{v.vendorCode ? `${v.vendorCode} · ${v.name}` : v.name}</option>
                                 ))}
                             </select>
                             <select
@@ -325,7 +325,7 @@ export default function RateCardManagementPage() {
                                             >
                                                 <option value="">Select Vendor</option>
                                                 {vendors.map(v => (
-                                                    <option key={v.id} value={v.id}>{v.name}</option>
+                                                    <option key={v.id} value={v.id}>{v.vendorCode ? `${v.vendorCode} · ${v.name}` : v.name}</option>
                                                 ))}
                                             </select>
                                         </div>

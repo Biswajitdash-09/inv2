@@ -53,7 +53,11 @@ export default function DashboardPage() {
       setInvoices(data);
       calculateStats(data);
     } catch (e) {
-      console.error("Dashboard fetch error", e);
+      if (e.message === 'Unauthorized') {
+        router.push('/login');
+      } else {
+        console.error("Dashboard fetch error", e);
+      }
     }
   };
 
@@ -80,8 +84,10 @@ export default function DashboardPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!authLoading && user && user.role !== ROLES.VENDOR) {
+      fetchData();
+    }
+  }, [user, authLoading]);
 
   const [statusFilter, setStatusFilter] = useState("ALL");
 
@@ -112,11 +118,12 @@ export default function DashboardPage() {
       return;
     }
 
-    const headers = ["ID", "Vendor", "Invoice #", "Date", "Amount", "Status", "PO Number"];
+    const headers = ["ID", "Vendor ID", "Vendor", "Invoice #", "Date", "Amount", "Status", "PO Number"];
     const csvContent = [
       headers.join(","),
       ...filteredInvoices.map(inv => [
         inv.id,
+        inv.vendorCode || "",
         `"${inv.vendorName}"`,
         inv.invoiceNumber || "",
         inv.date || "",
@@ -293,7 +300,7 @@ export default function DashboardPage() {
                             {inv.id.slice(-2)}
                           </div>
                           <div className="flex-1">
-                            <p className="font-semibold text-sm">{inv.vendorName}</p>
+                            <p className="font-semibold text-sm">{inv.vendorCode && <span className="font-mono text-indigo-600 mr-1">{inv.vendorCode}</span>}{inv.vendorName}</p>
                             <p className="text-xs text-gray-500">{inv.id} • {inv.status}</p>
                           </div>
                           <div className="text-right">
@@ -375,6 +382,6 @@ export default function DashboardPage() {
           <button>close</button>
         </div>
       </dialog>
-    </div >
+    </div>
   );
 }

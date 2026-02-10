@@ -10,7 +10,7 @@ import AuditTrail from "@/components/Workflow/AuditTrail";
 import ApprovalActions from "@/components/Workflow/ApprovalActions";
 import Icon from "@/components/Icon";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 
 // Inline component for restoring rejected/approved invoices
 function RestoreToReviewButton({ invoiceId }) {
@@ -78,6 +78,8 @@ export default function ApprovalDetailPage() {
   const { user, isLoading: authLoading } = useAuth();
   const [invoice, setInvoice] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showDocViewer, setShowDocViewer] = useState(false);
+  const [docViewerLoading, setDocViewerLoading] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
@@ -187,6 +189,19 @@ export default function ApprovalDetailPage() {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="lg:col-span-1 space-y-6 min-w-0 shrink-0"
         >
+          {/* View invoice document — same as vendor portal */}
+          <div className="p-4 rounded-2xl border border-gray-200/50 bg-white/60">
+            <button
+              type="button"
+              onClick={() => { setShowDocViewer(true); setDocViewerLoading(true); }}
+              className="w-full btn btn-ghost border border-amber-200 bg-amber-50/50 text-amber-800 hover:bg-amber-100/80 gap-2"
+            >
+              <Icon name="Eye" size={18} />
+              View invoice document
+            </button>
+            <p className="text-xs text-gray-500 mt-2 text-center">Preview the uploaded invoice file</p>
+          </div>
+
           {/* Approval Actions */}
           {!isProcessed ? (
             <ApprovalActions
@@ -230,6 +245,54 @@ export default function ApprovalDetailPage() {
           <AuditTrail invoice={invoice} />
         </motion.div>
       </div>
+
+      {/* Document viewer modal — view invoice like in vendor portal */}
+      <AnimatePresence>
+        {showDocViewer && invoice && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+              onClick={() => setShowDocViewer(false)}
+            />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.98 }}
+              className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden z-[101] flex flex-col max-h-[90vh]"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50 shrink-0">
+                <span className="font-semibold text-gray-800 text-sm truncate">
+                  {invoice.originalName || invoice.vendorName || `Invoice ${invoice.id}`}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setShowDocViewer(false)}
+                  className="btn btn-ghost btn-sm btn-square"
+                >
+                  <Icon name="X" size={20} />
+                </button>
+              </div>
+              <div className="flex-1 min-h-[70vh] bg-gray-100 relative">
+                {docViewerLoading && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+                    <span className="loading loading-spinner loading-lg text-amber-500" />
+                  </div>
+                )}
+                <iframe
+                  src={`/api/invoices/${invoice.id}/file`}
+                  title="Invoice document"
+                  className="w-full h-full min-h-[70vh] border-0"
+                  onLoad={() => setDocViewerLoading(false)}
+                />
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

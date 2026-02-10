@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '@/components/Layout/PageHeader';
+import Card from '@/components/ui/Card';
+import Icon from '@/components/Icon';
 
 const UNITS = ['HOUR', 'DAY', 'FIXED', 'MONTHLY'];
 
@@ -93,6 +96,7 @@ export default function RateCardManagementPage() {
             if (!res.ok) throw new Error(data.error);
 
             setEditingCard(null);
+            resetForm();
             fetchRatecards();
         } catch (err) {
             setError(err.message);
@@ -128,7 +132,7 @@ export default function RateCardManagementPage() {
             effectiveFrom: card.effectiveFrom ? card.effectiveFrom.split('T')[0] : '',
             effectiveTo: card.effectiveTo ? card.effectiveTo.split('T')[0] : '',
             notes: card.notes || '',
-            rates: card.rates.length ? card.rates : [{ description: '', unit: 'HOUR', rate: '', currency: 'INR' }]
+            rates: card.rates.length ? [...card.rates] : [{ description: '', unit: 'HOUR', rate: '', currency: 'INR' }]
         });
         setEditingCard(card);
     };
@@ -142,7 +146,7 @@ export default function RateCardManagementPage() {
 
     const updateRate = (idx, field, value) => {
         const newRates = [...formData.rates];
-        newRates[idx][field] = value;
+        newRates[idx] = { ...newRates[idx], [field]: value };
         setFormData({ ...formData, rates: newRates });
     };
 
@@ -154,74 +158,77 @@ export default function RateCardManagementPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
-                >
-                    <h1 className="text-3xl font-bold text-white mb-2">Rate Card Management</h1>
-                    <p className="text-gray-400">Define standard rates with vendors</p>
-                </motion.div>
+        <div className="pb-10 min-h-screen bg-slate-50/50">
+            <PageHeader
+                title="Rate Card Management"
+                subtitle="Define standard service rates with your vendors"
+                icon="Layers"
+                accent="purple"
+                roleLabel="Administrator"
+            />
 
+            <div className="max-w-7xl mx-auto px-4 md:px-6 space-y-6">
                 {/* Filters & Actions */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 mb-6 border border-white/10"
-                >
-                    <div className="flex flex-wrap gap-4 items-center justify-between">
-                        <div className="flex flex-wrap gap-4">
-                            <select
-                                value={filterVendor}
-                                onChange={(e) => setFilterVendor(e.target.value)}
-                                className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            >
-                                <option value="">All Vendors</option>
-                                {vendors.map(v => (
-                                    <option key={v.id} value={v.id}>{v.vendorCode ? `${v.vendorCode} · ${v.name}` : v.name}</option>
-                                ))}
-                            </select>
-                            <select
-                                value={filterStatus}
-                                onChange={(e) => setFilterStatus(e.target.value)}
-                                className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                            >
-                                <option value="">All Status</option>
-                                <option value="ACTIVE">Active</option>
-                                <option value="EXPIRED">Expired</option>
-                                <option value="DRAFT">Draft</option>
-                            </select>
+                <Card className="p-6">
+                    <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+                        <div className="flex flex-wrap gap-4 w-full lg:w-auto">
+                            <div className="relative w-full sm:w-64">
+                                <Icon name="Building" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                <select
+                                    value={filterVendor}
+                                    onChange={(e) => setFilterVendor(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-bold text-xs focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-hidden transition-all appearance-none"
+                                >
+                                    <option value="">All Vendors</option>
+                                    {vendors.map(v => (
+                                        <option key={v.id} value={v.id}>{v.vendorCode ? `${v.vendorCode} · ${v.name}` : v.name}</option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div className="relative w-full sm:w-48">
+                                <Icon name="Filter" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                <select
+                                    value={filterStatus}
+                                    onChange={(e) => setFilterStatus(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-bold text-xs focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-hidden transition-all appearance-none"
+                                >
+                                    <option value="">All Status</option>
+                                    <option value="ACTIVE">Active</option>
+                                    <option value="EXPIRED">Expired</option>
+                                    <option value="DRAFT">Draft</option>
+                                </select>
+                            </div>
                         </div>
                         <button
                             onClick={() => { resetForm(); setShowCreateModal(true); }}
-                            className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg shadow-purple-500/25"
+                            className="w-full lg:w-auto px-8 py-3 bg-linear-to-br from-purple-600 to-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                         >
-                            + Create Rate Card
+                            <Icon name="Plus" size={16} /> Create Rate Card
                         </button>
                     </div>
-                </motion.div>
+                </Card>
 
                 {/* Error Display */}
                 <AnimatePresence>
                     {error && (
                         <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            className="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg mb-6"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-xl flex justify-between items-center"
                         >
-                            {error}
-                            <button onClick={() => setError(null)} className="float-right">×</button>
+                            <span className="font-bold text-sm">{error}</span>
+                            <button onClick={() => setError(null)} className="p-1 hover:bg-rose-100 rounded-lg">✕</button>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
                 {/* Rate Cards Grid */}
                 {loading ? (
-                    <div className="text-center text-gray-400 py-12">Loading rate cards...</div>
+                    <div className="text-center py-20">
+                        <span className="loading loading-spinner loading-lg text-purple-600"></span>
+                        <p className="mt-4 text-slate-500 font-bold text-xs uppercase tracking-widest">Fetching Rate Cards...</p>
+                    </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {ratecards.map((card, idx) => (
@@ -230,215 +237,270 @@ export default function RateCardManagementPage() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: idx * 0.05 }}
-                                className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/10 hover:border-purple-500/50 transition-all"
                             >
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-white">{card.name}</h3>
-                                        <p className="text-sm text-gray-400">{card.vendorName}</p>
+                                <Card className="h-full hover:shadow-xl hover:shadow-purple-500/5 transition-all border-slate-200/60 p-6 flex flex-col">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="min-w-0">
+                                            <h3 className="text-sm font-black text-slate-800 tracking-tight truncate" title={card.name}>
+                                                {card.name}
+                                            </h3>
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">
+                                                {card.vendorName}
+                                            </p>
+                                        </div>
+                                        <span className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider border shrink-0 ${card.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-600 border-emerald-100' :
+                                            card.status === 'EXPIRED' ? 'bg-rose-50 text-rose-600 border-rose-100' :
+                                                'bg-amber-50 text-amber-600 border-amber-100'
+                                            }`}>
+                                            {card.status}
+                                        </span>
                                     </div>
-                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${card.status === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-300' :
-                                            card.status === 'EXPIRED' ? 'bg-red-500/20 text-red-300' :
-                                                'bg-yellow-500/20 text-yellow-300'
-                                        }`}>
-                                        {card.status}
-                                    </span>
-                                </div>
 
-                                <div className="text-sm text-gray-300 mb-4">
-                                    <p>Effective: {new Date(card.effectiveFrom).toLocaleDateString()}</p>
-                                    {card.effectiveTo && (
-                                        <p>Until: {new Date(card.effectiveTo).toLocaleDateString()}</p>
-                                    )}
-                                </div>
-
-                                <div className="border-t border-white/10 pt-4 mb-4">
-                                    <p className="text-xs text-gray-400 mb-2">Rates ({card.rates.length})</p>
-                                    <div className="space-y-1 max-h-24 overflow-y-auto">
-                                        {card.rates.slice(0, 3).map((rate, i) => (
-                                            <div key={i} className="flex justify-between text-sm">
-                                                <span className="text-gray-300 truncate">{rate.description}</span>
-                                                <span className="text-white font-medium">₹{rate.rate}/{rate.unit}</span>
+                                    <div className="space-y-4 flex-1">
+                                        <div className="grid grid-cols-2 gap-4 pb-4 border-b border-slate-50">
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Effective From</p>
+                                                <p className="text-xs font-bold text-slate-700">{new Date(card.effectiveFrom).toLocaleDateString()}</p>
                                             </div>
-                                        ))}
-                                        {card.rates.length > 3 && (
-                                            <p className="text-xs text-gray-500">+{card.rates.length - 3} more</p>
+                                            {card.effectiveTo && (
+                                                <div>
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">Valid Until</p>
+                                                    <p className="text-xs font-bold text-slate-700">{new Date(card.effectiveTo).toLocaleDateString()}</p>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Rate Definitions ({card.rates.length})</p>
+                                            <div className="space-y-2 max-h-32 overflow-y-auto custom-scrollbar pr-1">
+                                                {card.rates.map((rate, i) => (
+                                                    <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-slate-50/50 border border-slate-100/50">
+                                                        <span className="text-xs font-bold text-slate-600 truncate mr-2" title={rate.description}>{rate.description}</span>
+                                                        <span className="text-xs font-black text-purple-600 shrink-0">₹{rate.rate}/{rate.unit}</span>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex gap-3 pt-6 mt-6 border-t border-slate-100">
+                                        <button
+                                            onClick={() => openEditModal(card)}
+                                            className="flex-1 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-indigo-600 bg-indigo-50 border border-indigo-100 rounded-xl hover:bg-indigo-100 transition-colors flex items-center justify-center gap-2"
+                                        >
+                                            <Icon name="Edit3" size={14} /> Edit
+                                        </button>
+                                        {card.status !== 'EXPIRED' && (
+                                            <button
+                                                onClick={() => handleArchive(card)}
+                                                className="flex-1 px-4 py-2.5 text-[10px] font-black uppercase tracking-widest text-rose-600 bg-rose-50 border border-rose-100 rounded-xl hover:bg-rose-100 transition-colors flex items-center justify-center gap-2"
+                                            >
+                                                <Icon name="Archive" size={14} /> Archive
+                                            </button>
                                         )}
                                     </div>
-                                </div>
-
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={() => openEditModal(card)}
-                                        className="flex-1 px-3 py-2 text-sm text-blue-400 border border-blue-400/30 rounded-lg hover:bg-blue-400/10 transition-colors"
-                                    >
-                                        Edit
-                                    </button>
-                                    {card.status !== 'EXPIRED' && (
-                                        <button
-                                            onClick={() => handleArchive(card)}
-                                            className="flex-1 px-3 py-2 text-sm text-red-400 border border-red-400/30 rounded-lg hover:bg-red-400/10 transition-colors"
-                                        >
-                                            Archive
-                                        </button>
-                                    )}
-                                </div>
+                                </Card>
                             </motion.div>
                         ))}
                     </div>
                 )}
 
                 {!loading && ratecards.length === 0 && (
-                    <div className="text-center text-gray-400 py-12">No rate cards found</div>
-                )}
-
-                {/* Create/Edit Modal */}
-                <AnimatePresence>
-                    {(showCreateModal || editingCard) && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                            onClick={() => { setShowCreateModal(false); setEditingCard(null); }}
+                    <Card className="text-center py-20 flex flex-col items-center">
+                        <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center text-slate-300 mb-4 transition-transform hover:scale-110">
+                            <Icon name="Layers" size={32} />
+                        </div>
+                        <h3 className="text-lg font-black text-slate-800 tracking-tight">No Rate Cards Found</h3>
+                        <p className="text-slate-500 text-sm mt-1 max-w-xs font-medium">Define your first set of standard rates to get started with vendor management.</p>
+                        <button
+                            onClick={() => { resetForm(); setShowCreateModal(true); }}
+                            className="mt-6 px-8 py-3 bg-purple-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-500/20 active:scale-95 transition-all"
                         >
-                            <motion.div
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="bg-slate-800/90 backdrop-blur-xl rounded-2xl p-8 w-full max-w-2xl border border-white/20 max-h-[90vh] overflow-y-auto"
-                            >
-                                <h2 className="text-2xl font-bold text-white mb-6">
-                                    {editingCard ? 'Edit Rate Card' : 'Create New Rate Card'}
-                                </h2>
-                                <form onSubmit={editingCard ? handleUpdateRatecard : handleCreateRatecard} className="space-y-4">
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-300 mb-1">Vendor</label>
+                            Create First Card
+                        </button>
+                    </Card>
+                )}
+            </div>
+
+            {/* Create/Edit Modal */}
+            <AnimatePresence>
+                {(showCreateModal || editingCard) && (
+                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-100 p-4 overflow-y-auto">
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            exit={{ scale: 0.95, opacity: 0 }}
+                            className="bg-white rounded-[32px] p-6 sm:p-10 w-full max-w-3xl shadow-2xl border border-slate-100 my-auto"
+                        >
+                            <div className="flex justify-between items-start mb-10">
+                                <div>
+                                    <p className="text-[10px] font-black uppercase tracking-widest text-purple-600 mb-1">Administrative Action</p>
+                                    <h2 className="text-2xl font-black text-slate-800 tracking-tight">
+                                        {editingCard ? 'Modify Rate Card' : 'Define New Rate Card'}
+                                    </h2>
+                                </div>
+                                <button
+                                    onClick={() => { setShowCreateModal(false); setEditingCard(null); }}
+                                    className="p-3 hover:bg-slate-50 rounded-2xl transition-all active:scale-90 group"
+                                >
+                                    <Icon name="X" size={20} className="text-slate-400 group-hover:text-slate-600" />
+                                </button>
+                            </div>
+
+                            <form onSubmit={editingCard ? handleUpdateRatecard : handleCreateRatecard} className="space-y-8">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Assign Vendor</label>
+                                        <div className="relative">
+                                            <Icon name="Building" size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                             <select
                                                 value={formData.vendorId}
                                                 onChange={(e) => setFormData({ ...formData, vendorId: e.target.value })}
                                                 required
                                                 disabled={!!editingCard}
-                                                className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+                                                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold text-sm focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-hidden transition-all appearance-none disabled:bg-slate-100 disabled:cursor-not-allowed"
                                             >
-                                                <option value="">Select Vendor</option>
+                                                <option value="" className="text-slate-900 bg-white">Select a vendor...</option>
                                                 {vendors.map(v => (
-                                                    <option key={v.id} value={v.id}>{v.vendorCode ? `${v.vendorCode} · ${v.name}` : v.name}</option>
+                                                    <option key={v.id} value={v.id} className="text-slate-900 bg-white">
+                                                        {v.vendorCode ? `${v.vendorCode} · ${v.name}` : v.name}
+                                                    </option>
                                                 ))}
                                             </select>
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-300 mb-1">Rate Card Name</label>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Card Identifier (Name)</label>
+                                        <div className="relative">
+                                            <Icon name="Tag" size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                             <input
                                                 type="text"
                                                 value={formData.name}
                                                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                                                 required
-                                                className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                placeholder="e.g. Standard 2026 Rates"
+                                                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold text-sm focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-hidden transition-all"
                                             />
                                         </div>
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-300 mb-1">Effective From</label>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Effective Period Start</label>
+                                        <div className="relative">
+                                            <Icon name="Calendar" size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                             <input
                                                 type="date"
                                                 value={formData.effectiveFrom}
                                                 onChange={(e) => setFormData({ ...formData, effectiveFrom: e.target.value })}
                                                 required
-                                                className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold text-sm focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-hidden transition-all"
                                             />
                                         </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-300 mb-1">Effective To (Optional)</label>
+                                    </div>
+                                    <div>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Effective Period End (Optional)</label>
+                                        <div className="relative">
+                                            <Icon name="Calendar" size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                             <input
                                                 type="date"
                                                 value={formData.effectiveTo}
                                                 onChange={(e) => setFormData({ ...formData, effectiveTo: e.target.value })}
-                                                className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                className="w-full pl-12 pr-4 py-3.5 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold text-sm focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-hidden transition-all"
                                             />
                                         </div>
                                     </div>
+                                </div>
 
-                                    {/* Rates Table */}
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-2">Rates</label>
-                                        <div className="space-y-2">
-                                            {formData.rates.map((rate, idx) => (
-                                                <div key={idx} className="flex gap-2 items-center">
+                                {/* Rates Configuration */}
+                                <div className="p-6 bg-slate-50 rounded-3xl border border-slate-100">
+                                    <div className="flex justify-between items-center mb-6">
+                                        <h3 className="text-xs font-black uppercase tracking-widest text-slate-800">Rate Configuration Table</h3>
+                                        <button
+                                            type="button"
+                                            onClick={addRateRow}
+                                            className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl font-black text-[9px] uppercase tracking-widest hover:bg-indigo-100 transition-all active:scale-95 border border-indigo-100 flex items-center gap-2"
+                                        >
+                                            <Icon name="PlusCircle" size={14} /> Row
+                                        </button>
+                                    </div>
+
+                                    <div className="space-y-3 max-h-80 overflow-y-auto custom-scrollbar pr-2">
+                                        {formData.rates.map((rate, idx) => (
+                                            <div key={idx} className="flex gap-3 items-center group">
+                                                <div className="flex-1 relative">
                                                     <input
                                                         type="text"
-                                                        placeholder="Description"
+                                                        placeholder="Description (e.g. Senior Developer)"
                                                         value={rate.description}
                                                         onChange={(e) => updateRate(idx, 'description', e.target.value)}
-                                                        className="flex-1 px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-xs focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-hidden transition-all"
                                                     />
+                                                </div>
+                                                <div className="w-32 relative">
+                                                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold font-mono">₹</span>
                                                     <input
                                                         type="number"
                                                         placeholder="Rate"
                                                         value={rate.rate}
                                                         onChange={(e) => updateRate(idx, 'rate', e.target.value)}
-                                                        className="w-24 px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                        className="w-full pl-7 pr-3 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-xs focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-hidden transition-all"
                                                     />
+                                                </div>
+                                                <div className="w-32 relative">
                                                     <select
                                                         value={rate.unit}
                                                         onChange={(e) => updateRate(idx, 'unit', e.target.value)}
-                                                        className="w-28 px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-slate-700 font-bold text-xs focus:ring-2 focus:ring-purple-500/20 focus:border-purple-500 outline-hidden transition-all appearance-none"
                                                     >
-                                                        {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+                                                        {UNITS.map(u => <option key={u} value={u} className="text-slate-900">{u}</option>)}
                                                     </select>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => removeRate(idx)}
-                                                        className="p-2 text-red-400 hover:text-red-300"
-                                                    >
-                                                        ×
-                                                    </button>
+                                                    <Icon name="ChevronDown" size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                                 </div>
-                                            ))}
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={addRateRow}
-                                            className="mt-2 text-sm text-purple-400 hover:text-purple-300"
-                                        >
-                                            + Add Rate
-                                        </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => removeRate(idx)}
+                                                    className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                                                >
+                                                    <Icon name="Trash2" size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
                                     </div>
+                                </div>
 
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">Notes</label>
-                                        <textarea
-                                            value={formData.notes}
-                                            onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                            rows={2}
-                                            className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                        />
-                                    </div>
+                                <div>
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Additional Notes</label>
+                                    <textarea
+                                        value={formData.notes}
+                                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+                                        rows={3}
+                                        placeholder="Add any specific terms or context here..."
+                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 font-bold text-sm focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 outline-hidden transition-all"
+                                    />
+                                </div>
 
-                                    <div className="flex gap-4 pt-4">
-                                        <button
-                                            type="button"
-                                            onClick={() => { setShowCreateModal(false); setEditingCard(null); }}
-                                            className="flex-1 px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/10 transition-colors"
-                                        >
-                                            Cancel
-                                        </button>
-                                        <button
-                                            type="submit"
-                                            className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all"
-                                        >
-                                            {editingCard ? 'Update' : 'Create'}
-                                        </button>
-                                    </div>
-                                </form>
-                            </motion.div>
+                                <div className="flex gap-4 pt-4 border-t border-slate-100">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setShowCreateModal(false); setEditingCard(null); }}
+                                        className="flex-1 px-6 py-4 border border-slate-200 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
+                                    >
+                                        Discard
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        className="flex-1 px-6 py-4 bg-linear-to-br from-purple-600 to-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-500/20 hover:shadow-purple-500/30 transition-all active:scale-95"
+                                    >
+                                        {editingCard ? 'Commit Update' : 'Finalize Rate Card'}
+                                    </button>
+                                </div>
+                            </form>
                         </motion.div>
-                    )}
-                </AnimatePresence>
-            </div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div>
     );
 }

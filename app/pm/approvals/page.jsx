@@ -15,6 +15,8 @@ export default function PMApprovalsPage() {
     const [actionModal, setActionModal] = useState(null);
     const [notes, setNotes] = useState('');
     const [filterProject, setFilterProject] = useState('');
+    const [viewerInvoiceId, setViewerInvoiceId] = useState(null);
+    const [viewerLoading, setViewerLoading] = useState(false);
 
     useEffect(() => {
         fetchInvoices();
@@ -24,13 +26,17 @@ export default function PMApprovalsPage() {
     const fetchInvoices = async () => {
         try {
             setLoading(true);
+            setError(null);
             // Optimization: Fetch only relevant statuses - Standardized to SNAKE_CASE to match backend standard
             const res = await fetch('/api/invoices?status=RECEIVED,DIGITIZING,VALIDATION_REQUIRED,VERIFIED,MATCH_DISCREPANCY,PENDING_APPROVAL');
             const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
+            if (!res.ok) throw new Error(data?.error || 'Failed to fetch invoices');
+
+            // Backward/forward compatibility: /api/invoices may return an array or { invoices: [] }
+            const invoiceList = Array.isArray(data) ? data : (data.invoices || []);
 
             // Filter for invoices pending PM approval - Standardized to SNAKE_CASE to match backend standard
-            let pending = (data.invoices || []).filter(inv =>
+            let pending = invoiceList.filter(inv =>
                 inv.status === 'RECEIVED' ||
                 inv.status === 'DIGITIZING' ||
                 inv.status === 'VALIDATION_REQUIRED' ||
@@ -152,6 +158,11 @@ export default function PMApprovalsPage() {
                                                 {invoice.vendorCode && <span className="font-mono text-indigo-600 mr-1.5 px-1.5 py-0.5 bg-indigo-50 rounded italic">{invoice.vendorCode}</span>}
                                                 {invoice.vendorName}
                                             </p>
+                                            {(invoice.vendorCode || invoice.vendorId) && (
+                                                <p className="text-xs text-slate-400 font-mono mt-1">
+                                                    Vendor ID: {invoice.vendorCode || invoice.vendorId}
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
 
@@ -170,49 +181,73 @@ export default function PMApprovalsPage() {
                                         </div>
                                         <div>
                                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</p>
-                                            <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100">
-                                                {invoice.status}
-                                            </span>
+                                            {invoice.pmApproval?.status ? (
+                                                <span
+                                                    className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border
+                                                    ${invoice.pmApproval.status === 'APPROVED'
+                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                                        : invoice.pmApproval.status === 'REJECTED'
+                                                            ? 'bg-rose-50 text-rose-700 border-rose-100'
+                                                            : 'bg-amber-50 text-amber-600 border-amber-100'
+                                                    }`}
+                                                >
+                                                    {invoice.pmApproval.status.replace(/_/g, ' ')}
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100">
+                                                    {invoice.status}
+                                                </span>
+                                            )}
                                         </div>
                                     </div>
 
                                     {/* View Doc Link */}
-                                    {invoice.fileUrl && (
-                                        <div className="mb-6">
-                                            <a
-                                                href={invoice.fileUrl}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-bold text-xs uppercase tracking-wider"
-                                            >
-                                                <Icon name="FileText" size={14} /> View Document
-                                            </a>
-                                        </div>
-                                    )}
+                                    <div className="mb-6">
+                                        <button
+                                            type="button"
+                                            onClick={() => { setViewerInvoiceId(invoice.id); setViewerLoading(true); }}
+                                            className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-bold text-xs uppercase tracking-wider"
+                                        >
+                                            <Icon name="FileText" size={14} /> View Document
+                                        </button>
+                                    </div>
 
                                     {/* Actions */}
                                     <div className="mt-auto flex flex-wrap gap-2 pt-6 border-t border-slate-100">
-                                        <button
-                                            onClick={() => setActionModal({ invoice, action: 'APPROVE' })}
-                                            disabled={processingId === invoice.id}
-                                            className="flex-1 min-w-[120px] px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 disabled:opacity-50"
-                                        >
-                                            ✓ Approve
-                                        </button>
-                                        <button
-                                            onClick={() => setActionModal({ invoice, action: 'REJECT' })}
-                                            disabled={processingId === invoice.id}
-                                            className="flex-1 min-w-[120px] px-4 py-2.5 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-rose-500/20 disabled:opacity-50"
-                                        >
-                                            ✕ Reject
-                                        </button>
-                                        <button
-                                            onClick={() => setActionModal({ invoice, action: 'REQUEST_INFO' })}
-                                            disabled={processingId === invoice.id}
-                                            className="w-full sm:flex-1 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-slate-500/10 disabled:opacity-50"
-                                        >
-                                            ? Request Info
-                                        </button>
+                                        {invoice.pmApproval?.status === 'APPROVED' || invoice.pmApproval?.status === 'REJECTED' ? (
+                                            <span className={`inline-flex items-center px-3 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest
+                                                ${invoice.pmApproval?.status === 'APPROVED'
+                                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                                    : 'bg-rose-50 text-rose-700 border border-rose-100'
+                                                }`}
+                                            >
+                                                {invoice.pmApproval?.status === 'APPROVED' ? 'Approved' : 'Rejected'}
+                                            </span>
+                                        ) : (
+                                            <>
+                                                <button
+                                                    onClick={() => setActionModal({ invoice, action: 'APPROVE' })}
+                                                    disabled={processingId === invoice.id}
+                                                    className="flex-1 min-w-[120px] px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+                                                >
+                                                    ✓ Approve
+                                                </button>
+                                                <button
+                                                    onClick={() => setActionModal({ invoice, action: 'REJECT' })}
+                                                    disabled={processingId === invoice.id}
+                                                    className="flex-1 min-w-[120px] px-4 py-2.5 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-rose-500/20 disabled:opacity-50"
+                                                >
+                                                    ✕ Reject
+                                                </button>
+                                                <button
+                                                    onClick={() => setActionModal({ invoice, action: 'REQUEST_INFO' })}
+                                                    disabled={processingId === invoice.id}
+                                                    className="w-full sm:flex-1 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-slate-500/10 disabled:opacity-50"
+                                                >
+                                                    ? Request Info
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </Card>
                             </motion.div>
@@ -297,6 +332,53 @@ export default function PMApprovalsPage() {
                     )}
                 </AnimatePresence>
             </div>
+
+            {/* Document viewer modal – matches vendor review behavior */}
+            <AnimatePresence>
+                {viewerInvoiceId && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+                            onClick={() => setViewerInvoiceId(null)}
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.98 }}
+                            animate={{ opacity: 1, scale: 1 }}
+                            exit={{ opacity: 0, scale: 0.98 }}
+                            className="relative bg-white w-full max-w-4xl rounded-2xl shadow-2xl overflow-hidden z-[101] flex flex-col max-h-[90vh]"
+                        >
+                            <div className="flex items-center justify-between px-6 py-4 border-b bg-gray-50 shrink-0">
+                                <span className="font-semibold text-gray-800 text-sm truncate">
+                                    {invoices.find((i) => i.id === viewerInvoiceId)?.originalName || `Invoice ${viewerInvoiceId}`}
+                                </span>
+                                <button
+                                    type="button"
+                                    onClick={() => setViewerInvoiceId(null)}
+                                    className="btn btn-ghost btn-sm btn-square"
+                                >
+                                    <Icon name="X" size={20} />
+                                </button>
+                            </div>
+                            <div className="flex-1 min-h-[70vh] bg-gray-100 relative">
+                                {viewerLoading && (
+                                    <div className="absolute inset-0 flex items-center justify-center bg-gray-100 z-10">
+                                        <span className="loading loading-spinner loading-lg text-primary" />
+                                    </div>
+                                )}
+                                <iframe
+                                    src={`/api/invoices/${viewerInvoiceId}/file`}
+                                    title="Invoice document"
+                                    className="w-full h-full min-h-[70vh] border-0"
+                                    onLoad={() => setViewerLoading(false)}
+                                />
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
         </div >
     );
 }

@@ -12,6 +12,7 @@ export default function SignupPage() {
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
+    const [showPassword, setShowPassword] = useState(false);
     const [role, setRole] = useState(ROLES.FINANCE_USER); // Default role
     const [error, setError] = useState("");
 
@@ -93,12 +94,21 @@ export default function SignupPage() {
                             <div className="relative">
                                 <Icon name="Lock" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
                                 <input
-                                    type="password"
+                                    type={showPassword ? "text" : "password"}
                                     value={password}
                                     onChange={(e) => setPassword(e.target.value)}
-                                    className="input w-full pl-11 bg-white/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-xl transition-all text-gray-900 placeholder:text-gray-500"
+                                    className="input w-full pl-11 pr-11 bg-white/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-xl transition-all text-gray-900 placeholder:text-gray-500"
                                     placeholder="Create a strong password"
                                 />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword((prev) => !prev)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-800 p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                                    aria-label={showPassword ? "Hide password" : "Show password"}
+                                    tabIndex={-1}
+                                >
+                                    <Icon name={showPassword ? "EyeOff" : "Eye"} size={16} />
+                                </button>
                             </div>
                         </div>
 

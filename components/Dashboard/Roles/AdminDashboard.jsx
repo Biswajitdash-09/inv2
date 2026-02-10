@@ -19,6 +19,12 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
     const [loading, setLoading] = useState(true);
     const [recentInvoicesOpen, setRecentInvoicesOpen] = useState(true);
 
+    // Approval history across system (PM decisions)
+    const approvalHistory = (invoices || [])
+        .filter(inv => inv.pmApproval?.status === 'APPROVED' || inv.pmApproval?.status === 'REJECTED')
+        .sort((a, b) => new Date(b.pmApproval?.approvedAt || b.created_at) - new Date(a.pmApproval?.approvedAt || a.created_at))
+        .slice(0, 10);
+
     useEffect(() => {
         fetchData();
     }, []);
@@ -73,7 +79,7 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
     };
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 pb-10 px-4 sm:px-6 lg:px-0">
             {/* System Health - clean cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <Card className="p-6 rounded-2xl border border-emerald-100 bg-gradient-to-br from-white to-emerald-50/40 shadow-sm hover:shadow-md transition-shadow">
@@ -156,18 +162,30 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
                                                 <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
                                                     <Icon name="FileText" size={20} />
                                                 </div>
-                                                <div className="min-w-0">
-                                                    <p className="font-semibold text-sm text-gray-900 truncate">{inv.originalName || inv.vendorName || inv.id}</p>
-                                                    <p className="text-xs text-slate-500 mt-0.5">
-                                                        {inv.vendorCode && <span className="font-mono font-semibold text-indigo-600">{inv.vendorCode}</span>}
-                                                        {inv.vendorCode && ' · '}
-                                                        {inv.vendorName} · <span className="font-medium text-slate-600">{inv.status?.replace(/_/g, " ")}</span>
+                                                <div className="min-w-0 space-y-0.5">
+                                                    <p className="font-semibold text-sm text-gray-900 truncate">
+                                                        {inv.vendorName || inv.originalName || inv.id}
                                                     </p>
+                                                    <div className="flex flex-wrap items-center gap-1.5 text-xs text-slate-500">
+                                                        {inv.vendorCode && (
+                                                            <span className="font-mono font-semibold text-indigo-600">
+                                                                {inv.vendorCode}
+                                                            </span>
+                                                        )}
+                                                        {inv.vendorCode && <span className="text-slate-300">•</span>}
+                                                        <span className="text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                                                            {(inv.status || '').replace(/_/g, ' ') || 'PENDING'}
+                                                        </span>
+                                                    </div>
                                                 </div>
                                             </div>
                                             <div className="text-right shrink-0">
-                                                <p className="text-sm font-semibold text-gray-800">{inv.amount != null ? `₹${Number(inv.amount).toLocaleString()}` : "—"}</p>
-                                                <p className="text-xs text-slate-400">{inv.receivedAt ? new Date(inv.receivedAt).toLocaleDateString() : "—"}</p>
+                                                <p className="text-sm font-semibold text-gray-800">
+                                                    {inv.amount != null ? `₹${Number(inv.amount).toLocaleString()}` : "—"}
+                                                </p>
+                                                <p className="text-xs text-slate-400">
+                                                    {inv.receivedAt ? new Date(inv.receivedAt).toLocaleDateString() : "—"}
+                                                </p>
                                             </div>
                                         </Link>
                                     ))
@@ -231,6 +249,75 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
                                 <span className="w-2 h-2 rounded-full bg-emerald-500" /> Connected
                             </span>
                         </div>
+                    </div>
+                </Card>
+
+                {/* Approval History */}
+                <Card className="p-0 overflow-hidden rounded-2xl border border-slate-100 shadow-sm">
+                    <div className="p-4 border-b border-slate-100 bg-slate-50/60 flex justify-between items-center">
+                        <div>
+                            <h3 className="font-bold text-gray-800">Approval History</h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                {approvalHistory.length} Recent PM Decisions
+                            </p>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/50 border-b border-slate-100">
+                                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Invoice</th>
+                                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Vendor ID & Name</th>
+                                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Assigned PM</th>
+                                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400">Decision</th>
+                                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Approved By</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                                {approvalHistory.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-4 py-8 text-center text-slate-400 text-sm">
+                                            No invoices have been approved or rejected yet.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    approvalHistory.map((inv) => (
+                                        <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors">
+                                            <td className="px-4 py-3 text-sm font-semibold text-slate-800">
+                                                {inv.invoiceNumber || `#${inv.id.slice(-6)}`}
+                                            </td>
+                                            <td className="px-4 py-3 text-sm">
+                                                <div className="flex flex-col">
+                                                    <span className="font-mono text-xs text-indigo-600">
+                                                        {inv.vendorCode || inv.vendorId || '—'}
+                                                    </span>
+                                                    <span className="text-slate-700 font-semibold text-xs">
+                                                        {inv.vendorName || 'Unknown Vendor'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-3 text-xs text-slate-600">
+                                                {inv.assignedPMName || inv.assignedPM || '—'}
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`inline-flex px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-widest
+                                                    ${inv.pmApproval?.status === 'APPROVED'
+                                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                                        : 'bg-rose-50 text-rose-700 border border-rose-100'
+                                                    }`}>
+                                                    {inv.pmApproval?.status || '—'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-right text-xs text-slate-500">
+                                                {inv.pmApproval?.approvedByRole === 'Admin'
+                                                    ? `Admin · ${inv.pmApprovedByName || ''}`.trim()
+                                                    : `Project Manager · ${inv.pmApprovedByName || ''}`.trim()}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
                     </div>
                 </Card>
 

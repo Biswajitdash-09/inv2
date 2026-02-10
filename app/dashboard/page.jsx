@@ -50,8 +50,10 @@ export default function DashboardPage() {
   const fetchData = async () => {
     try {
       const data = await getAllInvoices();
-      setInvoices(data);
-      calculateStats(data);
+      // Normalize API response: support array or { invoices: [] }
+      const invoiceList = Array.isArray(data) ? data : (data?.invoices || []);
+      setInvoices(invoiceList);
+      calculateStats(invoiceList);
     } catch (e) {
       if (e.message === 'Unauthorized') {
         router.push('/login');
@@ -90,6 +92,20 @@ export default function DashboardPage() {
   }, [user, authLoading]);
 
   const [statusFilter, setStatusFilter] = useState("ALL");
+
+  // Robust role checks (declared early so downstream logic can use them safely)
+  const isAdmin = user?.role === ROLES.ADMIN;
+  const isPM = Array.isArray(user?.role)
+    ? user.role.includes(ROLES.PROJECT_MANAGER)
+    : (user?.role === ROLES.PROJECT_MANAGER || user?.role?.toLowerCase() === 'project manager' || user?.role === 'PM');
+
+  const isFinance = Array.isArray(user?.role)
+    ? user.role.includes(ROLES.FINANCE_USER)
+    : (user?.role === ROLES.FINANCE_USER || user?.role?.toLowerCase() === 'finance user');
+
+  const isVendor = Array.isArray(user?.role)
+    ? user.role.includes(ROLES.VENDOR)
+    : (user?.role === ROLES.VENDOR || user?.role?.toLowerCase() === 'vendor');
 
   const filteredInvoices = invoices.filter(inv => {
     // 0. Status Filter
@@ -164,20 +180,6 @@ export default function DashboardPage() {
       </div>
     );
   }
-
-  // Robust role checks
-  const isAdmin = user?.role === ROLES.ADMIN;
-  const isPM = Array.isArray(user?.role)
-    ? user.role.includes(ROLES.PROJECT_MANAGER)
-    : (user?.role === ROLES.PROJECT_MANAGER || user?.role?.toLowerCase() === 'project manager' || user?.role === 'PM');
-
-  const isFinance = Array.isArray(user?.role)
-    ? user.role.includes(ROLES.FINANCE_USER)
-    : (user?.role === ROLES.FINANCE_USER || user?.role?.toLowerCase() === 'finance user');
-
-  const isVendor = Array.isArray(user?.role)
-    ? user.role.includes(ROLES.VENDOR)
-    : (user?.role === ROLES.VENDOR || user?.role?.toLowerCase() === 'vendor');
 
   // Refined Dashboard Actions - Unified for all roles
   const dashboardActions = (

@@ -176,7 +176,7 @@ export default function VendorPortal() {
     }
 
     return (
-        <div className="space-y-10 max-w-7xl mx-auto h-full pb-10">
+        <div className="space-y-10 max-w-7xl mx-auto h-full pb-10 px-4 sm:px-6 lg:px-0">
             <PageHeader
                 title="Vendor Hub"
                 subtitle="Seamlessly manage your billing, track payments in real-time, and resolve discrepancies instantly."
@@ -211,12 +211,12 @@ export default function VendorPortal() {
             />
 
             {/* Main Content Grid - Single Screen Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[calc(100vh-12rem)] min-h-[600px]">
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 min-h-[600px] lg:h-[calc(100vh-12rem)]">
 
                 {/* Left Column: Stats & Submission Form */}
                 <div className="lg:col-span-1 flex flex-col gap-6 h-full overflow-hidden">
                     {/* Compact Stats */}
-                    <div className="grid grid-cols-2 gap-3 shrink-0">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 shrink-0">
                         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm relative overflow-hidden">
                             <div className="flex items-center gap-2 mb-1">
                                 <div className="p-1.5 rounded-lg bg-teal-50 text-teal-600"><Icon name="FileText" size={14} /></div>

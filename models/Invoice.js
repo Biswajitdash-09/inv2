@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 const ApprovalSchema = new mongoose.Schema({
     status: { type: String, enum: ['PENDING', 'APPROVED', 'REJECTED', 'INFO_REQUESTED'], default: 'PENDING' },
     approvedBy: { type: String },
+    approvedByRole: { type: String },
     approvedAt: { type: Date },
     notes: { type: String }
 }, { _id: false });

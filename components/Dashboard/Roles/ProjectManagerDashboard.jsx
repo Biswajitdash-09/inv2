@@ -74,6 +74,12 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
         inv.status === 'PAID'
     );
 
+    // Approval history for this PM (invoices where this PM was involved in a decision)
+    const approvalHistory = invoices
+        .filter(inv => inv.pmApproval?.status && (inv.assignedPM === user.id || inv.pmApproval?.approvedBy === user.id))
+        .sort((a, b) => new Date(b.pmApproval?.approvedAt || b.updated_at || b.created_at) - new Date(a.pmApproval?.approvedAt || a.updated_at || a.created_at))
+        .slice(0, 10);
+
     const stats = [
         {
             title: "Total Invoices",
@@ -382,80 +388,151 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
             </AnimatePresence>
 
             {/* All Invoices / Recent Activity Section */}
-            <Card className="border-slate-200/60 p-0 overflow-hidden shadow-xl shadow-slate-200/20">
-                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
-                    <div>
-                        <h3 className="font-black text-slate-800 tracking-tight text-xl">Recent Invoices</h3>
-                        <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Project Activity Log</p>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <Card className="border-slate-200/60 p-0 overflow-hidden shadow-xl shadow-slate-200/20">
+                    <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                        <div>
+                            <h3 className="font-black text-slate-800 tracking-tight text-xl">Recent Invoices</h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Project Activity Log</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-widest">
+                                {filteredInvoices.length} Items Found
+                            </span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2">
-                        <span className="px-3 py-1 bg-slate-100 text-slate-500 rounded-lg text-[10px] font-bold uppercase tracking-widest">
-                            {filteredInvoices.length} Items Found
-                        </span>
-                    </div>
-                </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50/50 border-b border-slate-100">
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">ID</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Vendor & Project</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Date/Amount</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-50">
-                            {filteredInvoices.length === 0 ? (
-                                <tr>
-                                    <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-bold text-sm">
-                                        No invoices matching the current filter.
-                                    </td>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/50 border-b border-slate-100">
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">ID</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Vendor & Project</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Date/Amount</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Actions</th>
                                 </tr>
-                            ) : (
-                                filteredInvoices.map((inv) => (
-                                    <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors group">
-                                        <td className="px-6 py-4">
-                                            <span className="text-[11px] font-black text-slate-400 group-hover:text-indigo-600 transition-colors">#{inv.id.slice(-6)}</span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <p className="font-black text-slate-800 text-sm tracking-tight">{inv.vendorName}</p>
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{inv.project || 'General Project'}</p>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <p className="font-black text-slate-800 text-sm uppercase">{inv.date || '---'}</p>
-                                            <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">{formatCurrency(inv.amount)}</p>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex justify-center">
-                                                <span className={`
-                                                px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest
-                                                ${inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-600' :
-                                                        inv.status === 'PENDING_APPROVAL' ? 'bg-amber-100 text-amber-600' :
-                                                            inv.status === 'MATCH_DISCREPANCY' ? 'bg-rose-100 text-rose-600' :
-                                                                inv.status === 'VERIFIED' ? 'bg-blue-100 text-blue-600' :
-                                                                    'bg-slate-100 text-slate-500'}
-                                            `}>
-                                                    {inv.status.replace(/_/g, ' ')}
-                                                </span>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <Link
-                                                href={`/pm/approvals?invoiceId=${inv.id}`}
-                                                className="inline-flex items-center gap-2 h-8 px-4 bg-white border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-indigo-600 hover:text-indigo-600 transition-all shadow-sm active:scale-95"
-                                            >
-                                                View <Icon name="ExternalLink" size={10} />
-                                            </Link>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {filteredInvoices.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="5" className="px-6 py-12 text-center text-slate-400 font-bold text-sm">
+                                            No invoices matching the current filter.
                                         </td>
                                     </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+                                ) : (
+                                    filteredInvoices.map((inv) => (
+                                        <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors group">
+                                            <td className="px-6 py-4">
+                                                <span className="text-[11px] font-black text-slate-400 group-hover:text-indigo-600 transition-colors">#{inv.id.slice(-6)}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="font-black text-slate-800 text-sm tracking-tight">{inv.vendorName}</p>
+                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{inv.project || 'General Project'}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <p className="font-black text-slate-800 text-sm uppercase">{inv.date || '---'}</p>
+                                                <p className="text-[10px] font-bold text-indigo-600 uppercase tracking-widest mt-0.5">{formatCurrency(inv.amount)}</p>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="flex justify-center">
+                                                    <span className={`
+                                                px-3 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest
+                                                ${inv.status === 'PAID' ? 'bg-emerald-100 text-emerald-600' :
+                                                            inv.status === 'PENDING_APPROVAL' ? 'bg-amber-100 text-amber-600' :
+                                                                inv.status === 'MATCH_DISCREPANCY' ? 'bg-rose-100 text-rose-600' :
+                                                                    inv.status === 'VERIFIED' ? 'bg-blue-100 text-blue-600' :
+                                                                        'bg-slate-100 text-slate-500'}
+                                            `}>
+                                                        {inv.status.replace(/_/g, ' ')}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <Link
+                                                    href={`/pm/approvals?invoiceId=${inv.id}`}
+                                                    className="inline-flex items-center gap-2 h-8 px-4 bg-white border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-indigo-600 hover:text-indigo-600 transition-all shadow-sm active:scale-95"
+                                                >
+                                                    View <Icon name="ExternalLink" size={10} />
+                                                </Link>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+
+                {/* Approval History Section */}
+                <Card className="border-slate-200/60 p-0 overflow-hidden shadow-xl shadow-slate-200/20">
+                    <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-white">
+                        <div>
+                            <h3 className="font-black text-slate-800 tracking-tight text-xl">Approval History</h3>
+                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">
+                                {approvalHistory.length} Decisions (Approved / Rejected)
+                            </p>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/50 border-b border-slate-100">
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Invoice</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Vendor ID & Name</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">PM Decision</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Approved By</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {approvalHistory.length === 0 ? (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-10 text-center text-slate-400 text-sm font-bold">
+                                            No approvals or rejections yet.
+                                        </td>
+                                    </tr>
+                                ) : (
+                                    approvalHistory.map((inv) => (
+                                        <tr key={inv.id} className="hover:bg-slate-50/50 transition-colors group">
+                                            <td className="px-6 py-4 text-sm font-semibold text-slate-800">
+                                                {inv.invoiceNumber || `#${inv.id.slice(-6)}`}
+                                            </td>
+                                            <td className="px-6 py-4 text-sm">
+                                                <div className="flex flex-col">
+                                                    <span className="font-mono text-xs text-indigo-600">
+                                                        {inv.vendorCode || inv.vendorId || '—'}
+                                                    </span>
+                                                    <span className="text-slate-700 font-semibold text-xs">
+                                                        {inv.vendorName || 'Unknown Vendor'}
+                                                    </span>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`
+                                                    inline-flex px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest
+                                                    ${inv.pmApproval?.status === 'APPROVED'
+                                                        ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                                        : inv.pmApproval?.status === 'REJECTED'
+                                                            ? 'bg-rose-50 text-rose-700 border border-rose-100'
+                                                            : 'bg-amber-50 text-amber-700 border border-amber-100'
+                                                    }
+                                                `}>
+                                                    {inv.pmApproval?.status?.replace(/_/g, ' ') || '—'}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4 text-right text-xs text-slate-500">
+                                                {inv.pmApproval?.approvedByRole === 'Admin'
+                                                    ? `Admin · ${inv.pmApprovedByName || ''}`.trim()
+                                                    : `Project Manager · ${inv.pmApprovedByName || ''}`.trim()}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+            </div>
         </div>
     );
 }

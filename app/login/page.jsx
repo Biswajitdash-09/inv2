@@ -9,7 +9,7 @@ import { useRouter } from "next/navigation";
 import { ROLES } from "@/constants/roles";
 
 export default function LoginPage() {
-    const { login, isLoading: authLoading } = useAuth();
+    const { login, setAuth, isLoading: authLoading } = useAuth();
     const router = useRouter(); // Helper to redirect after OTP login
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
@@ -87,14 +87,17 @@ export default function LoginPage() {
             const data = await res.json();
 
             if (res.ok && data.user) {
+                // Update AuthContext state immediately with the user data
+                setAuth(data.user);
+                
+                // Log OTP verification success
+                console.log(`[OTP Login] Verification successful for user: ${data.user.email}, role: ${data.user.role}`);
+                
                 // Success! Redirect based on role
-                // Note: AuthContext might need a manual refresh or we can rely on page reload behaviors
-                // For smoother experience, we can reload or push route. 
-                // Since session cookie is set, router.push work fine for next page load.
                 router.push(data.user?.role === ROLES.VENDOR ? "/vendors" : "/dashboard");
-                // We might want to update AuthContext state if we can, but a forced reload ensures cleanliness
-                // window.location.href = data.user?.role === ROLES.VENDOR ? "/vendors" : "/dashboard";
             } else {
+                // Log OTP verification failure for debugging
+                console.error(`[OTP Login] Verification failed:`, data);
                 setError(data.error || "Invalid OTP");
             }
         } catch (err) {

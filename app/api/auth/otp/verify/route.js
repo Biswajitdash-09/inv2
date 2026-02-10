@@ -43,7 +43,8 @@ export async function POST(request) {
         // Login successful: Generate session
         // We reuse the 'login' function from lib/auth which sets the cookie
 
-        // Fix: Convert Mongoose doc to plain object and normalize role
+        // Ensure we return a plain JavaScript object (not Mongoose doc)
+        // and normalize role for consistency
         let normalizedRole = user.role;
         if (user.role === 'Project Manager' || user.role === 'ProjectManager') {
             normalizedRole = 'PM';
@@ -58,14 +59,20 @@ export async function POST(request) {
             isActive: user.isActive !== false
         };
 
+        // Log successful login for observability
+        console.log(`[OTP Verify] Login successful for user: ${email}, role: ${normalizedRole}, id: ${user.id}`);
+
         await login(sessionUser);
 
         // Delete the used OTP to prevent replay attacks
         await Otp.deleteOne({ _id: validOtp._id });
 
+        // Log session created and user data being returned
+        console.log(`[OTP Verify] Session created, returning user data:`, JSON.stringify(sessionUser));
+
         return NextResponse.json({
             success: true,
-            user // Return user data for frontend context
+            user: sessionUser // Return user data for frontend context
         });
 
     } catch (error) {

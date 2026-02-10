@@ -19,7 +19,9 @@ const DocumentUploadSchema = new mongoose.Schema({
         validated: { type: Boolean, default: false },
         validationNotes: { type: String },
         ringiNumber: { type: String },
-        projectName: { type: String }
+        projectName: { type: String },
+        description: { type: String },
+        validationData: { type: mongoose.Schema.Types.Mixed }
     },
     status: {
         type: String,
@@ -33,5 +35,10 @@ DocumentUploadSchema.index({ projectId: 1 });
 DocumentUploadSchema.index({ invoiceId: 1 });
 DocumentUploadSchema.index({ uploadedBy: 1 });
 DocumentUploadSchema.index({ type: 1, status: 1 });
+
+// Force model recompilation in dev to pick up schema changes
+if (process.env.NODE_ENV !== 'production' && mongoose.models.DocumentUpload) {
+    delete mongoose.models.DocumentUpload;
+}
 
 export default mongoose.models.DocumentUpload || mongoose.model('DocumentUpload', DocumentUploadSchema);

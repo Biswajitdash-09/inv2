@@ -62,11 +62,17 @@ export default function DashboardPage() {
   };
 
   const calculateStats = (data) => {
-    const totalAmount = data.reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
-    const pendingCount = data.filter(inv => inv.status === "PENDING_APPROVAL").length;
-    const processingCount = data.filter(inv => ["DIGITIZING", "RECEIVED"].includes(inv.status)).length;
-    const verifiedCount = data.filter(inv => inv.status === "VERIFIED").length;
-    const discrepancyCount = data.filter(inv => inv.status === "MATCH_DISCREPANCY").length;
+    // If PM, we only want stats for assigned projects. 
+    // The 'data' from getAllInvoices() should already be filtered by the backend for PMs.
+    const filteredData = user?.role === ROLES.PROJECT_MANAGER
+      ? data.filter(inv => (user.assignedProjects || []).includes(inv.project) || inv.assignedPM === user.id)
+      : data;
+
+    const totalAmount = filteredData.reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
+    const pendingCount = filteredData.filter(inv => inv.status === "PENDING_APPROVAL").length;
+    const processingCount = filteredData.filter(inv => ["DIGITIZING", "RECEIVED"].includes(inv.status)).length;
+    const verifiedCount = filteredData.filter(inv => inv.status === "VERIFIED").length;
+    const discrepancyCount = filteredData.filter(inv => inv.status === "MATCH_DISCREPANCY").length;
 
     setStats({
       totalAmount,
@@ -98,7 +104,7 @@ export default function DashboardPage() {
     }
 
     // 2. Project Managers - Specific Statuses Only
-    if (role === ROLES.PROJECT_MANAGER) {
+    if (isPM) {
       return ['VERIFIED', 'MATCH_DISCREPANCY', 'PENDING_APPROVAL'].includes(inv.status);
     }
 
@@ -147,98 +153,106 @@ export default function DashboardPage() {
   // Show loading state while checking authentication or redirecting vendors
   if (authLoading || !user || user?.role === ROLES.VENDOR) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-[#F8F9FC]/50 backdrop-blur-sm">
         <div className="text-center">
-          <span className="loading loading-spinner loading-lg text-primary"></span>
-          <p className="mt-4 text-gray-500">Loading...</p>
+          <div className="relative inline-flex items-center justify-center mb-4">
+            <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
+            <span className="loading loading-spinner loading-lg text-primary relative z-10 w-12 h-12"></span>
+          </div>
+          <p className="mt-4 text-xs font-black uppercase tracking-[0.2em] text-slate-400 animate-pulse">Initializing Data...</p>
         </div>
       </div>
     );
   }
 
+  // Robust role checks
   const isAdmin = user?.role === ROLES.ADMIN;
-  const dashboardActions = !isAdmin && user?.role !== ROLES.VENDOR ? (
-    <>
-      <div className="hidden xl:flex bg-slate-100/60 p-1 rounded-xl border border-slate-200/60 items-center">
-        <button
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === "overview" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-          onClick={() => setActiveTab("overview")}
-        >
-          <Icon name="BarChart2" size={13} /> Overview
-        </button>
-        <button
-          className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all ${activeTab === "analytics" ? "bg-white text-indigo-600 shadow-sm" : "text-slate-400 hover:text-slate-600"}`}
-          onClick={() => router.push('/analytics')}
-        >
-          <Icon name="PieChart" size={13} /> Analytics
-        </button>
+  const isPM = Array.isArray(user?.role)
+    ? user.role.includes(ROLES.PROJECT_MANAGER)
+    : (user?.role === ROLES.PROJECT_MANAGER || user?.role?.toLowerCase() === 'project manager' || user?.role === 'PM');
+
+  const isFinance = Array.isArray(user?.role)
+    ? user.role.includes(ROLES.FINANCE_USER)
+    : (user?.role === ROLES.FINANCE_USER || user?.role?.toLowerCase() === 'finance user');
+
+  const isVendor = Array.isArray(user?.role)
+    ? user.role.includes(ROLES.VENDOR)
+    : (user?.role === ROLES.VENDOR || user?.role?.toLowerCase() === 'vendor');
+
+  // Refined Dashboard Actions - Unified for all roles
+  const dashboardActions = (
+    <div className="flex items-center gap-2">
+      {isAdmin && <RoleSwitcher />}
+
+      {/* Search Bar - Global for Dashboard */}
+      <div className="hidden lg:flex items-center bg-white/40 border border-white/60 rounded-xl px-3 py-1.5 focus-within:ring-2 focus-within:ring-indigo-500/20 transition-all">
+        <Icon name="Search" size={14} className="text-slate-400" />
+        <input
+          type="text"
+          placeholder="Search items..."
+          className="bg-transparent border-none outline-none text-xs ml-2 w-32 xl:w-48 placeholder:text-slate-400 font-medium"
+        />
       </div>
-      <div className="h-8 w-px bg-slate-200 hidden xl:block" />
-      <div className="flex items-center gap-2">
-        <RoleSwitcher />
-        <button
-          onClick={() => setIsUploadModalOpen(true)}
-          className="flex items-center gap-2 h-10 px-4 bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-md shadow-indigo-500/20 hover:shadow-indigo-500/30 active:scale-95 transition-all whitespace-nowrap"
-        >
-          <Icon name="Plus" size={15} /> <span className="hidden lg:inline">New Invoice</span><span className="lg:hidden">New</span>
-        </button>
+
+      <div className="flex items-center gap-1.5 bg-white/40 border border-white/60 rounded-xl p-1">
         <button
           onClick={handleExportCSV}
-          className="h-10 w-10 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 hover:text-indigo-600 hover:border-indigo-200 transition-all"
+          className="h-8 w-8 flex items-center justify-center text-slate-500 rounded-lg hover:bg-white hover:text-indigo-600 transition-all"
           title="Export CSV"
         >
-          <Icon name="Download" size={17} />
+          <Icon name="Download" size={15} />
         </button>
         <div className="dropdown dropdown-end">
-          <label tabIndex={0} className="h-10 w-10 flex items-center justify-center bg-slate-50 border border-slate-200 text-slate-600 rounded-xl hover:bg-slate-100 hover:text-indigo-600 hover:border-indigo-200 transition-all cursor-pointer">
-            <Icon name="Filter" size={16} />
+          <label tabIndex={0} className="h-8 w-8 flex items-center justify-center text-slate-500 rounded-lg hover:bg-white hover:text-indigo-600 transition-all cursor-pointer">
+            <Icon name="Filter" size={15} />
           </label>
-          <ul tabIndex={0} className="dropdown-content z-50 menu p-2 shadow-xl bg-white rounded-2xl w-56 border border-slate-100 mt-2">
+          <ul tabIndex={0} className="dropdown-content z-60 menu p-2 shadow-2xl bg-white/90 backdrop-blur-xl rounded-2xl w-56 border border-white/60 mt-3">
             <div className="px-4 py-2 border-b border-slate-50 mb-1">
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Filter by Status</p>
             </div>
-            <li><a onClick={() => setStatusFilter("ALL")} className="text-xs font-bold text-slate-600 py-2">All Invoices</a></li>
-            <li><a onClick={() => setStatusFilter("PENDING_APPROVAL")} className="text-xs font-bold text-amber-600 py-2">Pending Approval</a></li>
-            <li><a onClick={() => setStatusFilter("PAID")} className="text-xs font-bold text-emerald-600 py-2">Paid</a></li>
-            <li><a onClick={() => setStatusFilter("MATCH_DISCREPANCY")} className="text-xs font-bold text-orange-600 py-2">Discrepancies</a></li>
+            <li><button onClick={() => setStatusFilter("ALL")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'ALL' ? 'text-indigo-600' : 'text-slate-600'}`}>All Invoices</button></li>
+            <li><button onClick={() => setStatusFilter("PENDING_APPROVAL")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'PENDING_APPROVAL' ? 'text-amber-600' : 'text-slate-600'}`}>Pending Approval</button></li>
+            <li><button onClick={() => setStatusFilter("PAID")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'PAID' ? 'text-emerald-600' : 'text-slate-600'}`}>Paid</button></li>
+            <li><button onClick={() => setStatusFilter("MATCH_DISCREPANCY")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'MATCH_DISCREPANCY' ? 'text-orange-600' : 'text-slate-600'}`}>Discrepancies</button></li>
           </ul>
         </div>
       </div>
-    </>
-  ) : null;
+
+      {/* New Invoice Button - Hidden for PMs/Vendors */}
+      {!isPM && !isVendor && (
+        <button
+          onClick={() => setIsUploadModalOpen(true)}
+          className="flex items-center gap-2 h-10 px-6 bg-linear-to-br from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-500/20 active:scale-95 transition-all whitespace-nowrap"
+        >
+          <Icon name="Plus" size={15} /> New Invoice
+        </button>
+      )}
+    </div>
+  );
 
   return (
-    <div className="pb-10">
-      {user?.role === ROLES.ADMIN ? (
-        <PageHeader
-          title="Admin Control Center"
-          subtitle="System administration & governance"
-          icon="Shield"
-          accent="purple"
-          roleLabel="Administrator"
-        />
-      ) : user?.role !== ROLES.VENDOR ? (
-        <PageHeader
-          title="Financial Command"
-          subtitle="Real-time Control"
-          icon="LayoutDashboard"
-          accent="indigo"
-          actions={dashboardActions}
-        />
-      ) : null}
+    <div className="pb-10"> {/* Removed negative margin for better layout consistency */}
+      {/* Unified Page Header */}
+      <PageHeader
+        title={isPM ? "Project Command" : isAdmin ? "Admin Control Center" : "Financial Command"}
+        subtitle={isPM ? "Assigned Projects Overview" : isAdmin ? "System administration & governance" : "Real-time Control"}
+        icon={isPM ? "Briefcase" : isAdmin ? "Shield" : "LayoutDashboard"}
+        accent={isPM ? "blue" : isAdmin ? "purple" : "indigo"}
+        actions={dashboardActions}
+      />
 
-      {user?.role === ROLES.VENDOR ? (
+      {isVendor ? (
         <VendorPortal onUploadClick={() => setIsUploadModalOpen(true)} />
-      ) : user?.role === ROLES.ADMIN ? (
+      ) : isAdmin ? (
         <AdminDashboard invoices={invoices} onRefresh={fetchData} />
-      ) : user?.role === ROLES.FINANCE_USER ? (
+      ) : isPM ? (
+        <ProjectManagerDashboard user={user} invoices={invoices} filteredInvoices={filteredInvoices} onUploadComplete={handleUploadComplete} />
+      ) : isFinance ? (
         <FinanceUserDashboard invoices={invoices} onUploadComplete={handleUploadComplete} />
-      ) : user?.role === ROLES.PROJECT_MANAGER ? (
-        <ProjectManagerDashboard user={user} invoices={invoices} />
       ) : (
         <>
           {activeTab === 'analytics' ? (
-            <AnalyticsView invoices={invoices} />
+            <AnalyticsView user={user} invoices={invoices} />
           ) : (
             <>
               {/* Stats Grid */}
@@ -328,7 +342,8 @@ export default function DashboardPage() {
                 </div>
               </div>
             </>
-          )}
+          )
+          }
         </>
       )}
       {/* Global Upload Modal */}
@@ -337,7 +352,7 @@ export default function DashboardPage() {
           <div className="p-6 border-b bg-gray-50 flex justify-between items-center shrink-0">
             <div>
               <h3 className="font-black text-lg sm:text-xl text-gray-800 uppercase tracking-tight">Submit New Invoices</h3>
-              <p className="text-[10px] sm:text-xs text-gray-500 mt-1 uppercase font-bold tracking-wider text-primary">Secure ERP Ingestion Portal</p>
+              <p className="text-[10px] sm:text-xs text-primary mt-1 uppercase font-bold tracking-wider">Secure ERP Ingestion Portal</p>
             </div>
             <button
               onClick={() => setIsUploadModalOpen(false)}
@@ -367,6 +382,6 @@ export default function DashboardPage() {
           <button>close</button>
         </div>
       </dialog>
-    </div>
+    </div >
   );
 }

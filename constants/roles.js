@@ -1,5 +1,21 @@
 /**
- * Role and Permission Constants
+ * Helper to normalize role strings
+ * Handles variations like 'Project Manager' -> 'PM'
+ */
+export const getNormalizedRole = (user) => {
+    if (!user?.role) return '';
+    const rawRole = user.role;
+    if (rawRole === 'Project Manager' || rawRole === 'ProjectManager' || rawRole?.toLowerCase() === 'project manager') {
+        return ROLES.PROJECT_MANAGER;
+    }
+    if (rawRole === 'FinanceUser' || rawRole === 'Finance User') {
+        return ROLES.FINANCE_USER;
+    }
+    return rawRole;
+};
+
+/**
+ * Check if user has permission for a specific action
  * 
  * Role Hierarchy:
  * - Admin: Full system access (includes audit logs, analytics, system health)
@@ -20,6 +36,8 @@ export const MENU_PERMISSIONS = {
     'Digitization': [ROLES.FINANCE_USER],
     'Matching': [ROLES.ADMIN, ROLES.FINANCE_USER, ROLES.PROJECT_MANAGER],
     'Approvals': [ROLES.ADMIN, ROLES.PROJECT_MANAGER],
+    'Documents': [ROLES.ADMIN, ROLES.FINANCE_USER, ROLES.PROJECT_MANAGER],
+    'Messages': [ROLES.ADMIN, ROLES.PROJECT_MANAGER, ROLES.VENDOR],
     'Vendors': [ROLES.ADMIN, ROLES.FINANCE_USER, ROLES.VENDOR],
     'Analytics': [ROLES.ADMIN],
     'Configuration': [ROLES.ADMIN],
@@ -35,9 +53,8 @@ export const MENU_PERMISSIONS = {
  */
 export const hasPermission = (user, action, resource = null) => {
     if (!user) return false;
-    if (user.role === ROLES.ADMIN) return true;
-
-    const effectiveRole = user.role;
+    const effectiveRole = getNormalizedRole(user);
+    if (effectiveRole === ROLES.ADMIN) return true;
 
     switch (action) {
         case 'CONFIGURE_SYSTEM':
@@ -87,8 +104,11 @@ export const hasPermission = (user, action, resource = null) => {
  */
 export const canSeeMenuItem = (user, itemName) => {
     if (!user) return false;
-    if (user.role === ROLES.ADMIN) return true;
+    const userRole = getNormalizedRole(user);
+    if (userRole === ROLES.ADMIN) return true;
+
     const allowedRoles = MENU_PERMISSIONS[itemName];
     if (!allowedRoles) return true; // Default to visible if not defined
-    return allowedRoles.includes(user.role);
+
+    return allowedRoles.includes(userRole);
 };

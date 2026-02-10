@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import Project from '@/models/Project';
 import { getSession } from '@/lib/auth';
-import { requireRole } from '@/lib/rbac';
+import { requireRole, getNormalizedRole } from '@/lib/rbac';
 import { ROLES } from '@/constants/roles';
 
 /**
@@ -22,10 +22,11 @@ export async function GET(request) {
 
         await connectToDatabase();
 
+        const userRole = getNormalizedRole(session.user);
         let query = {};
 
         // PMs only see their assigned projects, Admin sees all
-        if (session.user.role === ROLES.PROJECT_MANAGER) {
+        if (userRole === ROLES.PROJECT_MANAGER) {
             query = { assignedPMs: session.user.id };
         }
 

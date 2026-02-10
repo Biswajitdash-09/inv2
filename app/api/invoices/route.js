@@ -4,7 +4,7 @@ import { getCurrentUser } from '@/lib/server-auth';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET() {
+export async function GET(request) {
     try {
         const user = await getCurrentUser();
 
@@ -15,7 +15,18 @@ export async function GET() {
             );
         }
 
-        const invoices = await db.getInvoices(user);
+        const { searchParams } = new URL(request.url);
+        const filters = {};
+
+        const status = searchParams.get('status');
+        if (status) {
+            filters.status = status.includes(',') ? status.split(',') : status;
+        }
+
+        const limit = searchParams.get('limit');
+        if (limit) filters.limit = limit;
+
+        const invoices = await db.getInvoices(user, filters);
         const sorted = invoices.sort((a, b) =>
             new Date(b.receivedAt || b.updatedAt || b.created_at) - new Date(a.receivedAt || a.updatedAt || a.created_at)
         );

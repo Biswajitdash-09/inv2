@@ -12,15 +12,15 @@ const Card = ({
   ...props
 }) => {
   const baseClasses = "rounded-2xl transition-all duration-300 relative overflow-hidden";
-  
-  const glassClasses = glass 
-    ? "glass-panel bg-white/40 border border-white/40 backdrop-blur-xl shadow-xl" 
+
+  const glassClasses = glass
+    ? twMerge("glass-panel backdrop-blur-xl shadow-xl", !className.includes("bg-") && "glass-panel-white")
     : "bg-base-100 shadow-md border border-base-200";
 
   const paddingClasses = noPadding ? "" : "p-6";
 
-  const hoverClasses = hoverEffect 
-    ? "hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/20" 
+  const hoverClasses = hoverEffect
+    ? "hover:-translate-y-1 hover:shadow-2xl hover:shadow-primary/10 hover:border-primary/20"
     : "";
 
   return (
@@ -31,13 +31,13 @@ const Card = ({
       className={twMerge(baseClasses, glassClasses, paddingClasses, hoverClasses, className)}
       {...props}
     >
-        {/* Decorative subtle gradient background for aesthetic depth */}
-        {glass && (
-            <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none z-0"></div>
-        )}
-        <div className="relative z-10">
-            {children}
-        </div>
+      {/* Decorative subtle gradient background for aesthetic depth */}
+      {glass && (
+        <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-white/10 to-transparent pointer-events-none z-0"></div>
+      )}
+      <div className="relative z-10">
+        {children}
+      </div>
     </motion.div>
   );
 };

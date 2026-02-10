@@ -75,9 +75,15 @@ export async function POST(request, { params }) {
                 }
                 nextStatus = 'VERIFIED';
                 auditLog.details = `Admin approved vendor submission: ${comments || 'No comments'}`;
-            } else if (invoice.status === 'VERIFIED') {
                 // Project Manager Approval
-                if (userRole !== ROLES.PROJECT_MANAGER && userRole !== ROLES.ADMIN) {
+                if (userRole === ROLES.PROJECT_MANAGER) {
+                    const isPmForProject = user.assignedProjects?.includes(invoice.project);
+                    const isPmForInvoice = invoice.assignedPM === user.id;
+
+                    if (!isPmForProject && !isPmForInvoice) {
+                        return NextResponse.json({ error: 'You are not authorized to approve this invoice (not assigned to this project/invoice).' }, { status: 403 });
+                    }
+                } else if (userRole !== ROLES.ADMIN) {
                     return NextResponse.json({ error: 'Only a Project Manager can approve verified invoices.' }, { status: 403 });
                 }
                 nextStatus = 'PENDING_APPROVAL';

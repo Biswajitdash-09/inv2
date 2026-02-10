@@ -139,17 +139,23 @@ const ValidationForm = ({ invoice: initialInvoice }) => {
         <form className="space-y-6 sm:space-y-8 pb-4">
 
           {/* Section 1: Vendor & Document */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2">
-              <Icon name="FileText" size={14} /> Document Information
+          <div className="p-6 sm:p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-200/60 shadow-inner group/section transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/20">
+            <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.25em] text-indigo-500 mb-8 px-2">
+              <div className="p-1.5 bg-indigo-50 rounded-lg">
+                <Icon name="FileText" size={14} />
+              </div>
+              Document Information
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="form-control w-full space-y-1.5">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 ml-1 uppercase tracking-wider">Vendor/Merchant</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+              <div className="form-control w-full space-y-2 sm:col-span-2">
+                <label className="text-[11px] sm:text-xs font-black text-slate-500 ml-1 uppercase tracking-widest flex items-center gap-2">
+                  Vendor / Merchant
+                  <span className="text-rose-500">*</span>
+                </label>
                 <div className="relative group">
-                  <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
-                    <Icon name="Store" size={16} />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                    <Icon name="Store" size={18} />
                   </div>
                   <input
                     type="text"
@@ -158,17 +164,17 @@ const ValidationForm = ({ invoice: initialInvoice }) => {
                     onChange={handleChange}
                     readOnly={isAuditor}
                     placeholder="Identifying..."
-                    className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 bg-white/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-semibold text-slate-800 disabled:opacity-50 text-sm sm:text-base"
+                    className="w-full pl-11 pr-4 h-14 bg-white border-2 border-slate-100 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all font-bold text-slate-800 disabled:bg-slate-50/50 text-base"
                     required
                   />
                 </div>
               </div>
 
-              <div className="form-control w-full space-y-1.5">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 ml-1 uppercase tracking-wider">Invoice Number</label>
+              <div className="form-control w-full space-y-2">
+                <label className="text-[11px] sm:text-xs font-black text-slate-500 ml-1 uppercase tracking-widest">Invoice Number</label>
                 <div className="relative group">
-                  <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
-                    <Icon name="Hash" size={16} />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                    <Icon name="Hash" size={18} />
                   </div>
                   <input
                     type="text"
@@ -177,16 +183,16 @@ const ValidationForm = ({ invoice: initialInvoice }) => {
                     onChange={handleChange}
                     readOnly={isAuditor}
                     placeholder="e.g. INV-2024..."
-                    className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 bg-white/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono font-bold text-slate-800 disabled:opacity-50 text-sm sm:text-base"
+                    className="w-full pl-11 pr-4 h-14 bg-white border-2 border-slate-100 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all font-mono font-bold text-slate-800 disabled:bg-slate-50/50 text-base"
                   />
                 </div>
               </div>
 
-              <div className="form-control w-full space-y-1.5">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 ml-1 uppercase tracking-wider">Purchase Order (PO) #</label>
+              <div className="form-control w-full space-y-2">
+                <label className="text-[11px] sm:text-xs font-black text-slate-500 ml-1 uppercase tracking-widest">PO Number</label>
                 <div className="relative group">
-                  <div className="absolute left-3 sm:left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
-                    <Icon name="ShoppingCart" size={16} />
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                    <Icon name="ShoppingCart" size={18} />
                   </div>
                   <input
                     type="text"
@@ -195,7 +201,7 @@ const ValidationForm = ({ invoice: initialInvoice }) => {
                     onChange={handleChange}
                     readOnly={isAuditor}
                     placeholder="e.g. PO-2026-001"
-                    className="w-full pl-10 sm:pl-12 pr-4 py-2.5 sm:py-3 bg-white/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono font-bold text-slate-800 disabled:opacity-50 text-sm sm:text-base"
+                    className="w-full pl-11 pr-4 h-14 bg-white border-2 border-slate-100 rounded-xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/5 transition-all font-mono font-bold text-slate-800 disabled:bg-slate-50/50 text-base"
                   />
                 </div>
               </div>
@@ -203,41 +209,44 @@ const ValidationForm = ({ invoice: initialInvoice }) => {
           </div>
 
           {/* Section 2: Dates & Financials */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2">
-              <Icon name="DollarSign" size={14} /> Financial context
+          <div className="p-6 sm:p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-200/60 shadow-inner group/financial transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/20">
+            <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.25em] text-emerald-600 mb-8 px-2">
+              <div className="p-1.5 bg-emerald-50 rounded-lg">
+                <Icon name="DollarSign" size={14} />
+              </div>
+              Financial Context
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6">
-              <div className="form-control w-full space-y-1.5">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 ml-1 uppercase tracking-wider">Issue Date</label>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+              <div className="form-control w-full space-y-2">
+                <label className="text-[11px] sm:text-xs font-black text-slate-500 ml-1 uppercase tracking-widest">Issue Date</label>
                 <input
                   type="date"
                   name="date"
                   value={formData.date}
                   onChange={handleChange}
                   readOnly={isAuditor}
-                  className="w-full px-4 py-2.5 sm:py-3 bg-white/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-semibold text-slate-800 text-sm sm:text-base"
+                  className="w-full px-4 h-14 bg-white border-2 border-slate-100 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all font-bold text-slate-800 text-base shadow-sm"
                   required
                 />
               </div>
 
-              <div className="form-control w-full space-y-1.5">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 ml-1 uppercase tracking-wider">Due Date</label>
+              <div className="form-control w-full space-y-2">
+                <label className="text-[11px] sm:text-xs font-black text-slate-500 ml-1 uppercase tracking-widest">Due Date</label>
                 <input
                   type="date"
                   name="dueDate"
                   value={formData.dueDate}
                   onChange={handleChange}
                   readOnly={isAuditor}
-                  className="w-full px-4 py-2.5 sm:py-3 bg-white/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-semibold text-slate-800 text-sm sm:text-base"
+                  className="w-full px-4 h-14 bg-white border-2 border-slate-100 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all font-bold text-slate-800 text-base shadow-sm"
                 />
               </div>
 
-              <div className="form-control w-full space-y-1.5 sm:col-span-2 md:col-span-1">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 ml-1 uppercase tracking-wider">Total Amount (INR)</label>
+              <div className="form-control w-full space-y-2 sm:col-span-2">
+                <label className="text-[11px] sm:text-xs font-black text-slate-500 ml-1 uppercase tracking-widest">Total Amount (INR)</label>
                 <div className="relative group">
-                  <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 group-focus-within:text-primary transition-colors">₹</div>
+                  <div className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-slate-400 group-focus-within:text-emerald-600 transition-colors text-lg">₹</div>
                   <input
                     type="number"
                     step="0.01"
@@ -246,7 +255,7 @@ const ValidationForm = ({ invoice: initialInvoice }) => {
                     onChange={handleChange}
                     readOnly={isAuditor}
                     placeholder="0.00"
-                    className="w-full pl-8 pr-4 py-2.5 sm:py-3 bg-white/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-black text-slate-800 text-base sm:text-lg"
+                    className="w-full pl-10 pr-4 h-14 bg-white border-2 border-slate-100 rounded-xl focus:outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition-all font-black text-slate-900 text-xl shadow-sm"
                     required
                   />
                 </div>
@@ -255,54 +264,61 @@ const ValidationForm = ({ invoice: initialInvoice }) => {
           </div>
 
           {/* Section 3: Cost allocation */}
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 border-b border-slate-100 pb-2">
-              <Icon name="Target" size={14} /> Cost Allocation
+          <div className="p-6 sm:p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-200/60 shadow-inner group/cost transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/20">
+            <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.25em] text-amber-600 mb-8 px-2">
+              <div className="p-1.5 bg-amber-50 rounded-lg">
+                <Icon name="Target" size={14} />
+              </div>
+              Cost Allocation
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-              <div className="form-control w-full space-y-1.5">
-                <label className="text-[10px] sm:text-xs font-bold text-slate-600 ml-1 uppercase tracking-wider">Category</label>
-                <select
-                  name="category"
-                  value={formData.category}
-                  onChange={handleChange}
-                  disabled={isAuditor}
-                  className="w-full px-4 py-2.5 sm:py-3 bg-white/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-semibold text-slate-800 appearance-none text-sm sm:text-base"
-                >
-                  <option value="Uncategorized">Uncategorized</option>
-                  <option value="IT Infrastructure">IT Infrastructure</option>
-                  <option value="Office Supplies">Office Supplies</option>
-                  <option value="Marketing">Marketing</option>
-                  <option value="Software">Software</option>
-                  <option value="Logistics">Logistics</option>
-                </select>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+              <div className="form-control w-full space-y-2 sm:col-span-2">
+                <label className="text-[11px] sm:text-xs font-black text-slate-500 ml-1 uppercase tracking-widest">Category Selection</label>
+                <div className="relative group">
+                  <select
+                    name="category"
+                    value={formData.category}
+                    onChange={handleChange}
+                    disabled={isAuditor}
+                    className="w-full pl-4 pr-10 h-14 bg-white border-2 border-slate-100 rounded-xl focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/5 transition-all font-bold text-slate-800 appearance-none text-base cursor-pointer shadow-sm"
+                  >
+                    <option value="Uncategorized">Uncategorized</option>
+                    <option value="IT Infrastructure">IT Infrastructure</option>
+                    <option value="Office Supplies">Office Supplies</option>
+                    <option value="Marketing">Marketing</option>
+                    <option value="Software">Software</option>
+                    <option value="Logistics">Logistics</option>
+                  </select>
+                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400 group-focus-within:text-amber-600">
+                    <Icon name="ChevronDown" size={18} />
+                  </div>
+                </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 sm:gap-4">
-                <div className="form-control w-full space-y-1.5">
-                  <label className="text-[10px] sm:text-xs font-bold text-slate-600 ml-1 uppercase tracking-wider">Cost Center</label>
-                  <input
-                    type="text"
-                    name="costCenter"
-                    value={formData.costCenter}
-                    onChange={handleChange}
-                    readOnly={isAuditor}
-                    placeholder="e.g. CC-101"
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono font-bold text-slate-800 uppercase text-xs sm:text-sm"
-                  />
-                </div>
-                <div className="form-control w-full space-y-1.5">
-                  <label className="text-[10px] sm:text-xs font-bold text-slate-600 ml-1 uppercase tracking-wider">GL Code</label>
-                  <input
-                    type="text"
-                    name="accountCode"
-                    value={formData.accountCode}
-                    onChange={handleChange}
-                    readOnly={isAuditor}
-                    placeholder="e.g. GL-5000"
-                    className="w-full px-3 sm:px-4 py-2.5 sm:py-3 bg-white/50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all font-mono font-bold text-slate-800 uppercase text-xs sm:text-sm"
-                  />
-                </div>
+              <div className="form-control w-full space-y-2">
+                <label className="text-[11px] sm:text-xs font-black text-slate-500 ml-1 uppercase tracking-widest">Cost Center</label>
+                <input
+                  type="text"
+                  name="costCenter"
+                  value={formData.costCenter}
+                  onChange={handleChange}
+                  readOnly={isAuditor}
+                  placeholder="e.g. CC-101"
+                  className="w-full px-4 h-14 bg-white border-2 border-slate-100 rounded-xl focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/5 transition-all font-mono font-bold text-slate-800 uppercase text-sm shadow-sm"
+                />
+              </div>
+
+              <div className="form-control w-full space-y-2">
+                <label className="text-[11px] sm:text-xs font-black text-slate-500 ml-1 uppercase tracking-widest">GL Account Code</label>
+                <input
+                  type="text"
+                  name="accountCode"
+                  value={formData.accountCode}
+                  onChange={handleChange}
+                  readOnly={isAuditor}
+                  placeholder="e.g. GL-5000"
+                  className="w-full px-4 h-14 bg-white border-2 border-slate-100 rounded-xl focus:outline-none focus:border-amber-500 focus:ring-4 focus:ring-amber-500/5 transition-all font-mono font-bold text-slate-800 uppercase text-sm shadow-sm"
+                />
               </div>
             </div>
           </div>

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import connectToDatabase from '@/lib/mongodb';
 import DocumentUpload from '@/models/DocumentUpload';
 import { getSession } from '@/lib/auth';
-import { requireRole, checkPermission } from '@/lib/rbac';
+import { requireRole, checkPermission, getNormalizedRole } from '@/lib/rbac';
 import { ROLES } from '@/constants/roles';
 import { db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
@@ -26,6 +26,7 @@ export async function GET(request) {
 
         await connectToDatabase();
 
+        const userRole = getNormalizedRole(session.user);
         const { searchParams } = new URL(request.url);
         const projectId = searchParams.get('projectId');
         const type = searchParams.get('type');
@@ -34,7 +35,7 @@ export async function GET(request) {
         let query = {};
 
         // PMs only see their own uploads, admins and finance see all
-        if (session.user.role === ROLES.PROJECT_MANAGER) {
+        if (userRole === ROLES.PROJECT_MANAGER) {
             query.uploadedBy = session.user.id;
         }
 
@@ -56,6 +57,10 @@ export async function GET(request) {
  * Enhanced with comprehensive validation for timesheets and rate cards
  */
 export async function POST(request) {
+    let type = 'UNKNOWN';
+    let projectId = 'UNKNOWN';
+    let file = null;
+
     try {
         const session = await getSession();
         if (!session?.user) {
@@ -67,9 +72,9 @@ export async function POST(request) {
         }
 
         const formData = await request.formData();
-        const file = formData.get('file');
-        const type = formData.get('type');
-        const projectId = formData.get('projectId');
+        file = formData.get('file');
+        type = formData.get('type');
+        projectId = formData.get('projectId');
         const invoiceId = formData.get('invoiceId');
         const billingMonth = formData.get('billingMonth');
         const ringiNumber = formData.get('ringiNumber');
@@ -86,6 +91,8 @@ export async function POST(request) {
 
         // Validate document type
         const validTypes = ['RINGI', 'ANNEX', 'TIMESHEET', 'RATE_CARD'];
+        if (type === 'RFP_COMMERCIAL') type = 'ANNEX'; // Compatibility
+
         if (!validTypes.includes(type)) {
             return NextResponse.json(
                 { error: `Invalid type. Must be one of: ${validTypes.join(', ')}` },
@@ -154,7 +161,7 @@ export async function POST(request) {
                 validated = false;
                 validationNotes = 'PDF rate card requires manual review';
             }
-        } else if (type === 'RINGI' || type === 'ANNEX') {
+        } else if (type === 'RINGI' || type === 'ANNEX' || type === 'RFP_COMMERCIAL') {
             // Basic validation - file exists and has content
             validated = buffer.length > 0;
             validationNotes = validated ? 'Document received' : 'Empty file detected';
@@ -178,7 +185,7 @@ export async function POST(request) {
                 ringiNumber: ringiNumber || null,
                 projectName: projectName || null,
                 description: description || null,
-                validationData: validationData ? JSON.stringify(validationData) : null
+                validationData: validationData || null
             },
             status: validated ? 'VALIDATED' : 'PENDING'
         });
@@ -202,8 +209,17 @@ export async function POST(request) {
             }
         }, { status: 201 });
     } catch (error) {
-        console.error('Error uploading document:', error);
-        return NextResponse.json({ error: 'Failed to upload document' }, { status: 500 });
+        console.error('Error uploading document:', {
+            message: error.message,
+            stack: error.stack,
+            type: type,
+            projectId: projectId
+        });
+        return NextResponse.json({
+            error: 'Failed to upload document',
+            details: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        }, { status: 500 });
     }
 }
 

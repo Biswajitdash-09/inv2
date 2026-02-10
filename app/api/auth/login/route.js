@@ -48,12 +48,18 @@ export async function POST(request) {
             );
         }
 
+        // Normalize role for internal consistency
+        let normalizedRole = user.role;
+        if (user.role === 'Project Manager' || user.role === 'ProjectManager') {
+            normalizedRole = 'PM';
+        }
+
         // Clean user object for session
         const sessionUser = {
             id: user.id,
             name: user.name,
             email: user.email,
-            role: user.role,
+            role: normalizedRole,
             vendorId: user.vendorId, // Include vendorId for role-based logic
             isActive: user.isActive !== false // Default to true unless explicitly set to false
         };

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { requireRole, checkPermission } from '@/lib/rbac';
+import { requireRole, checkPermission, getNormalizedRole } from '@/lib/rbac';
 import { sendStatusNotification } from '@/lib/notifications';
 import { ROLES } from '@/constants/roles';
 
@@ -20,6 +20,8 @@ export async function POST(request, { params }) {
             return NextResponse.json({ error: roleCheck.reason }, { status: 403 });
         }
 
+        const userRole = getNormalizedRole(session.user);
+
         const { id } = await params;
         const body = await request.json();
         const { action, notes } = body;
@@ -37,7 +39,7 @@ export async function POST(request, { params }) {
         }
 
         // Check PM has access to this project (skip for admin)
-        if (session.user.role === ROLES.PROJECT_MANAGER) {
+        if (userRole === ROLES.PROJECT_MANAGER) {
             if (!checkPermission(session.user, 'APPROVE_INVOICE', invoice)) {
                 return NextResponse.json(
                     { error: 'You are not authorized to approve invoices for this project' },

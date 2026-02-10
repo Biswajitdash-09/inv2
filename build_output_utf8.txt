@@ -1,0 +1,52 @@
+﻿
+> 0236120b-6d4d-4c10-8833-99940f850c0e@1.0.19 prebuild
+> node scripts/bump_version.js
+
+≡ƒÜÇ Bumping version: 1.0.19 -> 1.0.20
+Γ£à Updated package.json
+Γ£à Updated lib/version.js
+Γ£à Updated app/api/version/route.js
+
+≡ƒÄë Ready to deploy! Run: vercel --prod
+
+> 0236120b-6d4d-4c10-8833-99940f850c0e@1.0.19 build
+> next build
+
+   Γû▓ Next.js 15.5.12
+   - Environments: .env
+
+   Creating an optimized production build ...
+node.exe : Failed to 
+compile.
+At line:1 char:1
++ & "C:\nvm4w\nodejs/node.
+exe" "C:\Users\shuva\AppDa
+ta\Roaming\npm/node ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo        
+      : NotSpecified: (F  
+  ailed to compile.:Str   
+ ing) [], RemoteExcept    
+ion
+    + FullyQualifiedError 
+   Id : NativeCommandErr  
+  or
+ 
+
+./lib/services/ocr.js
+Module not found: Can't 
+resolve 'xlsx'
+
+https://nextjs.org/docs/me
+ssages/module-not-found
+
+Import trace for 
+requested module:
+./app/api/pm/documents/rou
+te.js
+
+
+> Build failed because of 
+webpack errors

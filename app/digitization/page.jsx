@@ -89,13 +89,13 @@ function DigitizationPageContent() {
         <div className="flex flex-wrap items-center gap-3">
           {/* Search Input */}
           <div className="relative group">
-            <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 group-focus-within:text-primary" />
+            <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-600 transition-colors z-10" />
             <input
               type="text"
               placeholder="Search vendor, ID..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 pr-4 py-1.5 bg-white/50 border border-white/60 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 w-48 sm:w-64 transition-all"
+              className="pl-10 pr-4 py-2 bg-white border-2 border-slate-100 rounded-xl text-sm focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 w-48 sm:w-72 transition-all shadow-sm group-hover:shadow-md placeholder:text-slate-400 font-medium"
             />
           </div>
 
@@ -113,9 +113,47 @@ function DigitizationPageContent() {
               <Icon name="Grid" size={18} />
             </button>
           </div>
-          <button className="btn btn-sm btn-ghost bg-white/40 border border-white/60 shadow-sm gap-2 h-9 px-4">
-            <Icon name="Filter" size={16} /> Filter
-          </button>
+          <div className="dropdown dropdown-end">
+            <label tabIndex={0} className="btn btn-sm bg-white border border-slate-200 hover:bg-slate-50 hover:border-indigo-300 shadow-sm gap-2 h-9 px-4 rounded-xl text-slate-600 transition-all font-bold">
+              <Icon name="Filter" size={16} className={statusFilter ? "text-indigo-600" : ""} />
+              {statusFilter ? statusFilter.replace('_', ' ') : 'Filter'}
+            </label>
+            <ul tabIndex={0} className="dropdown-content z-[100] menu p-2 shadow-2xl bg-white rounded-2xl w-52 border border-slate-100 mt-2">
+              <div className="px-4 py-2 border-b border-slate-50 mb-1">
+                <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status Filter</p>
+              </div>
+              <li><button onClick={() => {
+                const url = new URL(window.location);
+                url.searchParams.delete('status');
+                window.history.pushState({}, '', url);
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }} className="text-xs font-bold text-slate-600 py-2.5 rounded-lg">All Records</button></li>
+              <li><button onClick={() => {
+                const url = new URL(window.location);
+                url.searchParams.set('status', 'PAID');
+                window.history.pushState({}, '', url);
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }} className="text-xs font-bold text-emerald-600 py-2.5 rounded-lg hover:bg-emerald-50">Paid Only</button></li>
+              <li><button onClick={() => {
+                const url = new URL(window.location);
+                url.searchParams.set('status', 'MATCH_DISCREPANCY');
+                window.history.pushState({}, '', url);
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }} className="text-xs font-bold text-orange-600 py-2.5 rounded-lg hover:bg-orange-50">Discrepancies</button></li>
+              <li><button onClick={() => {
+                const url = new URL(window.location);
+                url.searchParams.set('status', 'REJECTED');
+                window.history.pushState({}, '', url);
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }} className="text-xs font-bold text-red-600 py-2.5 rounded-lg hover:bg-red-50">Rejected</button></li>
+              <li><button onClick={() => {
+                const url = new URL(window.location);
+                url.searchParams.set('status', 'PENDING_APPROVAL');
+                window.history.pushState({}, '', url);
+                window.dispatchEvent(new PopStateEvent('popstate'));
+              }} className="text-xs font-bold text-amber-600 py-2.5 rounded-lg hover:bg-amber-50">Pending Approval</button></li>
+            </ul>
+          </div>
         </div>
       </div>
 

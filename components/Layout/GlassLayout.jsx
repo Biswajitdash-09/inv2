@@ -28,12 +28,12 @@ const GlassLayout = ({ children }) => {
             setMobileOpen={setIsMobileSidebarOpen}
           />
           <main className="flex-1 flex flex-col h-full overflow-hidden relative">
-            <div className="pt-6 px-6 pb-0">
-              <div className="glass-panel rounded-t-3xl h-[calc(100dvh-1.5rem)] flex flex-col backdrop-blur-lg border-b-0">
+            <div className="pt-2 md:pt-4 px-2 md:px-6 pb-0 transition-all duration-300">
+              <div className="glass-panel rounded-t-3xl h-[calc(100dvh-0.5rem)] md:h-[calc(100dvh-1rem)] flex flex-col backdrop-blur-xl border-b-0 shadow-2xl">
                 <Navbar
                   onMenuClick={() => setIsMobileSidebarOpen(!isMobileSidebarOpen)}
                 />
-                <div className="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar scroll-smooth">
+                <div className="flex-1 overflow-y-auto px-4 md:px-8 py-4 custom-scrollbar scroll-smooth">
                   {children}
                 </div>
               </div>

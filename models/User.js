@@ -14,6 +14,9 @@ const UserSchema = new mongoose.Schema({
     lastLogin: { type: Date },
     profileImage: { type: String },
     department: { type: String },
+    // Delegation
+    delegatedTo: { type: String }, // User ID of the delegate
+    delegationExpiresAt: { type: Date },
 }, { timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' } });
 
 // Indexes for efficient queries (email already indexed via unique: true)

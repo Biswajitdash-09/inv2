@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { ROLES } from '@/constants/roles';
+import { getNormalizedRole } from '@/constants/roles';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,7 @@ export async function GET() {
 
         // Filter to only return PMs with limited info (no sensitive data)
         const pms = users
-            .filter(u => u.role === ROLES.PROJECT_MANAGER && u.isActive !== false)
+            .filter(u => getNormalizedRole(u) === ROLES.PROJECT_MANAGER && u.isActive !== false)
             .map(pm => ({
                 id: pm.id,
                 name: pm.name,

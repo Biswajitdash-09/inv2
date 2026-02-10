@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '@/components/Layout/PageHeader';
+import Card from '@/components/ui/Card';
+import Icon from '@/components/Icon';
 
 export default function PMApprovalsPage() {
     const [invoices, setInvoices] = useState([]);
@@ -21,7 +24,8 @@ export default function PMApprovalsPage() {
     const fetchInvoices = async () => {
         try {
             setLoading(true);
-            const res = await fetch('/api/invoices');
+            // Optimization: Fetch only relevant statuses
+            const res = await fetch('/api/invoices?status=PENDING,VERIFIED,PENDING_APPROVAL');
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
 
@@ -77,40 +81,33 @@ export default function PMApprovalsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-            <div className="max-w-7xl mx-auto">
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
-                >
-                    <h1 className="text-3xl font-bold text-white mb-2">Invoice Approvals</h1>
-                    <p className="text-gray-400">Review and approve invoices for your assigned projects</p>
-                </motion.div>
+        <div className="pb-10">
+            <PageHeader
+                title="Invoice Approvals"
+                subtitle="Review and approve invoices for your assigned projects"
+                icon="CheckCircle"
+                accent="indigo"
+            />
 
+            <div className="max-w-7xl mx-auto space-y-6">
                 {/* Filters */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 mb-6 border border-white/10"
-                >
-                    <div className="flex flex-wrap gap-4 items-center">
+                <Card className="p-6">
+                    <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                         <select
                             value={filterProject}
                             onChange={(e) => setFilterProject(e.target.value)}
-                            className="px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                            className="w-full sm:w-64 px-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
                         >
                             <option value="">All Projects</option>
                             {projects.map(p => (
                                 <option key={p.id} value={p.id}>{p.name}</option>
                             ))}
                         </select>
-                        <span className="text-gray-400 text-sm">
+                        <span className="text-slate-500 text-sm font-medium">
                             {invoices.length} invoice{invoices.length !== 1 ? 's' : ''} pending approval
                         </span>
                     </div>
-                </motion.div>
+                </Card>
 
                 {/* Error Display */}
                 <AnimatePresence>
@@ -119,17 +116,20 @@ export default function PMApprovalsPage() {
                             initial={{ opacity: 0, y: -10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0 }}
-                            className="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg mb-6"
+                            className="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-xl mb-6 flex justify-between items-center"
                         >
-                            {error}
-                            <button onClick={() => setError(null)} className="float-right">×</button>
+                            <span>{error}</span>
+                            <button onClick={() => setError(null)} className="p-1 hover:bg-rose-100 rounded-lg">✕</button>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
                 {/* Invoice Cards */}
                 {loading ? (
-                    <div className="text-center text-gray-400 py-12">Loading invoices...</div>
+                    <div className="text-center py-12">
+                        <span className="loading loading-spinner loading-lg text-primary"></span>
+                        <p className="mt-4 text-slate-500 font-medium">Loading invoices...</p>
+                    </div>
                 ) : (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         {invoices.map((invoice, idx) => (
@@ -138,158 +138,173 @@ export default function PMApprovalsPage() {
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: idx * 0.05 }}
-                                className="bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/10 hover:border-purple-500/30 transition-all"
                             >
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 className="text-lg font-semibold text-white">
-                                            {invoice.invoiceNumber || `Invoice ${invoice.id.slice(0, 8)}`}
-                                        </h3>
-                                        <p className="text-gray-400">{invoice.vendorName}</p>
+                                <Card className="h-full hover:shadow-md transition-all border-slate-200/60">
+                                    <div className="flex justify-between items-start mb-6">
+                                        <div className="min-w-0">
+                                            <h3 className="text-lg font-bold text-slate-800 truncate">
+                                                {invoice.invoiceNumber || `Invoice ${invoice.id.slice(0, 8)}`}
+                                            </h3>
+                                            <p className="text-sm font-medium text-slate-500 truncate">{invoice.vendorName}</p>
+                                        </div>
+                                        <div className="text-right shrink-0">
+                                            <span className="text-xl font-black text-indigo-600">
+                                                ₹{invoice.amount?.toLocaleString() || '-'}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <span className="text-2xl font-bold text-white">
-                                        ₹{invoice.amount?.toLocaleString() || '-'}
-                                    </span>
-                                </div>
 
-                                <div className="grid grid-cols-2 gap-4 text-sm mb-6">
-                                    <div>
-                                        <p className="text-gray-400">Date</p>
-                                        <p className="text-white">{invoice.date || '-'}</p>
+                                    <div className="grid grid-cols-2 gap-y-4 gap-x-6 text-sm mb-6">
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Date</p>
+                                            <p className="font-bold text-slate-700">{invoice.date || '-'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Project</p>
+                                            <p className="font-bold text-slate-700 truncate">{invoice.project || 'Unassigned'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">PO Number</p>
+                                            <p className="font-bold text-slate-700">{invoice.poNumber || '-'}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Status</p>
+                                            <span className="inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider bg-amber-50 text-amber-600 border border-amber-100">
+                                                {invoice.status}
+                                            </span>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <p className="text-gray-400">Project</p>
-                                        <p className="text-white">{invoice.project || 'Unassigned'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-400">PO Number</p>
-                                        <p className="text-white">{invoice.poNumber || '-'}</p>
-                                    </div>
-                                    <div>
-                                        <p className="text-gray-400">Status</p>
-                                        <span className="px-2 py-1 rounded-full text-xs bg-yellow-500/20 text-yellow-300">
-                                            {invoice.status}
-                                        </span>
-                                    </div>
-                                </div>
 
-                                {/* View Doc Link */}
-                                {invoice.fileUrl && (
-                                    <div className="mb-4">
-                                        <a
-                                            href={invoice.fileUrl}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="text-purple-400 hover:text-purple-300 text-sm"
+                                    {/* View Doc Link */}
+                                    {invoice.fileUrl && (
+                                        <div className="mb-6">
+                                            <a
+                                                href={invoice.fileUrl}
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="inline-flex items-center gap-2 text-indigo-600 hover:text-indigo-700 font-bold text-xs uppercase tracking-wider"
+                                            >
+                                                <Icon name="FileText" size={14} /> View Document
+                                            </a>
+                                        </div>
+                                    )}
+
+                                    {/* Actions */}
+                                    <div className="flex flex-wrap gap-2 pt-6 border-t border-slate-100">
+                                        <button
+                                            onClick={() => setActionModal({ invoice, action: 'APPROVE' })}
+                                            disabled={processingId === invoice.id}
+                                            className="flex-1 min-w-[120px] px-4 py-2.5 bg-emerald-600 text-white rounded-xl hover:bg-emerald-700 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-emerald-500/20 disabled:opacity-50"
                                         >
-                                            📄 View Invoice Document
-                                        </a>
+                                            ✓ Approve
+                                        </button>
+                                        <button
+                                            onClick={() => setActionModal({ invoice, action: 'REJECT' })}
+                                            disabled={processingId === invoice.id}
+                                            className="flex-1 min-w-[120px] px-4 py-2.5 bg-rose-600 text-white rounded-xl hover:bg-rose-700 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-rose-500/20 disabled:opacity-50"
+                                        >
+                                            ✕ Reject
+                                        </button>
+                                        <button
+                                            onClick={() => setActionModal({ invoice, action: 'REQUEST_INFO' })}
+                                            disabled={processingId === invoice.id}
+                                            className="w-full sm:flex-1 px-4 py-2.5 bg-slate-800 text-white rounded-xl hover:bg-slate-900 transition-all font-bold text-[10px] uppercase tracking-widest shadow-lg shadow-slate-500/10 disabled:opacity-50"
+                                        >
+                                            ? Request Info
+                                        </button>
                                     </div>
-                                )}
-
-                                {/* Actions */}
-                                <div className="flex gap-2 pt-4 border-t border-white/10">
-                                    <button
-                                        onClick={() => setActionModal({ invoice, action: 'APPROVE' })}
-                                        disabled={processingId === invoice.id}
-                                        className="flex-1 px-4 py-2 bg-green-600/20 text-green-300 rounded-lg hover:bg-green-600/30 transition-colors font-medium disabled:opacity-50"
-                                    >
-                                        ✓ Approve
-                                    </button>
-                                    <button
-                                        onClick={() => setActionModal({ invoice, action: 'REJECT' })}
-                                        disabled={processingId === invoice.id}
-                                        className="flex-1 px-4 py-2 bg-red-600/20 text-red-300 rounded-lg hover:bg-red-600/30 transition-colors font-medium disabled:opacity-50"
-                                    >
-                                        ✕ Reject
-                                    </button>
-                                    <button
-                                        onClick={() => setActionModal({ invoice, action: 'REQUEST_INFO' })}
-                                        disabled={processingId === invoice.id}
-                                        className="flex-1 px-4 py-2 bg-blue-600/20 text-blue-300 rounded-lg hover:bg-blue-600/30 transition-colors font-medium disabled:opacity-50"
-                                    >
-                                        ? Request Info
-                                    </button>
-                                </div>
+                                </Card>
                             </motion.div>
                         ))}
                     </div>
                 )}
 
                 {!loading && invoices.length === 0 && (
-                    <div className="text-center text-gray-400 py-12">
-                        No invoices pending approval
-                    </div>
+                    <Card className="text-center py-20">
+                        <div className="max-w-xs mx-auto">
+                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-emerald-500">
+                                <Icon name="CheckCircle" size={32} />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800">All caught up!</h3>
+                            <p className="text-slate-500 mt-1">No invoices are currently pending your approval.</p>
+                        </div>
+                    </Card>
                 )}
 
                 {/* Action Confirmation Modal */}
                 <AnimatePresence>
                     {actionModal && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
-                            onClick={() => { setActionModal(null); setNotes(''); }}
-                        >
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-100 p-4">
                             <motion.div
-                                initial={{ scale: 0.9, opacity: 0 }}
+                                initial={{ scale: 0.95, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="bg-slate-800/90 backdrop-blur-xl rounded-2xl p-8 w-full max-w-md border border-white/20"
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-md shadow-2xl border border-slate-100"
                             >
-                                <h2 className="text-xl font-bold text-white mb-4">
-                                    {actionModal.action === 'APPROVE' ? 'Approve' :
-                                        actionModal.action === 'REJECT' ? 'Reject' : 'Request Info for'} Invoice?
-                                </h2>
-                                <p className="text-gray-300 mb-4">
-                                    {actionModal.invoice.invoiceNumber || actionModal.invoice.id.slice(0, 8)}
-                                    <br />
-                                    <span className="text-white font-medium">
-                                        ₹{actionModal.invoice.amount?.toLocaleString()} - {actionModal.invoice.vendorName}
-                                    </span>
-                                </p>
-                                <div className="mb-6">
-                                    <label className="block text-sm text-gray-400 mb-1">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-indigo-600 mb-1">Confirm Action</p>
+                                        <h2 className="text-2xl font-black text-slate-800 tracking-tight">
+                                            {actionModal.action === 'APPROVE' ? 'Approve' :
+                                                actionModal.action === 'REJECT' ? 'Reject' : 'Request Info'}
+                                        </h2>
+                                    </div>
+                                    <button onClick={() => { setActionModal(null); setNotes(''); }} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                                        <Icon name="X" size={20} className="text-slate-400" />
+                                    </button>
+                                </div>
+
+                                <div className="p-4 bg-slate-50 rounded-2xl mb-6 border border-slate-100">
+                                    <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-1">Invoice Details</p>
+                                    <p className="font-bold text-slate-800">
+                                        {actionModal.invoice.invoiceNumber || actionModal.invoice.id.slice(0, 8)}
+                                    </p>
+                                    <p className="text-sm font-medium text-slate-500">
+                                        ₹{actionModal.invoice.amount?.toLocaleString()} • {actionModal.invoice.vendorName}
+                                    </p>
+                                </div>
+
+                                <div className="mb-8">
+                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">
                                         {actionModal.action === 'REJECT' ? 'Rejection Reason' :
-                                            actionModal.action === 'REQUEST_INFO' ? 'Information Needed' : 'Notes'}
-                                        {actionModal.action !== 'APPROVE' && <span className="text-red-400">*</span>}
+                                            actionModal.action === 'REQUEST_INFO' ? 'Information Needed' : 'Notes (Optional)'}
+                                        {actionModal.action !== 'APPROVE' && <span className="text-rose-500 ml-1">*</span>}
                                     </label>
                                     <textarea
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}
-                                        rows={3}
-                                        className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                        rows={4}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 focus:border-indigo-500 transition-all resize-none"
                                         placeholder={
                                             actionModal.action === 'REJECT' ? 'Reason for rejection...' :
                                                 actionModal.action === 'REQUEST_INFO' ? 'What information do you need?...' :
-                                                    'Add approval notes...'
+                                                    'Add any additional notes...'
                                         }
                                     />
                                 </div>
-                                <div className="flex gap-4">
+
+                                <div className="flex flex-col sm:flex-row gap-3">
                                     <button
                                         onClick={() => { setActionModal(null); setNotes(''); }}
-                                        className="flex-1 px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/10 transition-colors"
+                                        className="order-2 sm:order-1 flex-1 px-6 py-3 border border-slate-200 text-slate-600 rounded-2xl font-bold text-xs uppercase tracking-widest hover:bg-slate-50 transition-all"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         onClick={() => handleAction(actionModal.invoice.id, actionModal.action)}
                                         disabled={processingId || (actionModal.action !== 'APPROVE' && !notes)}
-                                        className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${actionModal.action === 'APPROVE'
-                                                ? 'bg-green-600 hover:bg-green-700 text-white'
-                                                : actionModal.action === 'REJECT'
-                                                    ? 'bg-red-600 hover:bg-red-700 text-white'
-                                                    : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                        className={`order-1 sm:order-2 flex-1 px-6 py-3 rounded-2xl font-black text-xs uppercase tracking-widest text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 ${actionModal.action === 'APPROVE'
+                                            ? 'bg-emerald-600 shadow-emerald-500/20 hover:bg-emerald-700'
+                                            : actionModal.action === 'REJECT'
+                                                ? 'bg-rose-600 shadow-rose-500/20 hover:bg-rose-700'
+                                                : 'bg-indigo-600 shadow-indigo-500/20 hover:bg-indigo-700'
                                             }`}
                                     >
                                         {processingId ? 'Processing...' : 'Confirm'}
                                     </button>
                                 </div>
                             </motion.div>
-                        </motion.div>
+                        </div>
                     )}
                 </AnimatePresence>
             </div>

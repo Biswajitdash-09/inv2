@@ -17,7 +17,9 @@ const menuItems = [
   { name: "Dashboard", icon: "LayoutDashboard", path: "/dashboard" },
   { name: "Digitization", icon: "ScanLine", path: "/digitization" },
   { name: "Matching", icon: "GitMerge", path: "/matching" },
-  { name: "Approvals", icon: "CheckCircle", path: "/approvals" },
+  { name: "Approvals", icon: "CheckCircle", path: "/pm/approvals" },
+  { name: "Documents", icon: "FileText", path: "/pm/documents" },
+  { name: "Messages", icon: "Mail", path: "/pm/messages" },
   { name: "Vendors", icon: "Users", path: "/vendors" },
   { name: "Analytics", icon: "BarChart3", path: "/analytics" },
   { name: "Configuration", icon: "Settings", path: "/config" },
@@ -62,12 +64,12 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
 
       <aside
         className={clsx(
-          "flex-col h-screen sticky top-0 z-50 pt-6 pb-6 pl-6 transition-[width] duration-300 ease-in-out",
+          "flex-col h-screen sticky top-0 z-50 pt-6 pb-6 transition-[width] duration-300 ease-in-out",
           // Desktop styles
-          "hidden lg:flex",
-          collapsed ? "w-[5rem]" : "w-72",
-          // Mobile styles (Drawer mode)
-          mobileOpen ? "!flex fixed inset-y-0 left-0 w-72 pr-6" : ""
+          "hidden lg:flex pl-6",
+          !mobileOpen && (collapsed ? "w-[5rem]" : "w-72"),
+          // Mobile Styles (Drawer mode)
+          mobileOpen ? "!flex fixed inset-y-0 left-0 !w-72 p-6" : ""
         )}
       >
         <div className="glass-panel h-full rounded-3xl flex flex-col justify-between overflow-hidden p-3 relative border border-white/20 shadow-xl bg-white/80">

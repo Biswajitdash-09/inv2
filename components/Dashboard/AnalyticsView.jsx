@@ -11,13 +11,15 @@ import { getAnalytics } from "@/lib/api";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"];
 
-const AnalyticsView = () => {
+const AnalyticsView = ({ user }) => {
     const [data, setData] = useState(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchAnalytics = async () => {
             try {
+                // For PMs, we might want to pass project filter but the backend 
+                // /api/analytics route should already handle it via session user.
                 const result = await getAnalytics();
                 setData(result);
             } catch (error) {
@@ -42,6 +44,13 @@ const AnalyticsView = () => {
 
     return (
         <div className="space-y-6">
+            {/* PM Context Info */}
+            {user?.role === 'PROJECT_MANAGER' && (
+                <div className="bg-blue-50/50 border border-blue-100 p-3 rounded-xl flex items-center gap-2 text-xs text-blue-600 font-medium">
+                    <Icon name="Info" size={14} />
+                    Analytics are filtered to your {user.assignedProjects?.length || 0} assigned projects.
+                </div>
+            )}
             {/* KPI Cards */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                 <Card className="p-4 bg-white/60 border-white/60 hover:shadow-lg transition-all">

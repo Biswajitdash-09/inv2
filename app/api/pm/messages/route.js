@@ -108,7 +108,7 @@ export async function POST(request) {
             projectId: projectId || null,
             senderId: session.user.id,
             senderName: session.user.name || session.user.email,
-            senderRole: session.user.role,
+            senderRole: getNormalizedRole(session.user),
             recipientId,
             recipientName: recipient.name,
             subject: subject || null,

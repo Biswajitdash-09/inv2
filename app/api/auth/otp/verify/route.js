@@ -1,0 +1,59 @@
+import { NextResponse } from 'next/server';
+import connectToDatabase from '@/lib/mongodb';
+import User from '@/models/User';
+import Otp from '@/models/Otp';
+import { login } from '@/lib/auth';
+
+/**
+ * POST /api/auth/otp/verify
+ * Verify OTP and log the user in
+ */
+export async function POST(request) {
+    try {
+        const body = await request.json();
+        const { email, otp } = body;
+
+        if (!email || !otp) {
+            return NextResponse.json({ error: 'Email and OTP are required' }, { status: 400 });
+        }
+
+        await connectToDatabase();
+
+        // Find the OTP
+        const validOtp = await Otp.findOne({
+            email: email.trim().toLowerCase(),
+            otp: otp.trim()
+        });
+
+        if (!validOtp) {
+            return NextResponse.json({ error: 'Invalid or expired OTP' }, { status: 401 });
+        }
+
+        // Check if user exists (Should exist correctly due to request flow)
+        const user = await User.findOne({ email: email.trim().toLowerCase() });
+
+        if (!user) {
+            return NextResponse.json({ error: 'User account not found' }, { status: 404 });
+        }
+
+        if (!user.isActive) {
+            return NextResponse.json({ error: 'Account is deactivated' }, { status: 403 });
+        }
+
+        // Login successful: Generate session
+        // We reuse the 'login' function from lib/auth which sets the cookie
+        await login(user);
+
+        // Delete the used OTP to prevent replay attacks
+        await Otp.deleteOne({ _id: validOtp._id });
+
+        return NextResponse.json({
+            success: true,
+            user // Return user data for frontend context
+        });
+
+    } catch (error) {
+        console.error('OTP Verification Error:', error);
+        return NextResponse.json({ error: 'Verification failed' }, { status: 500 });
+    }
+}

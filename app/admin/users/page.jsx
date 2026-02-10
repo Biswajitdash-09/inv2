@@ -23,27 +23,20 @@ export default function UserManagementPage() {
         assignedProjects: []
     });
 
+    const [projects, setProjects] = useState([]);
+
     useEffect(() => {
         fetchUsers();
+        fetchProjects();
     }, [filterRole, filterStatus, searchTerm]);
 
-    const fetchUsers = async () => {
+    const fetchProjects = async () => {
         try {
-            setLoading(true);
-            const params = new URLSearchParams();
-            if (filterRole) params.append('role', filterRole);
-            if (filterStatus) params.append('status', filterStatus);
-            if (searchTerm) params.append('search', searchTerm);
-
-            const res = await fetch(`/api/admin/users?${params}`);
+            const res = await fetch('/api/admin/projects');
             const data = await res.json();
-
-            if (!res.ok) throw new Error(data.error);
-            setUsers(data.users || []);
+            if (res.ok) setProjects(data.projects || []);
         } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
+            console.error('Error fetching projects:', err);
         }
     };
 
@@ -96,6 +89,14 @@ export default function UserManagementPage() {
         } catch (err) {
             setError(err.message);
         }
+    };
+
+    const toggleProjectAssignment = (projectId) => {
+        const current = formData.assignedProjects || [];
+        const updated = current.includes(projectId)
+            ? current.filter(id => id !== projectId)
+            : [...current, projectId];
+        setFormData({ ...formData, assignedProjects: updated });
     };
 
     const openEditModal = (user) => {
@@ -159,7 +160,10 @@ export default function UserManagementPage() {
                             </select>
                         </div>
                         <button
-                            onClick={() => setShowCreateModal(true)}
+                            onClick={() => {
+                                setFormData({ name: '', email: '', password: '', role: 'Finance User', department: '', assignedProjects: [] });
+                                setShowCreateModal(true);
+                            }}
                             className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg shadow-purple-500/25"
                         >
                             + Create User
@@ -214,9 +218,9 @@ export default function UserManagementPage() {
                                         <td className="px-6 py-4 text-gray-300">{user.email}</td>
                                         <td className="px-6 py-4">
                                             <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.role === 'Admin' ? 'bg-purple-500/20 text-purple-300' :
-                                                    user.role === 'PM' ? 'bg-blue-500/20 text-blue-300' :
-                                                        user.role === 'Finance User' ? 'bg-green-500/20 text-green-300' :
-                                                                'bg-orange-500/20 text-orange-300'
+                                                user.role === 'PM' ? 'bg-blue-500/20 text-blue-300' :
+                                                    user.role === 'Finance User' ? 'bg-green-500/20 text-green-300' :
+                                                        'bg-orange-500/20 text-orange-300'
                                                 }`}>
                                                 {user.role}
                                             </span>
@@ -261,7 +265,7 @@ export default function UserManagementPage() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50"
+                            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 overflow-y-auto"
                             onClick={() => { setShowCreateModal(false); setEditingUser(null); }}
                         >
                             <motion.div
@@ -269,7 +273,7 @@ export default function UserManagementPage() {
                                 animate={{ scale: 1, opacity: 1 }}
                                 exit={{ scale: 0.9, opacity: 0 }}
                                 onClick={(e) => e.stopPropagation()}
-                                className="bg-slate-800/90 backdrop-blur-xl rounded-2xl p-8 w-full max-w-md border border-white/20"
+                                className="bg-slate-800/90 backdrop-blur-xl rounded-2xl p-8 w-full max-w-md border border-white/20 my-8"
                             >
                                 <h2 className="text-2xl font-bold text-white mb-6">
                                     {editingUser ? 'Edit User' : 'Create New User'}
@@ -320,6 +324,34 @@ export default function UserManagementPage() {
                                             ))}
                                         </select>
                                     </div>
+
+                                    {formData.role === 'PM' && (
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-300 mb-1">Assigned Projects</label>
+                                            <div className="max-h-40 overflow-y-auto bg-white/5 border border-white/20 rounded-lg p-2 space-y-1 custom-scrollbar">
+                                                {projects.map(project => (
+                                                    <div
+                                                        key={project.id}
+                                                        onClick={() => toggleProjectAssignment(project.id)}
+                                                        className={`px-3 py-1.5 rounded cursor-pointer text-sm transition-colors flex items-center justify-between ${formData.assignedProjects?.includes(project.id)
+                                                                ? 'bg-purple-600 text-white'
+                                                                : 'hover:bg-white/10 text-gray-300'
+                                                            }`}
+                                                    >
+                                                        <span>{project.name}</span>
+                                                        {formData.assignedProjects?.includes(project.id) && (
+                                                            <span className="text-xs">✓</span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                                {projects.length === 0 && (
+                                                    <div className="text-xs text-gray-500 p-2 italic">No projects available</div>
+                                                )}
+                                            </div>
+                                            <p className="text-[10px] text-gray-400 mt-1 italic">Click to toggle multiple project assignments</p>
+                                        </div>
+                                    )}
+
                                     <div>
                                         <label className="block text-sm font-medium text-gray-300 mb-1">Department</label>
                                         <input

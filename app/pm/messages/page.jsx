@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import PageHeader from '@/components/Layout/PageHeader';
+import Card from '@/components/ui/Card';
+import Icon from '@/components/Icon';
 
 const MESSAGE_TYPES = [
     { value: 'GENERAL', label: 'General', color: 'gray' },
@@ -50,9 +53,11 @@ export default function PMMessagesPage() {
 
     const fetchVendors = async () => {
         try {
-            const res = await fetch('/api/vendors');
-            const data = await res.json();
-            if (res.ok) setVendors(data.vendors || []);
+            const res = await fetch('/api/pm/vendors');
+            if (res.ok) {
+                const data = await res.json();
+                setVendors(Array.isArray(data) ? data : []);
+            }
         } catch (err) {
             console.error('Error fetching vendors:', err);
         }
@@ -90,89 +95,86 @@ export default function PMMessagesPage() {
         }
     };
 
-    const getTypeColor = (type) => {
+    const getTypeClasses = (type) => {
         switch (type) {
-            case 'INFO_REQUEST': return 'bg-blue-500/20 text-blue-300';
-            case 'CLARIFICATION': return 'bg-yellow-500/20 text-yellow-300';
-            case 'DOCUMENT_REQUEST': return 'bg-purple-500/20 text-purple-300';
-            case 'APPROVAL_NOTIFICATION': return 'bg-green-500/20 text-green-300';
-            default: return 'bg-gray-500/20 text-gray-300';
+            case 'INFO_REQUEST': return 'bg-blue-50 text-blue-600 border-blue-100';
+            case 'CLARIFICATION': return 'bg-amber-50 text-amber-600 border-amber-100';
+            case 'DOCUMENT_REQUEST': return 'bg-purple-50 text-purple-600 border-purple-100';
+            case 'APPROVAL_NOTIFICATION': return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+            default: return 'bg-slate-50 text-slate-500 border-slate-100';
         }
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
-            <div className="max-w-5xl mx-auto">
-                {/* Header */}
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8 flex justify-between items-center"
-                >
-                    <div>
-                        <h1 className="text-3xl font-bold text-white mb-2">Messages</h1>
-                        <p className="text-gray-400">Communicate with vendors about invoices</p>
+        <div className="pb-10">
+            <PageHeader
+                title="Messages"
+                subtitle="Communicate with vendors about invoices"
+                icon="Mail"
+                accent="purple"
+            />
+
+            <div className="max-w-5xl mx-auto space-y-6">
+                {/* Tabs & Desktop Compose */}
+                <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center justify-between">
+                    <div className="flex bg-slate-100 p-1 rounded-2xl w-full sm:w-auto">
+                        <button
+                            onClick={() => setActiveTab('inbox')}
+                            className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'inbox'
+                                ? 'bg-white text-purple-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Inbox {unreadCount > 0 && <span className="ml-1.5 px-1.5 py-0.5 bg-purple-600 text-white text-[8px] rounded-lg">{unreadCount}</span>}
+                        </button>
+                        <button
+                            onClick={() => setActiveTab('sent')}
+                            className={`flex-1 sm:flex-none px-6 py-2.5 rounded-xl font-black text-[10px] uppercase tracking-widest transition-all ${activeTab === 'sent'
+                                ? 'bg-white text-purple-600 shadow-sm'
+                                : 'text-slate-500 hover:text-slate-700'
+                                }`}
+                        >
+                            Sent
+                        </button>
                     </div>
+
                     <button
                         onClick={() => setShowComposeModal(true)}
-                        className="px-6 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all shadow-lg"
+                        className="w-full sm:w-auto px-8 py-3 bg-linear-to-br from-purple-600 to-indigo-600 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-purple-500/20 active:scale-95 transition-all flex items-center justify-center gap-2"
                     >
-                        ✉️ Compose
-                    </button>
-                </motion.div>
-
-                {/* Tabs */}
-                <div className="flex gap-4 mb-6">
-                    <button
-                        onClick={() => setActiveTab('inbox')}
-                        className={`px-4 py-2 rounded-lg transition-all ${activeTab === 'inbox'
-                                ? 'bg-purple-600 text-white'
-                                : 'bg-white/10 text-gray-400 hover:text-white'
-                            }`}
-                    >
-                        Inbox {unreadCount > 0 && <span className="ml-2 px-2 py-0.5 bg-red-500 text-white text-xs rounded-full">{unreadCount}</span>}
-                    </button>
-                    <button
-                        onClick={() => setActiveTab('sent')}
-                        className={`px-4 py-2 rounded-lg transition-all ${activeTab === 'sent'
-                                ? 'bg-purple-600 text-white'
-                                : 'bg-white/10 text-gray-400 hover:text-white'
-                            }`}
-                    >
-                        Sent
+                        <Icon name="Plus" size={16} /> Compose Message
                     </button>
                 </div>
 
                 {/* Error Display */}
-                <AnimatePresence>
+                <AnimatePresence mode="wait">
                     {error && (
                         <motion.div
-                            initial={{ opacity: 0, y: -10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            exit={{ opacity: 0 }}
-                            className="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-lg mb-6"
+                            initial={{ opacity: 0, height: 0 }}
+                            animate={{ opacity: 1, height: 'auto' }}
+                            exit={{ opacity: 0, height: 0 }}
+                            className="bg-rose-50 border border-rose-200 text-rose-600 px-4 py-3 rounded-xl flex justify-between items-center"
                         >
-                            {error}
-                            <button onClick={() => setError(null)} className="float-right">×</button>
+                            <span className="font-medium text-sm">{error}</span>
+                            <button onClick={() => setError(null)} className="p-1 hover:bg-rose-100 rounded-lg">✕</button>
                         </motion.div>
                     )}
                 </AnimatePresence>
 
                 {/* Messages List */}
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden"
-                >
+                <Card className="overflow-hidden border-slate-200/60 p-0">
                     {loading ? (
-                        <div className="p-12 text-center text-gray-400">Loading messages...</div>
+                        <div className="p-20 text-center">
+                            <span className="loading loading-spinner loading-lg text-primary"></span>
+                            <p className="mt-4 text-slate-500 font-medium">Loading conversation...</p>
+                        </div>
                     ) : (
-                        <div className="divide-y divide-white/10">
+                        <div className="divide-y divide-slate-100">
                             {messages.map((message, idx) => (
                                 <motion.div
                                     key={message.id}
-                                    initial={{ opacity: 0, x: -20 }}
-                                    animate={{ opacity: 1, x: 0 }}
+                                    initial={{ opacity: 0, y: 10 }}
+                                    animate={{ opacity: 1, y: 0 }}
                                     transition={{ delay: idx * 0.03 }}
                                     onClick={() => {
                                         setSelectedMessage(message);
@@ -180,172 +182,220 @@ export default function PMMessagesPage() {
                                             handleMarkAsRead(message.id);
                                         }
                                     }}
-                                    className={`p-4 hover:bg-white/5 cursor-pointer transition-colors ${!message.isRead && activeTab === 'inbox' ? 'bg-purple-500/5' : ''
+                                    className={`p-5 sm:p-6 hover:bg-slate-50 cursor-pointer transition-colors relative group ${!message.isRead && activeTab === 'inbox' ? 'bg-purple-50/30' : ''
                                         }`}
                                 >
-                                    <div className="flex justify-between items-start">
-                                        <div className="flex-1">
-                                            <div className="flex items-center gap-3 mb-1">
-                                                {!message.isRead && activeTab === 'inbox' && (
-                                                    <span className="w-2 h-2 bg-purple-500 rounded-full" />
-                                                )}
-                                                <span className="text-white font-medium">
-                                                    {activeTab === 'inbox' ? message.senderName : message.recipientName}
-                                                </span>
-                                                <span className={`px-2 py-0.5 rounded-full text-xs ${getTypeColor(message.messageType)}`}>
-                                                    {message.messageType.replace('_', ' ')}
+                                    <div className="flex gap-4 sm:gap-6 items-start">
+                                        <div className="shrink-0 pt-1">
+                                            <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 border-2 ${!message.isRead && activeTab === 'inbox' ? 'bg-purple-600 border-purple-100 text-white' : 'bg-slate-50 border-slate-100 text-slate-400 group-hover:bg-white group-hover:border-purple-200 transition-colors'}`}>
+                                                <Icon name={activeTab === 'inbox' ? "User" : "Send"} size={18} />
+                                            </div>
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1 mb-2">
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className={`text-sm font-black ${!message.isRead && activeTab === 'inbox' ? 'text-slate-900' : 'text-slate-600'}`}>
+                                                        {activeTab === 'inbox' ? message.senderName : message.recipientName}
+                                                    </span>
+                                                    <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border ${getTypeClasses(message.messageType)}`}>
+                                                        {message.messageType.replace('_', ' ')}
+                                                    </span>
+                                                </div>
+                                                <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                                    {new Date(message.created_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                                                 </span>
                                             </div>
-                                            <p className="text-gray-300 font-medium">{message.subject || '(no subject)'}</p>
-                                            <p className="text-gray-500 text-sm truncate">{message.content}</p>
+                                            <h4 className={`text-sm mb-1 line-clamp-1 ${!message.isRead && activeTab === 'inbox' ? 'font-bold text-slate-900' : 'text-slate-700'}`}>
+                                                {message.subject || '(no subject)'}
+                                            </h4>
+                                            <p className="text-xs text-slate-500 line-clamp-2 leading-relaxed">
+                                                {message.content}
+                                            </p>
                                         </div>
-                                        <span className="text-gray-500 text-xs">
-                                            {new Date(message.created_at).toLocaleDateString()}
-                                        </span>
+                                        {!message.isRead && activeTab === 'inbox' && (
+                                            <div className="absolute right-6 top-1/2 -translate-y-1/2 w-2 h-2 bg-purple-600 rounded-full shadow-sm shadow-purple-200"></div>
+                                        )}
                                     </div>
                                 </motion.div>
                             ))}
                         </div>
                     )}
                     {!loading && messages.length === 0 && (
-                        <div className="p-12 text-center text-gray-400">
-                            No messages in {activeTab}
+                        <div className="p-20 text-center">
+                            <div className="w-16 h-16 bg-slate-50 rounded-full flex items-center justify-center mx-auto mb-4 text-slate-300">
+                                <Icon name="Inbox" size={32} />
+                            </div>
+                            <h3 className="text-lg font-bold text-slate-800">No messages found</h3>
+                            <p className="text-slate-500 mt-1">Your {activeTab} is currently empty.</p>
                         </div>
                     )}
-                </motion.div>
+                </Card>
 
                 {/* Compose Modal */}
                 <AnimatePresence>
                     {showComposeModal && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                            onClick={() => setShowComposeModal(false)}
-                        >
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-100 p-4">
                             <motion.div
-                                initial={{ scale: 0.9, opacity: 0 }}
+                                initial={{ scale: 0.95, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="bg-slate-800/90 backdrop-blur-xl rounded-2xl p-8 w-full max-w-lg border border-white/20"
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-xl shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar"
                             >
-                                <h2 className="text-2xl font-bold text-white mb-6">Compose Message</h2>
-                                <form onSubmit={handleSendMessage} className="space-y-4">
+                                <div className="flex justify-between items-start mb-8">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">To (Vendor)</label>
-                                        <select
-                                            value={composeData.recipientId}
-                                            onChange={(e) => setComposeData({ ...composeData, recipientId: e.target.value })}
-                                            required
-                                            className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                        >
-                                            <option value="">Select Vendor</option>
-                                            {vendors.map(v => (
-                                                <option key={v.id} value={v.linkedUserId || v.id}>{v.name}</option>
-                                            ))}
-                                        </select>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-purple-600 mb-1">Message Center</p>
+                                        <h2 className="text-2xl font-black text-slate-800 tracking-tight">Compose New Message</h2>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">Message Type</label>
-                                        <select
-                                            value={composeData.messageType}
-                                            onChange={(e) => setComposeData({ ...composeData, messageType: e.target.value })}
-                                            className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                        >
-                                            {MESSAGE_TYPES.map(t => (
-                                                <option key={t.value} value={t.value}>{t.label}</option>
-                                            ))}
-                                        </select>
+                                    <button onClick={() => setShowComposeModal(false)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors">
+                                        <Icon name="X" size={20} className="text-slate-400" />
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleSendMessage} className="space-y-6">
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Recipient (Vendor)</label>
+                                            <select
+                                                required
+                                                value={composeData.recipientId}
+                                                onChange={(e) => setComposeData({ ...composeData, recipientId: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm"
+                                            >
+                                                <option value="">Select Vendor</option>
+                                                {vendors.map(v => (
+                                                    <option key={v.id} value={v.linkedUserId || v.id}>{v.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Message Category</label>
+                                            <select
+                                                value={composeData.messageType}
+                                                onChange={(e) => setComposeData({ ...composeData, messageType: e.target.value })}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm"
+                                            >
+                                                {MESSAGE_TYPES.map(t => (
+                                                    <option key={t.value} value={t.value}>{t.label}</option>
+                                                ))}
+                                            </select>
+                                        </div>
                                     </div>
+
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">Subject</label>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Subject Line</label>
                                         <input
                                             type="text"
                                             value={composeData.subject}
                                             onChange={(e) => setComposeData({ ...composeData, subject: e.target.value })}
-                                            placeholder="Subject..."
-                                            className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            placeholder="What is this regarding?"
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm"
                                         />
                                     </div>
+
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">Message</label>
+                                        <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Message Content</label>
                                         <textarea
+                                            required
                                             value={composeData.content}
                                             onChange={(e) => setComposeData({ ...composeData, content: e.target.value })}
-                                            rows={4}
-                                            required
-                                            placeholder="Type your message..."
-                                            className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
+                                            rows={5}
+                                            placeholder="Type your message here..."
+                                            className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm resize-none"
                                         />
                                     </div>
-                                    <div className="flex gap-4 pt-4">
+
+                                    <div className="flex flex-col sm:flex-row gap-3 pt-4 border-t border-slate-100">
                                         <button
                                             type="button"
                                             onClick={() => setShowComposeModal(false)}
-                                            className="flex-1 px-4 py-2 border border-white/20 text-white rounded-lg hover:bg-white/10 transition-colors"
+                                            className="order-2 sm:order-1 flex-1 px-6 py-4 border border-slate-200 text-slate-600 rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-50 transition-all active:scale-95"
                                         >
-                                            Cancel
+                                            Discard Draft
                                         </button>
                                         <button
                                             type="submit"
-                                            className="flex-1 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-medium hover:from-purple-700 hover:to-pink-700 transition-all"
+                                            className="order-1 sm:order-2 flex-1 px-6 py-4 bg-linear-to-br from-purple-600 to-indigo-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-purple-500/20 hover:shadow-purple-500/30 transition-all active:scale-95 flex items-center justify-center gap-2"
                                         >
-                                            Send Message
+                                            <Icon name="Send" size={16} /> Send Message
                                         </button>
                                     </div>
                                 </form>
                             </motion.div>
-                        </motion.div>
+                        </div>
                     )}
                 </AnimatePresence>
 
                 {/* Message Detail Modal */}
                 <AnimatePresence>
                     {selectedMessage && (
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                            onClick={() => setSelectedMessage(null)}
-                        >
+                        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-100 p-4">
                             <motion.div
-                                initial={{ scale: 0.9, opacity: 0 }}
+                                initial={{ scale: 0.95, opacity: 0 }}
                                 animate={{ scale: 1, opacity: 1 }}
-                                exit={{ scale: 0.9, opacity: 0 }}
-                                onClick={(e) => e.stopPropagation()}
-                                className="bg-slate-800/90 backdrop-blur-xl rounded-2xl p-8 w-full max-w-lg border border-white/20"
+                                exit={{ scale: 0.95, opacity: 0 }}
+                                className="bg-white rounded-3xl p-6 sm:p-8 w-full max-w-xl shadow-2xl border border-slate-100 max-h-[90vh] overflow-y-auto custom-scrollbar"
                             >
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <span className={`px-2 py-1 rounded-full text-xs ${getTypeColor(selectedMessage.messageType)}`}>
-                                            {selectedMessage.messageType.replace('_', ' ')}
-                                        </span>
-                                        <h2 className="text-xl font-bold text-white mt-2">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div className="flex-1">
+                                        <div className="flex items-center gap-3 mb-2">
+                                            <span className={`px-2 py-0.5 rounded-lg text-[9px] font-black uppercase tracking-wider border ${getTypeClasses(selectedMessage.messageType)}`}>
+                                                {selectedMessage.messageType.replace('_', ' ')}
+                                            </span>
+                                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                                                {new Date(selectedMessage.created_at).toLocaleString()}
+                                            </span>
+                                        </div>
+                                        <h2 className="text-xl font-black text-slate-800 tracking-tight leading-snug">
                                             {selectedMessage.subject || '(no subject)'}
                                         </h2>
                                     </div>
-                                    <button onClick={() => setSelectedMessage(null)} className="text-gray-400 hover:text-white">✕</button>
+                                    <button onClick={() => setSelectedMessage(null)} className="p-2 hover:bg-slate-50 rounded-xl transition-colors ml-4">
+                                        <Icon name="X" size={20} className="text-slate-400" />
+                                    </button>
                                 </div>
-                                <div className="flex justify-between text-sm text-gray-400 mb-4">
-                                    <span>From: {selectedMessage.senderName}</span>
-                                    <span>{new Date(selectedMessage.created_at).toLocaleString()}</span>
+
+                                <div className="flex items-center gap-4 p-4 bg-slate-50 rounded-2xl border border-slate-100 mb-6">
+                                    <div className="w-10 h-10 rounded-full bg-white border border-slate-100 flex items-center justify-center text-slate-400">
+                                        <Icon name="User" size={18} />
+                                    </div>
+                                    <div>
+                                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-0.5">Sender / From</p>
+                                        <p className="text-sm font-bold text-slate-700">{selectedMessage.senderName}</p>
+                                    </div>
                                 </div>
-                                <div className="bg-white/5 rounded-lg p-4 text-gray-300 whitespace-pre-wrap">
+
+                                <div className="bg-slate-50/50 rounded-2xl p-6 text-slate-700 text-sm leading-relaxed whitespace-pre-wrap border border-slate-100">
                                     {selectedMessage.content}
                                 </div>
+
                                 {selectedMessage.invoiceId && (
-                                    <div className="mt-4 text-sm">
-                                        <span className="text-gray-400">Related Invoice: </span>
-                                        <a href={`/approvals/${selectedMessage.invoiceId}`} className="text-purple-400 hover:underline">
-                                            View Invoice
+                                    <div className="mt-6 flex items-center justify-between p-4 bg-purple-50 rounded-2xl border border-purple-100">
+                                        <div className="flex items-center gap-3">
+                                            <Icon name="FileText" size={18} className="text-purple-600" />
+                                            <div>
+                                                <p className="text-[10px] font-black uppercase tracking-widest text-purple-400 mb-0.5">Linked Invoice</p>
+                                                <p className="text-sm font-bold text-purple-700">Ref: {selectedMessage.invoiceId}</p>
+                                            </div>
+                                        </div>
+                                        <a
+                                            href={`/approvals/${selectedMessage.invoiceId}`}
+                                            className="px-4 py-2 bg-white text-purple-600 border border-purple-100 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm"
+                                        >
+                                            View Profile
                                         </a>
                                     </div>
                                 )}
+
+                                <div className="mt-8 pt-6 border-t border-slate-100 flex justify-end">
+                                    <button
+                                        onClick={() => setSelectedMessage(null)}
+                                        className="px-8 py-3 bg-slate-900 text-white rounded-xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-slate-200 active:scale-95 transition-all"
+                                    >
+                                        Close Message
+                                    </button>
+                                </div>
                             </motion.div>
-                        </motion.div>
+                        </div>
                     )}
                 </AnimatePresence>
             </div>

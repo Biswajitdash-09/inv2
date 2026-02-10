@@ -39,7 +39,7 @@ export async function POST(request) {
 
         // Additional document files
         const timesheetFile = formData.get('timesheet');
-        const rfpFile = formData.get('rfpCommercial');
+        const annexFile = formData.get('annex') || formData.get('rfpCommercial');
 
         if (!invoiceFile) {
             return NextResponse.json(
@@ -104,34 +104,40 @@ export async function POST(request) {
                 mimeType: timesheetFile.type,
                 fileSize: tsBuffer.length,
                 uploadedBy: session.user.id,
-                metadata: { billingMonth },
+                metadata: {
+                    billingMonth,
+                    projectId: project
+                },
                 status: 'PENDING'
             });
             documentIds.push({ documentId: tsId, type: 'TIMESHEET' });
         }
 
-        // Save RFP Commercial if provided
-        if (rfpFile) {
-            const rfpBytes = await rfpFile.arrayBuffer();
-            const rfpBuffer = Buffer.from(rfpBytes);
-            const rfpId = uuidv4();
-            const rfpExt = path.extname(rfpFile.name);
-            const rfpFileName = `${rfpId}${rfpExt}`;
-            await writeFile(path.join(docsDir, rfpFileName), rfpBuffer);
+        // Save Annex if provided
+        if (annexFile) {
+            const annexBytes = await annexFile.arrayBuffer();
+            const annexBuffer = Buffer.from(annexBytes);
+            const annexId = uuidv4();
+            const annexExt = path.extname(annexFile.name);
+            const annexFileName = `${annexId}${annexExt}`;
+            await writeFile(path.join(docsDir, annexFileName), annexBuffer);
 
             await DocumentUpload.create({
-                id: rfpId,
+                id: annexId,
                 invoiceId: invoiceId,
-                type: 'RFP_COMMERCIAL',
-                fileName: rfpFile.name,
-                fileUrl: `/uploads/documents/${rfpFileName}`,
-                mimeType: rfpFile.type,
-                fileSize: rfpBuffer.length,
+                type: 'ANNEX',
+                fileName: annexFile.name,
+                fileUrl: `/uploads/documents/${annexFileName}`,
+                mimeType: annexFile.type,
+                fileSize: annexBuffer.length,
                 uploadedBy: session.user.id,
-                metadata: { billingMonth },
+                metadata: {
+                    billingMonth,
+                    projectId: project
+                },
                 status: 'PENDING'
             });
-            documentIds.push({ documentId: rfpId, type: 'RFP_COMMERCIAL' });
+            documentIds.push({ documentId: annexId, type: 'ANNEX' });
         }
 
         // Update invoice with document references

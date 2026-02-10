@@ -17,7 +17,7 @@ export default function VendorSubmitPage() {
     const [formData, setFormData] = useState({
         invoiceFile: null,
         timesheetFile: null,
-        rfpFile: null,
+        annexFile: null,
         invoiceNumber: '',
         invoiceDate: '',
         amount: '',
@@ -75,7 +75,7 @@ export default function VendorSubmitPage() {
             const submitData = new FormData();
             submitData.append('invoice', formData.invoiceFile);
             if (formData.timesheetFile) submitData.append('timesheet', formData.timesheetFile);
-            if (formData.rfpFile) submitData.append('rfpCommercial', formData.rfpFile);
+            if (formData.annexFile) submitData.append('annex', formData.annexFile);
             submitData.append('invoiceNumber', formData.invoiceNumber);
             submitData.append('invoiceDate', formData.invoiceDate);
             submitData.append('amount', formData.amount);
@@ -97,7 +97,7 @@ export default function VendorSubmitPage() {
             setFormData({
                 invoiceFile: null,
                 timesheetFile: null,
-                rfpFile: null,
+                annexFile: null,
                 invoiceNumber: '',
                 invoiceDate: '',
                 amount: '',
@@ -117,7 +117,7 @@ export default function VendorSubmitPage() {
     };
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
+        <div className="min-h-screen bg-linear-to-br from-slate-900 via-purple-900 to-slate-900 p-6">
             <div className="max-w-3xl mx-auto">
                 {/* Header */}
                 <motion.div
@@ -274,16 +274,16 @@ export default function VendorSubmitPage() {
                                     )}
                                 </div>
                                 <div className="bg-white/5 rounded-lg p-4 border border-white/10">
-                                    <label className="block text-sm font-medium text-gray-300 mb-2">RFP Commercial</label>
+                                    <label className="block text-sm font-medium text-gray-300 mb-2">Annex</label>
                                     <input
                                         ref={rfpRef}
                                         type="file"
-                                        onChange={(e) => handleFileChange('rfpFile', e)}
+                                        onChange={(e) => handleFileChange('annexFile', e)}
                                         accept=".pdf,.doc,.docx,.xlsx,.xls"
                                         className="w-full text-sm text-gray-400 file:mr-2 file:py-1 file:px-3 file:rounded file:border-0 file:bg-blue-600/50 file:text-blue-200 file:cursor-pointer"
                                     />
-                                    {formData.rfpFile && (
-                                        <p className="mt-1 text-xs text-blue-400">✓ {formData.rfpFile.name}</p>
+                                    {formData.annexFile && (
+                                        <p className="mt-1 text-xs text-blue-400">✓ {formData.annexFile.name}</p>
                                     )}
                                 </div>
                             </div>
@@ -305,7 +305,7 @@ export default function VendorSubmitPage() {
                         <button
                             type="submit"
                             disabled={loading || !formData.invoiceFile}
-                            className="w-full py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="w-full py-4 bg-linear-to-r from-purple-600 to-pink-600 text-white rounded-xl font-bold text-lg hover:from-purple-700 hover:to-pink-700 transition-all duration-300 shadow-lg shadow-purple-500/25 disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? (
                                 <span className="flex items-center justify-center gap-2">
@@ -316,8 +316,8 @@ export default function VendorSubmitPage() {
                             )}
                         </button>
                     </form>
-                </motion.div>
-            </div>
-        </div>
+                </motion.div >
+            </div >
+        </div >
     );
 }

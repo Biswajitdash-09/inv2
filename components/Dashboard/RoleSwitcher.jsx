@@ -7,7 +7,7 @@ import Icon from "@/components/Icon";
 const RoleSwitcher = () => {
     const { user, switchRole } = useAuth();
 
-    if (!user || user.role !== ROLES.ADMIN && user.role !== ROLES.PROJECT_MANAGER) return null;
+    if (!user || user.role !== ROLES.ADMIN) return null;
 
     // Allow Admins to switch to any role for testing
     // Allow PMs to switch to Finance roles if needed (optional logic)

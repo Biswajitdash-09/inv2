@@ -24,9 +24,10 @@ export default function FinanceApprovalQueuePage() {
             if (!res.ok) throw new Error(data.error);
 
             // Filter for invoices pending finance approval
-            const pendingApproval = (data.invoices || []).filter(inv =>
-                inv.status === 'Pending' ||
-                inv.status === 'Verified' ||
+            const invoiceList = Array.isArray(data) ? data : (data.invoices || []);
+            const pendingApproval = invoiceList.filter(inv =>
+                inv.status === 'PENDING' ||
+                inv.status === 'VERIFIED' ||
                 (inv.pmApproval?.status === 'APPROVED' && inv.financeApproval?.status !== 'APPROVED')
             );
 
@@ -208,16 +209,16 @@ export default function FinanceApprovalQueuePage() {
                                         </td>
                                         <td className="px-4 py-4">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${invoice.pmApproval?.status === 'APPROVED' ? 'bg-green-500/20 text-green-300' :
-                                                    invoice.pmApproval?.status === 'REJECTED' ? 'bg-red-500/20 text-red-300' :
-                                                        'bg-gray-500/20 text-gray-300'
+                                                invoice.pmApproval?.status === 'REJECTED' ? 'bg-red-500/20 text-red-300' :
+                                                    'bg-gray-500/20 text-gray-300'
                                                 }`}>
                                                 {invoice.pmApproval?.status || 'N/A'}
                                             </span>
                                         </td>
                                         <td className="px-4 py-4">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${invoice.hilReview?.status === 'REVIEWED' ? 'bg-green-500/20 text-green-300' :
-                                                    invoice.hilReview?.status === 'FLAGGED' ? 'bg-red-500/20 text-red-300' :
-                                                        'bg-yellow-500/20 text-yellow-300'
+                                                invoice.hilReview?.status === 'FLAGGED' ? 'bg-red-500/20 text-red-300' :
+                                                    'bg-yellow-500/20 text-yellow-300'
                                                 }`}>
                                                 {invoice.hilReview?.status || 'PENDING'}
                                             </span>
@@ -301,8 +302,8 @@ export default function FinanceApprovalQueuePage() {
                                         }
                                         disabled={processingId}
                                         className={`flex-1 px-4 py-2 rounded-lg font-medium transition-colors disabled:opacity-50 ${approvalModal.action === 'APPROVE'
-                                                ? 'bg-green-600 hover:bg-green-700 text-white'
-                                                : 'bg-red-600 hover:bg-red-700 text-white'
+                                            ? 'bg-green-600 hover:bg-green-700 text-white'
+                                            : 'bg-red-600 hover:bg-red-700 text-white'
                                             }`}
                                     >
                                         {processingId ? 'Processing...' : `Confirm ${approvalModal.action}`}

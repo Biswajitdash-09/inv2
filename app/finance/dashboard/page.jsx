@@ -20,7 +20,7 @@ export default function FinanceDashboardPage() {
             const res = await fetch(`/api/invoices?t=${Date.now()}`);
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            setInvoices(data.invoices || []);
+            setInvoices(Array.isArray(data) ? data : (data.invoices || []));
         } catch (err) {
             setError(err.message);
         } finally {
@@ -29,8 +29,8 @@ export default function FinanceDashboardPage() {
     };
 
     const pendingApprovals = invoices.filter(inv =>
-        inv.status === 'Pending' ||
-        inv.status === 'Verified' ||
+        inv.status === 'PENDING' ||
+        inv.status === 'VERIFIED' ||
         (inv.pmApproval?.status === 'APPROVED' && inv.financeApproval?.status !== 'APPROVED')
     ).length;
 
@@ -66,6 +66,8 @@ export default function FinanceDashboardPage() {
             case 'VALIDATION_REQUIRED':
                 return 'bg-blue-500/20 text-blue-300';
             case 'Pending':
+            case 'PENDING':
+            case 'RECEIVED':
             default:
                 return 'bg-purple-500/20 text-purple-300';
         }
@@ -202,9 +204,6 @@ export default function FinanceDashboardPage() {
                             <h2 className="text-xl font-bold text-white">Recent Invoice Activity</h2>
                             <p className="text-gray-400 text-sm">Latest invoice submissions and updates</p>
                         </div>
-                        <Link href="/digitization" className="text-sm text-purple-300 hover:text-purple-200 font-medium">
-                            View All
-                        </Link>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full">
@@ -215,13 +214,12 @@ export default function FinanceDashboardPage() {
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase">Date</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase">Status</th>
                                     <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase">PM Approval</th>
-                                    <th className="px-6 py-4 text-left text-xs font-semibold text-gray-300 uppercase">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/10">
                                 {loading ? (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
                                             Loading invoices...
                                         </td>
                                     </tr>
@@ -267,21 +265,11 @@ export default function FinanceDashboardPage() {
                                                     {invoice.pmApproval?.status || 'N/A'}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4">
-                                                <div className="flex gap-2">
-                                                    <Link
-                                                        href={`/approvals/${invoice.id}`}
-                                                        className="px-3 py-1 text-sm bg-purple-600/20 text-purple-300 rounded-lg hover:bg-purple-600/30 transition-colors"
-                                                    >
-                                                        View
-                                                    </Link>
-                                                </div>
-                                            </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan={6} className="px-6 py-12 text-center text-gray-400">
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
                                             No recent activity found
                                         </td>
                                     </tr>

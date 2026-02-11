@@ -3,7 +3,6 @@
 import { motion } from "framer-motion";
 import Icon from "@/components/Icon";
 import AnalyticsDashboard from "@/components/Analytics/AnalyticsDashboard";
-import SyncIndicator from "@/components/Integration/SyncIndicator";
 
 export default function AnalyticsPage() {
   return (
@@ -20,7 +19,6 @@ export default function AnalyticsPage() {
             Real-time performance metrics and spending analysis across your organization.
           </p>
         </div>
-        <SyncIndicator />
       </div>
       <motion.div
         initial={{ opacity: 0, y: 20 }}

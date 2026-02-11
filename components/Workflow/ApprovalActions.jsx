@@ -51,7 +51,7 @@ const ApprovalActions = ({ invoiceId, onActionComplete }) => {
           Review the matching analysis and authorize payment or reject the invoice.
         </p>
 
-        <div className="grid grid-cols-2 gap-3 pt-2">
+        <div className="grid grid-cols-1 gap-4 pt-2">
           <Button
             variant="danger"
             onClick={() => handleAction("Rejected")}
@@ -68,10 +68,17 @@ const ApprovalActions = ({ invoiceId, onActionComplete }) => {
             loading={loading}
             disabled={loading || showToast !== null}
             icon="CheckCircle"
-            className="w-full bg-success hover:bg-success/90 border-success shadow-success/30"
+            className="w-full bg-success hover:bg-success/90 border-success shadow-success/30 text-sm font-bold uppercase tracking-wider"
           >
-            Approve
+            <div className="flex flex-col items-center">
+              <span className="leading-none">Authorize & Release Payment (SAP)</span>
+            </div>
           </Button>
+          <div className="flex justify-center">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-1">
+              This action triggers the payment release in SAP
+            </span>
+          </div>
         </div>
       </div>
 

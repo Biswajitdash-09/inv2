@@ -9,6 +9,7 @@ import { getAllInvoices, getAnalytics } from "@/lib/api";
 import Card from "@/components/ui/Card";
 import Icon from "@/components/Icon";
 import { motion } from "framer-motion";
+import { useRouter } from "next/navigation";
 
 const COLORS = ['#4f46e5', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'];
 
@@ -29,6 +30,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 };
 
 const AnalyticsDashboard = () => {
+  const router = useRouter();
   const [invoices, setInvoices] = useState([]);
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -78,7 +80,25 @@ const AnalyticsDashboard = () => {
     return Object.keys(monthlyMap).map(key => ({
       month: key,
       amount: monthlyMap[key]
-    })).sort((a, b) => new Date(a.month) - new Date(b.month)); // Simple sort might need refinement if years vary widely
+    })).sort((a, b) => new Date(a.month) - new Date(b.month));
+  }, [invoices]);
+
+  const vendorPerformance = useMemo(() => {
+    const vendorMap = invoices.reduce((acc, inv) => {
+      if (!acc[inv.vendorName]) {
+        acc[inv.vendorName] = { name: inv.vendorName, total: 0, count: 0, discrepancies: 0 };
+      }
+      acc[inv.vendorName].total += Number(inv.amount);
+      acc[inv.vendorName].count += 1;
+      if (inv.status === 'MATCH_DISCREPANCY') {
+        acc[inv.vendorName].discrepancies += 1;
+      }
+      return acc;
+    }, {});
+
+    return Object.values(vendorMap)
+      .sort((a, b) => b.total - a.total)
+      .slice(0, 5);
   }, [invoices]);
 
   // Mocked Processing Time Trend (Simulating "Real" data for visual richness)
@@ -93,7 +113,7 @@ const AnalyticsDashboard = () => {
   ];
 
   const kpis = useMemo(() => {
-    const totalSpend = invoices.reduce((sum, inv) => sum + Number(inv.amount), 0);
+    const totalSpend = invoices.reduce((sum, inv) => sum + (Number(inv.amount) || 0), 0);
 
     return {
       totalSpend,
@@ -113,6 +133,28 @@ const AnalyticsDashboard = () => {
 
   return (
     <div className="space-y-6">
+
+      {/* Compliance & Audit Reports Banner - Prominent at top */}
+      <Card className="p-6 bg-gradient-to-r from-indigo-600 to-purple-600 text-white border-0 shadow-xl">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+              <Icon name="ShieldCheck" size={28} className="text-white" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold tracking-tight">Compliance & Audit Reports</h3>
+              <p className="text-indigo-100 text-sm font-medium mt-1">Access detailed audit trails, compliance checks, and regulatory documentation</p>
+            </div>
+          </div>
+          <button
+            onClick={() => router.push('/audit')}
+            className="flex items-center gap-2 px-6 py-3 bg-white text-indigo-600 rounded-xl font-bold uppercase tracking-widest hover:bg-indigo-50 transition-all shadow-lg hover:shadow-xl transform hover:-translate-y-0.5"
+          >
+            <span>View Reports</span>
+            <Icon name="ArrowRight" size={16} />
+          </button>
+        </div>
+      </Card>
 
       {/* KPI Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -273,7 +315,10 @@ const AnalyticsDashboard = () => {
             <h3 className="text-lg font-bold text-gray-800">Processing Efficiency</h3>
             <p className="text-sm text-gray-500">Average hours to approval (Last 7 Days)</p>
           </div>
-          <button className="btn btn-sm btn-ghost text-primary bg-primary/10 hover:bg-primary/20">
+          <button
+            onClick={() => router.push('/audit')}
+            className="btn btn-sm btn-ghost text-primary bg-primary/10 hover:bg-primary/20"
+          >
             View Report <Icon name="ArrowRight" size={14} className="ml-1" />
           </button>
         </div>
@@ -301,6 +346,69 @@ const AnalyticsDashboard = () => {
               />
             </AreaChart>
           </ResponsiveContainer>
+        </div>
+      </Card>
+
+      {/* Vendor Performance Analytics */}
+      <Card className="border-0 shadow-lg bg-white overflow-hidden" noPadding>
+        <div className="p-6 border-b border-gray-100 flex justify-between items-center">
+          <div>
+            <h3 className="text-lg font-bold text-gray-800 tracking-tight">Vendor Performance Analytics</h3>
+            <p className="text-sm text-gray-500 font-medium">Top vendors by volume and discrepancy rate</p>
+          </div>
+          <Icon name="Award" className="text-amber-500" size={24} />
+        </div>
+        <div className="overflow-x-auto">
+          <table className="table w-full">
+            <thead>
+              <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-[0.2em] font-black">
+                <th className="py-5 pl-8">Vendor Partner</th>
+                <th className="py-5">Invoices</th>
+                <th className="py-5">Total Volume</th>
+                <th className="py-5">Discrepancy Rate</th>
+                <th className="py-5 pr-8 text-right font-mono">Status</th>
+              </tr>
+            </thead>
+            <tbody className="text-sm font-bold text-slate-700">
+              {vendorPerformance.map((vendor, idx) => {
+                const discRate = (vendor.discrepancies / vendor.count * 100).toFixed(1);
+                return (
+                  <tr key={idx} className="border-b border-slate-50 hover:bg-slate-50/50 transition-colors group">
+                    <td className="py-5 pl-8">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center text-xs font-black">
+                          {vendor.name.substring(0, 2).toUpperCase()}
+                        </div>
+                        <span className="group-hover:text-indigo-600 transition-colors uppercase tracking-tight">{vendor.name}</span>
+                      </div>
+                    </td>
+                    <td className="py-5 font-mono">{vendor.count}</td>
+                    <td className="py-5 font-mono">₹{vendor.total.toLocaleString()}</td>
+                    <td className="py-5">
+                      <div className="flex items-center gap-2">
+                        <div className="flex-1 max-w-[100px] h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full ${parseFloat(discRate) > 10 ? 'bg-rose-500' : 'bg-emerald-500'}`}
+                            style={{ width: `${Math.min(parseFloat(discRate) * 5, 100)}%` }}
+                          />
+                        </div>
+                        <span className={`text-[10px] font-black ${parseFloat(discRate) > 10 ? 'text-rose-500' : 'text-emerald-500'}`}>
+                          {discRate}%
+                        </span>
+                      </div>
+                    </td>
+                    <td className="py-5 pr-8 text-right">
+                      {parseFloat(discRate) < 5 ? (
+                        <span className="badge badge-success badge-sm border-0 font-black text-[9px] uppercase tracking-widest py-3 px-3">Elite Tier</span>
+                      ) : (
+                        <span className="badge badge-warning badge-sm border-0 font-black text-[9px] uppercase tracking-widest py-3 px-3 text-white">Review Needed</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </Card>
     </div>

@@ -148,7 +148,7 @@ const FinanceUserDashboard = ({ invoices, onUploadComplete }) => {
 
                 {/* Right Column: Upload Queue & System Status */}
                 <div className="space-y-6">
-                    <Card className="h-auto border-0 shadow-2xl bg-gradient-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white overflow-hidden relative shadow-indigo-200">
+                    <Card className="h-auto border-0 shadow-2xl bg-linear-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white overflow-hidden relative shadow-indigo-200">
                         {/* Abstract background pattern */}
                         <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
                         <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
@@ -158,47 +158,37 @@ const FinanceUserDashboard = ({ invoices, onUploadComplete }) => {
                                 <Icon name="UploadCloud" size={20} />
                                 Quick Ingestion
                             </h3>
-                            <p className="text-indigo-50 text-sm mb-6 font-medium">Drag & drop files here to immediately start the IDP extraction process.</p>
+                            <p className="text-indigo-50 text-sm mb-6 font-medium">Monitoring ingestion channels (Email, SharePoint, Portal). Drop files here to start OCR.</p>
                             <div className="bg-white/10 rounded-2xl p-1 backdrop-blur-sm">
                                 <DropZone onUploadComplete={onUploadComplete} theme="dark" />
                             </div>
                         </div>
                     </Card>
 
-                    <Card className="p-0 overflow-hidden border-0 shadow-md">
-                        <div className="p-4 border-b border-gray-50 flex items-center gap-2">
-                            <Icon name="Cpu" size={16} className="text-primary" />
-                            <h3 className="font-bold text-sm text-slate-800">System Processing Status</h3>
-                        </div>
-                        <div className="p-5 space-y-5">
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs">
-                                    <span className="font-bold text-slate-600">OCR Engine Accuracy</span>
-                                    <span className="text-success font-bold">98.5%</span>
+                    <Card className="p-6 border-0 shadow-lg bg-white">
+                        <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                            <Icon name="Settings" size={20} className="text-indigo-600" />
+                            Quick Actions
+                        </h3>
+                        <div className="grid grid-cols-1 gap-3">
+                            <button
+                                onClick={() => router.push('/finance/manual-entry')}
+                                className="flex items-center justify-between p-4 bg-slate-50 hover:bg-slate-100 rounded-xl border border-slate-100 transition-all group"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="p-2 bg-indigo-100 text-indigo-600 rounded-lg group-hover:bg-indigo-600 group-hover:text-white transition-colors">
+                                        <Icon name="PlusCircle" size={18} />
+                                    </div>
+                                    <div className="text-left">
+                                        <p className="text-sm font-bold text-slate-800">Manual Invoice Entry</p>
+                                        <p className="text-[10px] text-slate-500 font-medium">Create record without source file</p>
+                                    </div>
                                 </div>
-                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                    <div className="bg-success h-full rounded-full" style={{ width: '98.5%' }}></div>
-                                </div>
-                            </div>
-
-                            <div className="space-y-2">
-                                <div className="flex justify-between text-xs">
-                                    <span className="font-bold text-slate-600">Auto-Match Rate</span>
-                                    <span className="text-primary font-bold">92.0%</span>
-                                </div>
-                                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                                    <div className="bg-primary h-full rounded-full" style={{ width: '92%' }}></div>
-                                </div>
-                            </div>
-
-                            <div className="p-3 bg-slate-50 rounded-xl mt-2">
-                                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">Live Feed</p>
-                                <p className="text-xs text-slate-600 italic leading-snug">
-                                    "Processing batch #2944: Detected new vendor format from 'Office Depot'. Adapting extraction template..."
-                                </p>
-                            </div>
+                                <Icon name="ChevronRight" size={16} className="text-slate-300" />
+                            </button>
                         </div>
                     </Card>
+
                 </div>
             </div>
         </div>

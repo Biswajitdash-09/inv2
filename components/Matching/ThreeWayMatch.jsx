@@ -238,9 +238,13 @@ const ThreeWayMatch = ({ invoice: initialInvoice }) => {
                 const poItem = purchaseOrder?.items[idx] || {};
                 const grItem = goodsReceipt?.items[idx] || {};
 
-                const priceMatch = Math.abs(invItem.unitPrice - (poItem.unitPrice || 0)) < 0.01;
+                // Price matching with ±5% tolerance
+                const poPrice = poItem.unitPrice || 0;
+                const tolerance = poPrice * 0.05; // 5% tolerance
+                const priceMatch = Math.abs(invItem.unitPrice - poPrice) <= tolerance;
                 const qtyMatch = invItem.quantity === (poItem.quantity || 0) && invItem.quantity === (grItem.quantity || 0);
                 const rowMatch = priceMatch && qtyMatch;
+                const priceDeviation = poPrice > 0 ? ((invItem.unitPrice - poPrice) / poPrice * 100).toFixed(2) : 0;
 
                 return (
                   <div key={idx} className="py-8 grid grid-cols-1 md:grid-cols-12 gap-6 items-center group">
@@ -260,6 +264,14 @@ const ThreeWayMatch = ({ invoice: initialInvoice }) => {
                     <div className="md:col-span-2 text-center">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Unit Price</p>
                       <p className="text-sm font-black text-slate-800">₹{invItem.unitPrice.toLocaleString()}</p>
+                      <p className={`text-[10px] font-bold uppercase mt-1 ${priceMatch ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        ±5% Tolerance
+                      </p>
+                      {poPrice > 0 && (
+                        <p className={`text-[9px] font-medium mt-0.5 ${Math.abs(priceDeviation) <= 5 ? 'text-emerald-500' : 'text-rose-500'}`}>
+                          Dev: {priceDeviation > 0 ? '+' : ''}{priceDeviation}%
+                        </p>
+                      )}
                     </div>
 
                     <div className="md:col-span-3 text-right">
@@ -285,6 +297,44 @@ const ThreeWayMatch = ({ invoice: initialInvoice }) => {
           {/* Audit & Totals Section */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 pt-12 border-t-2 border-slate-900">
             <div className="space-y-6">
+              {/* Ringi Annexure Verification Status */}
+              <div className="space-y-3">
+                <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.25em] flex items-center gap-2">
+                  <Icon name="FileCheck" size={14} className="text-indigo-600" />
+                  Ringi Annexure Verification
+                </span>
+                <div className={clsx(
+                  "p-5 rounded-2xl border flex items-center justify-between gap-4",
+                  matchStatus === 'matched' ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"
+                )}>
+                  <div className="flex items-center gap-3">
+                    <div className={clsx(
+                      "p-2 rounded-xl",
+                      matchStatus === 'matched' ? "bg-emerald-100 text-emerald-600" : "bg-amber-100 text-amber-600"
+                    )}>
+                      <Icon name={matchStatus === 'matched' ? "ShieldCheck" : "Clock"} size={16} />
+                    </div>
+                    <div>
+                      <p className={clsx(
+                        "text-xs font-black uppercase tracking-widest",
+                        matchStatus === 'matched' ? "text-emerald-700" : "text-amber-700"
+                      )}>
+                        {matchStatus === 'matched' ? 'VERIFIED' : 'PENDING APPROVAL'}
+                      </p>
+                      <p className="text-[10px] text-slate-500 font-medium mt-0.5">
+                        Ringi approval workflow {matchStatus === 'matched' ? 'completed' : 'in progress'}
+                      </p>
+                    </div>
+                  </div>
+                  {matchStatus !== 'matched' && (
+                    <span className="text-[9px] font-black text-amber-600 bg-amber-100 px-2 py-1 rounded-lg uppercase tracking-wider">
+                      Requires Auth
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Compliance Notes */}
               <div className="space-y-3">
                 <span className="text-[11px] font-black text-slate-900 uppercase tracking-[0.25em] flex items-center gap-2">
                   <Icon name="Activity" size={14} className="text-indigo-600" />

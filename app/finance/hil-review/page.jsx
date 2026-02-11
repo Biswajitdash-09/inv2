@@ -24,7 +24,7 @@ export default function HILReviewPage() {
             const res = await fetch(`/api/finance/hil-review?status=${filterStatus}`);
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
-            setInvoices(data.invoices || []);
+            setInvoices(Array.isArray(data) ? data : (data.invoices || []));
             setStats(data.stats || { pending: 0, reviewed: 0, flagged: 0 });
         } catch (err) {
             setError(err.message);
@@ -100,8 +100,8 @@ export default function HILReviewPage() {
                     <div
                         onClick={() => setFilterStatus('PENDING')}
                         className={`cursor-pointer p-6 rounded-2xl border transition-all ${filterStatus === 'PENDING'
-                                ? 'bg-yellow-500/20 border-yellow-500/50'
-                                : 'bg-white/10 border-white/10 hover:border-yellow-500/30'
+                            ? 'bg-yellow-500/20 border-yellow-500/50'
+                            : 'bg-white/10 border-white/10 hover:border-yellow-500/30'
                             }`}
                     >
                         <p className="text-yellow-400 text-3xl font-bold">{stats.pending}</p>
@@ -110,8 +110,8 @@ export default function HILReviewPage() {
                     <div
                         onClick={() => setFilterStatus('REVIEWED')}
                         className={`cursor-pointer p-6 rounded-2xl border transition-all ${filterStatus === 'REVIEWED'
-                                ? 'bg-green-500/20 border-green-500/50'
-                                : 'bg-white/10 border-white/10 hover:border-green-500/30'
+                            ? 'bg-green-500/20 border-green-500/50'
+                            : 'bg-white/10 border-white/10 hover:border-green-500/30'
                             }`}
                     >
                         <p className="text-green-400 text-3xl font-bold">{stats.reviewed}</p>
@@ -120,8 +120,8 @@ export default function HILReviewPage() {
                     <div
                         onClick={() => setFilterStatus('FLAGGED')}
                         className={`cursor-pointer p-6 rounded-2xl border transition-all ${filterStatus === 'FLAGGED'
-                                ? 'bg-red-500/20 border-red-500/50'
-                                : 'bg-white/10 border-white/10 hover:border-red-500/30'
+                            ? 'bg-red-500/20 border-red-500/50'
+                            : 'bg-white/10 border-white/10 hover:border-red-500/30'
                             }`}
                     >
                         <p className="text-red-400 text-3xl font-bold">{stats.flagged}</p>
@@ -185,8 +185,8 @@ export default function HILReviewPage() {
                                             <div>
                                                 <p className="text-gray-400">Status</p>
                                                 <span className={`px-2 py-1 rounded-full text-xs ${invoice.hilReview?.status === 'REVIEWED' ? 'bg-green-500/20 text-green-300' :
-                                                        invoice.hilReview?.status === 'FLAGGED' ? 'bg-red-500/20 text-red-300' :
-                                                            'bg-yellow-500/20 text-yellow-300'
+                                                    invoice.hilReview?.status === 'FLAGGED' ? 'bg-red-500/20 text-red-300' :
+                                                        'bg-yellow-500/20 text-yellow-300'
                                                     }`}>
                                                     {invoice.hilReview?.status || 'PENDING'}
                                                 </span>

@@ -120,12 +120,6 @@ const InvoiceList = ({ invoices, viewMode = 'list' }) => {
               </div>
             </div>
 
-            <Link href={`/digitization/${invoice.id}`} className="mt-6">
-              <button className="btn btn-primary w-full rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] h-12">
-                Process Invoice
-                <Icon name="ArrowRight" size={14} />
-              </button>
-            </Link>
           </motion.div>
         ))}
       </div>
@@ -138,8 +132,7 @@ const InvoiceList = ({ invoices, viewMode = 'list' }) => {
         <div className="col-span-4 lg:col-span-3">Vendor / ID</div>
         <div className="col-span-3 lg:col-span-2">Date</div>
         <div className="col-span-2 lg:col-span-2 text-right">Amount</div>
-        <div className="col-span-3 lg:col-span-3 text-center">Status</div>
-        <div className="col-span-12 lg:col-span-2 text-right">Action</div>
+        <div className="col-span-3 lg:col-span-5 text-center">Status</div>
       </div>
 
       <div className="space-y-3">
@@ -178,20 +171,12 @@ const InvoiceList = ({ invoices, viewMode = 'list' }) => {
                 : new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(invoice.amount)}
             </div>
 
-            <div className="col-span-6 md:col-span-3 flex flex-col items-center gap-1">
+            <div className="col-span-4 md:col-span-5 flex flex-col items-center gap-1">
               <span className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap ${getStatusColor(invoice.status)}`}>
                 {invoice.status?.replace('_', ' ')}
               </span>
             </div>
 
-            <div className="col-span-6 md:col-span-12 lg:col-span-2 flex justify-end">
-              <Link href={`/digitization/${invoice.id}`} className="w-full lg:w-auto">
-                <button className="btn btn-sm sm:btn-md btn-primary w-full lg:w-auto text-white shadow-lg shadow-primary/20 rounded-2xl font-black uppercase tracking-widest text-[9px] sm:text-[10px] group-hover:scale-105 transition-all">
-                  Process
-                  <Icon name="ArrowRight" size={14} />
-                </button>
-              </Link>
-            </div>
           </motion.div>
         ))}
       </div>

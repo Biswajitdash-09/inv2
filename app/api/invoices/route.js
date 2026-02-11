@@ -98,7 +98,24 @@ export async function POST(request) {
                 const bytes = await document.arrayBuffer();
                 const buffer = Buffer.from(bytes);
                 const base64 = buffer.toString('base64');
-                const mimeType = document.type || 'application/pdf';
+                
+                // Determine MIME type from file extension if not provided
+                let mimeType = document.type;
+                if (!mimeType) {
+                    const ext = document.name.split('.').pop()?.toLowerCase();
+                    const mimeMap = {
+                        'pdf': 'application/pdf',
+                        'doc': 'application/msword',
+                        'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                        'xls': 'application/vnd.ms-excel',
+                        'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                        'jpg': 'image/jpeg',
+                        'jpeg': 'image/jpeg',
+                        'png': 'image/png',
+                        'csv': 'text/csv'
+                    };
+                    mimeType = mimeMap[ext] || 'application/pdf';
+                }
 
                 // Set file URL as Data URI for direct DB persistence
                 fileUrl = `data:${mimeType};base64,${base64}`;
@@ -187,7 +204,7 @@ export async function GET(request) {
         const limit = searchParams.get('limit');
         if (limit) filters.limit = limit;
 
-        const invoices = await db.getInvoices(user, filters);
+        const invoices = await db.getInvoices(user, filters, { includeFiles: false });
         const sorted = invoices.sort((a, b) =>
             new Date(b.receivedAt || b.updatedAt || b.created_at) - new Date(a.receivedAt || a.updatedAt || a.created_at)
         );

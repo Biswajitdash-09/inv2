@@ -12,7 +12,7 @@ const ManualInvoiceEntryPage = () => {
         vendorEmail: '',
         invoiceNumber: '',
         amount: '',
-        currency: 'USD',
+        currency: 'INR',
         date: new Date().toISOString().split('T')[0],
         description: '',
         poNumber: '',
@@ -88,7 +88,7 @@ const ManualInvoiceEntryPage = () => {
                 vendorEmail: '',
                 invoiceNumber: '',
                 amount: '',
-                currency: 'USD',
+                currency: 'INR',
                 date: new Date().toISOString().split('T')[0],
                 description: '',
                 poNumber: '',
@@ -237,17 +237,13 @@ const ManualInvoiceEntryPage = () => {
                                     <label className="block text-purple-200 text-sm font-medium mb-2">
                                         Currency
                                     </label>
-                                    <select
+                                    <input
+                                        type="text"
                                         name="currency"
                                         value={formData.currency}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    >
-                                        <option value="USD" className="bg-slate-900">USD</option>
-                                        <option value="EUR" className="bg-slate-900">EUR</option>
-                                        <option value="GBP" className="bg-slate-900">GBP</option>
-                                        <option value="INR" className="bg-slate-900">INR</option>
-                                    </select>
+                                        readOnly
+                                        className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:outline-none opacity-80 cursor-default"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -322,7 +318,7 @@ const ManualInvoiceEntryPage = () => {
                                     type="file"
                                     name="document"
                                     onChange={handleChange}
-                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    accept=".pdf,.csv,.xls,.xlsx,.jpg,.jpeg,.png"
                                     className="hidden"
                                     id="document-upload"
                                 />
@@ -337,7 +333,7 @@ const ManualInvoiceEntryPage = () => {
                                         <p className="mt-2 text-sm text-purple-200">
                                             {formData.document ? formData.document.name : 'Click to upload or drag and drop'}
                                         </p>
-                                        <p className="mt-1 text-xs text-purple-300">PDF, JPG, PNG (MAX. 10MB)</p>
+                                        <p className="mt-1 text-xs text-purple-300">PDF, Excel, CSV, JPG, PNG (MAX. 10MB)</p>
                                     </div>
                                 </label>
                             </div>

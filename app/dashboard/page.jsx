@@ -234,8 +234,8 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* New Invoice Button - Hidden for Admins/PMs/Vendors */}
-      {!isPM && !isVendor && !isAdmin && (
+      {/* New Invoice Button - Hidden for Admins/PMs/Vendors/Finance */}
+      {!isPM && !isVendor && !isAdmin && !isFinance && (
         <button
           onClick={() => setIsUploadModalOpen(true)}
           className="flex items-center justify-center gap-2 h-10 px-4 bg-linear-to-br from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white text-[10px] font-black uppercase tracking-widest rounded-xl shadow-lg shadow-indigo-500/20 active:scale-95 transition-all whitespace-nowrap"

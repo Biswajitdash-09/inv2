@@ -227,9 +227,15 @@ export default function DashboardPage() {
               <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Filter by Status</p>
             </div>
             <li><button onClick={() => setStatusFilter("ALL")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'ALL' ? 'text-indigo-600' : 'text-slate-600'}`}>All Invoices</button></li>
-            <li><button onClick={() => setStatusFilter("PENDING_APPROVAL")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'PENDING_APPROVAL' ? 'text-amber-600' : 'text-slate-600'}`}>Pending</button></li>
-            <li><button onClick={() => setStatusFilter("PAID")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'PAID' ? 'text-emerald-600' : 'text-slate-600'}`}>Paid</button></li>
+            <li><button onClick={() => setStatusFilter("RECEIVED")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'RECEIVED' ? 'text-indigo-600' : 'text-slate-600'}`}>Received</button></li>
+            <li><button onClick={() => setStatusFilter("DIGITIZING")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'DIGITIZING' ? 'text-blue-600' : 'text-slate-600'}`}>Digitizing</button></li>
+            <li><button onClick={() => setStatusFilter("VALIDATION_REQUIRED")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'VALIDATION_REQUIRED' ? 'text-info' : 'text-slate-600'}`}>Needs Review</button></li>
+            <li><button onClick={() => setStatusFilter("VERIFIED")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'VERIFIED' ? 'text-emerald-600' : 'text-slate-600'}`}>Verified</button></li>
             <li><button onClick={() => setStatusFilter("MATCH_DISCREPANCY")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'MATCH_DISCREPANCY' ? 'text-orange-600' : 'text-slate-600'}`}>Discrepancy</button></li>
+            <li><button onClick={() => setStatusFilter("PENDING_APPROVAL")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'PENDING_APPROVAL' ? 'text-amber-600' : 'text-slate-600'}`}>Pending Approval</button></li>
+            <li><button onClick={() => setStatusFilter("APPROVED")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'APPROVED' ? 'text-green-600' : 'text-slate-600'}`}>Approved</button></li>
+            <li><button onClick={() => setStatusFilter("PAID")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'PAID' ? 'text-emerald-600' : 'text-slate-600'}`}>Paid</button></li>
+            <li><button onClick={() => setStatusFilter("REJECTED")} className={`text-xs font-bold py-2 rounded-xl hover:bg-slate-50 ${statusFilter === 'REJECTED' ? 'text-red-600' : 'text-slate-600'}`}>Rejected</button></li>
           </ul>
         </div>
       </div>
@@ -264,7 +270,7 @@ export default function DashboardPage() {
       ) : isPM ? (
         <ProjectManagerDashboard user={user} invoices={invoices} filteredInvoices={filteredInvoices} onUploadComplete={handleUploadComplete} />
       ) : isFinance ? (
-        <FinanceUserDashboard invoices={invoices} onUploadComplete={handleUploadComplete} />
+        <FinanceUserDashboard invoices={invoices} onUploadComplete={handleUploadComplete} statusFilter={statusFilter} searchQuery={searchQuery} />
       ) : (
         <>
           {activeTab === 'analytics' ? (

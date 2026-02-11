@@ -6,14 +6,33 @@ import Card from "@/components/ui/Card";
 import Icon from "@/components/Icon";
 import DropZone from "@/components/Dashboard/DropZone";
 
-const FinanceUserDashboard = ({ invoices, onUploadComplete }) => {
+const FinanceUserDashboard = ({ invoices, onUploadComplete, statusFilter = 'ALL', searchQuery = '' }) => {
     const router = useRouter();
     const discrepancyCount = invoices.filter(inv => inv.status === 'MATCH_DISCREPANCY').length;
     const manualReview = invoices.filter(inv => inv.status === 'VALIDATION_REQUIRED').length;
     const readyForPayment = invoices.filter(inv => inv.status === 'APPROVED').length;
 
+    // Filter invoices based on props from parent Dashboard
+    const filteredInvoices = invoices.filter(inv => {
+        // 1. Search Filter
+        if (searchQuery) {
+            const query = searchQuery.toLowerCase();
+            const matchesSearch =
+                inv.vendorName?.toLowerCase().includes(query) ||
+                inv.invoiceNumber?.toLowerCase().includes(query) ||
+                inv.id?.toLowerCase().includes(query) ||
+                inv.amount?.toString().includes(query);
+            if (!matchesSearch) return false;
+        }
+
+        // 2. Status Filter
+        if (statusFilter !== 'ALL' && inv.status !== statusFilter) return false;
+
+        return true;
+    });
+
     // Sort invoices by date descending for "Recent Activity"
-    const recentInvoices = [...invoices]
+    const recentInvoices = [...filteredInvoices]
         .sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date))
         .slice(0, 10);
 

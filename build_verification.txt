@@ -1,0 +1,139 @@
+﻿   Γû▓ Next.js 15.5.12
+   - Environments: .env
+
+   Creating an optimized production build ...
+/*! ≡ƒî╝ daisyUI 5.5.17 */
+node.exe : Found 1 warning 
+while optimizing generated 
+CSS:
+At line:1 char:1
++ & 
+"C:\nvm4w\nodejs/node.exe" "C:
+\Users\shuva\AppData\Roaming\n
+pm/node ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo          : 
+    NotSpecified: (Found 1 w  
+  arning... generated CSS::   
+ String) [], RemoteExcepti    
+on
+    + FullyQualifiedErrorId : 
+    NativeCommandError
+ 
+
+[2mΓöé }[22m
+[2mΓöé @layer base {[22m
+[2mΓöé[22m   @property 
+--radialprogress {
+[2mΓöå[22m            
+[33m[2m^--[22m Unknown at 
+rule: @property[39m
+[2mΓöå[22m
+[2mΓöé     syntax: 
+"<percentage>";[22m
+[2mΓöé     inherits: 
+true;[22m
+
+ Γ£ô Compiled successfully in 16.1s
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/49) ...
+   Generating static pages (12/49) 
+   Generating static pages (24/49) 
+   Generating static pages (36/49) 
+ Γ£ô Generating static pages (49/49)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+Γöî Γùï /                                    3.59 kB         326 kB
+Γö£ Γùï /_not-found                             1 kB         103 kB
+Γö£ Γùï /admin/documents                     5.46 kB         356 kB
+Γö£ Γùï /admin/ratecards                     6.23 kB         336 kB
+Γö£ Γùï /admin/users                         4.47 kB         146 kB
+Γö£ Γùï /analytics                           4.61 kB         440 kB
+Γö£ ╞Æ /api/admin/backfill-vendor-ids         251 B         102 kB
+Γö£ ╞Æ /api/admin/documents                   251 B         102 kB
+Γö£ ╞Æ /api/admin/projects                    251 B         102 kB
+Γö£ ╞Æ /api/admin/ratecards                   251 B         102 kB
+Γö£ ╞Æ /api/admin/ratecards/[id]              251 B         102 kB
+Γö£ ╞Æ /api/admin/users                       251 B         102 kB
+Γö£ ╞Æ /api/admin/users/[id]                  251 B         102 kB
+Γö£ ╞Æ /api/analytics                         251 B         102 kB
+Γö£ ╞Æ /api/audit                             251 B         102 kB
+Γö£ ╞Æ /api/auth/login                        251 B         102 kB
+Γö£ ╞Æ /api/auth/logout                       251 B         102 kB
+Γö£ ╞Æ /api/auth/me                           251 B         102 kB
+Γö£ ╞Æ /api/auth/otp/request                  251 B         102 kB
+Γö£ ╞Æ /api/auth/otp/verify                   251 B         102 kB
+Γö£ ╞Æ /api/auth/password/reset               251 B         102 kB
+Γö£ ╞Æ /api/auth/signup                       251 B         102 kB
+Γö£ ╞Æ /api/config                            251 B         102 kB
+Γö£ ╞Æ /api/debug/seed                        251 B         102 kB
+Γö£ ╞Æ /api/documents/[id]/file               251 B         102 kB
+Γö£ ╞Æ /api/finance/approve/[id]              251 B         102 kB
+Γö£ ╞Æ /api/finance/hil-review                251 B         102 kB
+Γö£ ╞Æ /api/health                            251 B         102 kB
+Γö£ ╞Æ /api/ingest                            251 B         102 kB
+Γö£ ╞Æ /api/integrations/test                 251 B         102 kB
+Γö£ ╞Æ /api/invoices                          251 B         102 kB
+Γö£ ╞Æ /api/invoices/[id]                     251 B         102 kB
+Γö£ ╞Æ /api/invoices/[id]/file                251 B         102 kB
+Γö£ ╞Æ /api/invoices/[id]/preview             251 B         102 kB
+Γö£ ╞Æ /api/invoices/[id]/workflow            251 B         102 kB
+Γö£ ╞Æ /api/invoices/export                   251 B         102 kB
+Γö£ ╞Æ /api/notifications                     251 B         102 kB
+Γö£ ╞Æ /api/notifications/send-reminders      251 B         102 kB
+Γö£ ╞Æ /api/pm/approve/[id]                   251 B         102 kB
+Γö£ ╞Æ /api/pm/delegate                       251 B         102 kB
+Γö£ ╞Æ /api/pm/documents                      251 B         102 kB
+Γö£ ╞Æ /api/pm/messages                       251 B         102 kB
+Γö£ ╞Æ /api/pm/projects                       251 B         102 kB
+Γö£ ╞Æ /api/pm/vendors                        251 B         102 kB
+Γö£ ╞Æ /api/pms                               251 B         102 kB
+Γö£ ╞Æ /api/projects/[id]/pms                 251 B         102 kB
+Γö£ ╞Æ /api/users                             251 B         102 kB
+Γö£ ╞Æ /api/users/[id]                        251 B         102 kB
+Γö£ ╞Æ /api/vendor/invoices                   251 B         102 kB
+Γö£ ╞Æ /api/vendor/me                         251 B         102 kB
+Γö£ ╞Æ /api/vendor/projects                   251 B         102 kB
+Γö£ ╞Æ /api/vendor/submit                     251 B         102 kB
+Γö£ ╞Æ /api/vendors                           251 B         102 kB
+Γö£ ╞Æ /api/version                           251 B         102 kB
+Γö£ Γùï /approvals                           3.48 kB         329 kB
+Γö£ ╞Æ /approvals/[id]                      5.77 kB         343 kB
+Γö£ Γùï /audit                               3.01 kB         316 kB
+Γö£ Γùï /config                              2.99 kB         312 kB
+Γö£ Γùï /dashboard                           38.5 kB         501 kB
+Γö£ Γùï /digitization                        5.18 kB         327 kB
+Γö£ ╞Æ /digitization/[id]                   9.01 kB         339 kB
+Γö£ Γùï /finance/approval-queue              4.26 kB         145 kB
+Γö£ Γùï /finance/dashboard                   2.73 kB         325 kB
+Γö£ Γùï /finance/hil-review                  4.31 kB         145 kB
+Γö£ Γùï /finance/manual-entry                4.38 kB         149 kB
+Γö£ Γùï /forgot-password                      4.3 kB         326 kB
+Γö£ Γùï /login                                4.6 kB         327 kB
+Γö£ Γùï /matching                            5.87 kB         328 kB
+Γö£ ╞Æ /matching/[id]                         897 B         338 kB
+Γö£ Γùï /pm/approvals                        5.78 kB         336 kB
+Γö£ Γùï /pm/documents                        7.82 kB         338 kB
+Γö£ Γùï /pm/messages                         5.97 kB         336 kB
+Γö£ Γùï /signup                              3.86 kB         326 kB
+Γö£ Γùï /users                               3.67 kB         317 kB
+Γö£ Γùï /vendor/invoices                     3.91 kB         145 kB
+Γö£ Γùï /vendor/submit                       4.07 kB         145 kB
+Γöö Γùï /vendors                             10.3 kB         342 kB
++ First Load JS shared by all             102 kB
+  Γö£ chunks/1255-ad409e5887c155b0.js      45.7 kB
+  Γö£ chunks/4bd1b696-100b9d70ed4e49c1.js  54.2 kB
+  Γöö other shared chunks (total)          2.05 kB
+
+
+╞Æ Middleware                             41.6 kB
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+

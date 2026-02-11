@@ -1,0 +1,81 @@
+﻿   Γû▓ Next.js 15.5.12
+   - Environments: .env
+
+   Creating an optimized production build ...
+ Γ£ô Compiled successfully in 15.6s
+   Skipping validation of types
+   Skipping linting
+   Collecting page data ...
+   Generating static pages (0/49) ...
+node.exe :  Γ¿» 
+useSearchParams() should be 
+wrapped in a suspense 
+boundary at page 
+"/pm/approvals". Read more: ht
+tps://nextjs.org/docs/messages
+/missing-suspense-with-csr-bai
+lout
+At line:1 char:1
++ & 
+"C:\nvm4w\nodejs/node.exe" "C:
+\Users\shuva\AppData\Roaming\n
+pm/node ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~
+    + CategoryInfo          : 
+    NotSpecified: ( Γ¿» useS  
+  earchP...ith-csr-bailout:   
+ String) [], RemoteExcepti    
+on
+    + FullyQualifiedErrorId : 
+    NativeCommandError
+ 
+    at g (D:\Project\AutoInvoi
+ce\.next\server\chunks\4445.js
+:1:227343)
+    at m (D:\Project\AutoInvoi
+ce\.next\server\chunks\4445.js
+:17:17094)
+    at l (D:\Project\AutoInvoi
+ce\.next\server\app\pm\approva
+ls\page.js:1:5348)
+    at n3 (D:\Project\AutoInvo
+ice\node_modules\next\dist\com
+piled\next-server\app-page.run
+time.prod.js:2:82831)
+    at n6 (D:\Project\AutoInvo
+ice\node_modules\next\dist\com
+piled\next-server\app-page.run
+time.prod.js:2:84601)
+    at n5 (D:\Project\AutoInvo
+ice\node_modules\next\dist\com
+piled\next-server\app-page.run
+time.prod.js:2:104801)
+    at n7 (D:\Project\AutoInvo
+ice\node_modules\next\dist\com
+piled\next-server\app-page.run
+time.prod.js:2:102219)
+    at n8 (D:\Project\AutoInvo
+ice\node_modules\next\dist\com
+piled\next-server\app-page.run
+time.prod.js:2:83183)
+    at n6 (D:\Project\AutoInvo
+ice\node_modules\next\dist\com
+piled\next-server\app-page.run
+time.prod.js:2:84647)
+    at n6 (D:\Project\AutoInvo
+ice\node_modules\next\dist\com
+piled\next-server\app-page.run
+time.prod.js:2:101560)
+Error occurred prerendering 
+page "/pm/approvals". Read 
+more: https://nextjs.org/docs/
+messages/prerender-error
+Export encountered an error 
+on /pm/approvals/page: 
+/pm/approvals, exiting the 
+build.
+ Γ¿» Next.js build worker 
+exited with code: 1 and 
+signal: null

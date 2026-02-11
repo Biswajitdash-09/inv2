@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/Layout/PageHeader';
@@ -8,6 +8,14 @@ import Card from '@/components/ui/Card';
 import Icon from '@/components/Icon';
 
 export default function PMApprovalsPage() {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading approvals...</div>}>
+            <PMApprovalsPageContent />
+        </Suspense>
+    );
+}
+
+function PMApprovalsPageContent() {
     const [invoices, setInvoices] = useState([]);
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -389,6 +397,6 @@ export default function PMApprovalsPage() {
                     </div>
                 )}
             </AnimatePresence>
-        </div >
+        </div>
     );
 }

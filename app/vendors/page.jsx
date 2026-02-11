@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
@@ -11,6 +11,14 @@ import clsx from "clsx";
 import PageHeader from "@/components/Layout/PageHeader";
 
 export default function VendorPortal() {
+    return (
+        <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading vendor portal...</div>}>
+            <VendorPortalContent />
+        </Suspense>
+    );
+}
+
+function VendorPortalContent() {
     const router = useRouter();
     const { user, logout, isLoading: authLoading } = useAuth();
     const logoutRef = useRef(logout);

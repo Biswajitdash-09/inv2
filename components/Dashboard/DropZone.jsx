@@ -82,7 +82,8 @@ const DropZone = ({ onUploadComplete, uploadMetadata = {}, theme = "light" }) =>
       'application/msword': ['.doc'],
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
       'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx']
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
+      'text/csv': ['.csv']
     },
     maxFiles: 5,
     noClick: false
@@ -189,7 +190,7 @@ const DropZone = ({ onUploadComplete, uploadMetadata = {}, theme = "light" }) =>
                 Drag & drop your invoices here, or click to browse files
               </p>
               <p className={`mb-6 text-xs uppercase tracking-wider font-bold ${isDark ? 'text-white/60' : 'text-indigo-500'}`}>
-                PDF • Word • Excel • JPG • PNG
+                PDF • Word • Excel • CSV • JPG • PNG
               </p>
 
               <motion.button

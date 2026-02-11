@@ -16,8 +16,8 @@ export async function POST(request, { params }) {
         return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const userRole = user.role;
-    const { ROLES } = await import('@/constants/roles');
+    const { ROLES, getNormalizedRole } = await import('@/constants/roles');
+    const userRole = getNormalizedRole(user);
 
     const invoice = await db.getInvoice(id);
     if (!invoice) {

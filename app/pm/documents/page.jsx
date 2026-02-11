@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/Layout/PageHeader';
 import Card from '@/components/ui/Card';
 import Icon from '@/components/Icon';
+import { useAuth } from '@/context/AuthContext';
+import { getNormalizedRole, ROLES } from '@/constants/roles';
 
 /**
  * Format month from YYYY-MM or YYYY-MM to display format (e.g., "Feb 2026")
@@ -19,12 +21,16 @@ const formatBillingMonth = (monthValue) => {
 };
 
 const DOCUMENT_TYPES = [
-    { value: 'RINGI', label: 'Ringi', description: 'PDF format', color: 'purple' },
+    { value: 'RINGI', label: 'Ringi', description: 'PDF, Word, or Excel', color: 'purple' },
     { value: 'ANNEX', label: 'Annex', description: 'PDF, Word, or Excel', color: 'blue' },
-    { value: 'TIMESHEET', label: 'Timesheet', description: 'Excel/PDF - validated at upload', color: 'green' }
+    { value: 'TIMESHEET', label: 'Timesheet', description: 'Excel, PDF, or Word', color: 'green' }
 ];
 
 export default function PMDocumentsPage() {
+    const { user } = useAuth();
+    const role = getNormalizedRole(user);
+    const isFinance = role === ROLES.FINANCE_USER;
+
     const [documents, setDocuments] = useState([]);
     const [projects, setProjects] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -205,7 +211,7 @@ export default function PMDocumentsPage() {
         <div className="px-4 sm:px-8 py-6 sm:py-8 min-h-screen">
             <PageHeader
                 title="Document Repository"
-                subtitle="Master storage for Ringi, Annex, and Timesheets"
+                subtitle="Central repository for project documents"
                 icon="Folder"
                 accent="indigo"
                 actions={
@@ -242,16 +248,18 @@ export default function PMDocumentsPage() {
                                 <option key={t.value} value={t.value}>{t.label}</option>
                             ))}
                         </select>
-                        <select
-                            value={filterProject}
-                            onChange={(e) => setFilterProject(e.target.value)}
-                            className="px-4 py-2 text-xs sm:text-sm rounded-xl border border-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white/50 font-medium sm:col-span-2 lg:col-span-1"
-                        >
-                            <option value="">All Projects</option>
-                            {projects.map(p => (
-                                <option key={p.id} value={p.id}>{p.name}</option>
-                            ))}
-                        </select>
+                        {!isFinance && (
+                            <select
+                                value={filterProject}
+                                onChange={(e) => setFilterProject(e.target.value)}
+                                className="px-4 py-2 text-xs sm:text-sm rounded-xl border border-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white/50 font-medium sm:col-span-2 lg:col-span-1"
+                            >
+                                <option value="">All Projects</option>
+                                {projects.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                        )}
                     </div>
                 </div>
 
@@ -505,37 +513,17 @@ export default function PMDocumentsPage() {
                                         )}
                                     </div>
 
-                                    {/* Project & Details Grid */}
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                    {/* Project & Details Grid - Updated */}
+                                    <div className="grid grid-cols-1 gap-6">
                                         <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Associated Project</label>
-                                            <select
-                                                required
-                                                value={uploadData.projectId}
-                                                onChange={(e) => setUploadData({ ...uploadData, projectId: e.target.value })}
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Billing cycle (Date)</label>
+                                            <input
+                                                type="text"
+                                                placeholder="DD/MM/YY"
+                                                value={uploadData.billingMonth}
+                                                onChange={(e) => setUploadData({ ...uploadData, billingMonth: e.target.value })}
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm"
-                                            >
-                                                <option value="">Select Project</option>
-                                                {projects.map(p => (
-                                                    <option key={p.id} value={p.id}>{p.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Billing cycle (Month)</label>
-                                            <div className="relative">
-                                                <input
-                                                    type="month"
-                                                    value={uploadData.billingMonth}
-                                                    onChange={(e) => setUploadData({ ...uploadData, billingMonth: e.target.value })}
-                                                    className={`w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm ${!uploadData.billingMonth ? 'text-transparent' : 'text-slate-700'}`}
-                                                />
-                                                {!uploadData.billingMonth && (
-                                                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 text-sm font-bold pointer-events-none select-none">
-                                                        MM-YYYY
-                                                    </span>
-                                                )}
-                                            </div>
+                                            />
                                         </div>
                                     </div>
 

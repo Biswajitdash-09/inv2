@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -12,16 +12,19 @@ const ManualInvoiceEntryPage = () => {
         vendorEmail: '',
         invoiceNumber: '',
         amount: '',
-        currency: 'USD',
+        currency: 'INR',
         date: new Date().toISOString().split('T')[0],
         description: '',
         poNumber: '',
         project: '',
+        assignedPM: '',
         document: null
     });
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
+    const [pms, setPms] = useState([]);
+    const [pmsLoading, setPmsLoading] = useState(false);
 
     const handleChange = (e) => {
         const { name, value, type, files } = e.target;
@@ -30,6 +33,28 @@ const ManualInvoiceEntryPage = () => {
             [name]: type === 'file' ? files[0] : value
         }));
     };
+
+    // Fetch PMs on component mount
+    useEffect(() => {
+        const fetchPMs = async () => {
+            setPmsLoading(true);
+            try {
+                const response = await fetch('/api/pms');
+                if (!response.ok) {
+                    console.error('Failed to fetch PMs');
+                    return;
+                }
+                const data = await response.json();
+                setPms(data.pms || []);
+            } catch (err) {
+                console.error('Error fetching PMs:', err);
+            } finally {
+                setPmsLoading(false);
+            }
+        };
+
+        fetchPMs();
+    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -63,6 +88,7 @@ const ManualInvoiceEntryPage = () => {
             submitData.append('poNumber', formData.poNumber);
             submitData.append('project', formData.project);
             submitData.append('status', 'VERIFIED');
+            submitData.append('assignedPM', formData.assignedPM);
             // submitData.append('submittedByUserId', 'manual_finance_entry'); // Removed to allow backend to use session user ID
 
             if (formData.document) {
@@ -88,11 +114,12 @@ const ManualInvoiceEntryPage = () => {
                 vendorEmail: '',
                 invoiceNumber: '',
                 amount: '',
-                currency: 'USD',
+                currency: 'INR',
                 date: new Date().toISOString().split('T')[0],
                 description: '',
                 poNumber: '',
                 project: '',
+                assignedPM: '',
                 document: null
             });
 
@@ -237,17 +264,13 @@ const ManualInvoiceEntryPage = () => {
                                     <label className="block text-purple-200 text-sm font-medium mb-2">
                                         Currency
                                     </label>
-                                    <select
+                                    <input
+                                        type="text"
                                         name="currency"
                                         value={formData.currency}
-                                        onChange={handleChange}
-                                        className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                                    >
-                                        <option value="USD" className="bg-slate-900">USD</option>
-                                        <option value="EUR" className="bg-slate-900">EUR</option>
-                                        <option value="GBP" className="bg-slate-900">GBP</option>
-                                        <option value="INR" className="bg-slate-900">INR</option>
-                                    </select>
+                                        readOnly
+                                        className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:outline-none opacity-80 cursor-default"
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -297,6 +320,27 @@ const ManualInvoiceEntryPage = () => {
                             />
                         </div>
 
+                        {/* Assigned PM */}
+                        <div>
+                            <label className="block text-purple-200 text-sm font-medium mb-2">
+                                Assigned PM (Optional)
+                            </label>
+                            <select
+                                name="assignedPM"
+                                value={formData.assignedPM}
+                                onChange={handleChange}
+                                disabled={pmsLoading}
+                                className="w-full px-4 py-3 bg-white/5 border border-purple-500/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                <option value="" className="text-black">Select a Project Manager (Optional)</option>
+                                {pms.map(pm => (
+                                    <option key={pm.id} value={pm.id} className="text-black">
+                                        {pm.name} ({pm.email})
+                                    </option>
+                                ))}
+                            </select>
+                        </div>
+
                         {/* Description */}
                         <div>
                             <label className="block text-purple-200 text-sm font-medium mb-2">
@@ -322,7 +366,7 @@ const ManualInvoiceEntryPage = () => {
                                     type="file"
                                     name="document"
                                     onChange={handleChange}
-                                    accept=".pdf,.jpg,.jpeg,.png"
+                                    accept=".pdf,.doc,.docx,.csv,.xls,.xlsx,.jpg,.jpeg,.png"
                                     className="hidden"
                                     id="document-upload"
                                 />
@@ -337,7 +381,7 @@ const ManualInvoiceEntryPage = () => {
                                         <p className="mt-2 text-sm text-purple-200">
                                             {formData.document ? formData.document.name : 'Click to upload or drag and drop'}
                                         </p>
-                                        <p className="mt-1 text-xs text-purple-300">PDF, JPG, PNG (MAX. 10MB)</p>
+                                        <p className="mt-1 text-xs text-purple-300">PDF, Word, Excel, CSV, JPG, PNG (MAX. 10MB)</p>
                                     </div>
                                 </label>
                             </div>

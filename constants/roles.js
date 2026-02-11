@@ -48,19 +48,19 @@ export const ROLES = {
 };
 
 export const MENU_PERMISSIONS = {
-    'Dashboard': [ROLES.ADMIN, ROLES.PROJECT_MANAGER, ROLES.FINANCE_USER],
+    'Overview': [ROLES.ADMIN, ROLES.PROJECT_MANAGER, ROLES.FINANCE_USER],
     'Digitization': [ROLES.FINANCE_USER],
     'Matching': [ROLES.ADMIN, ROLES.FINANCE_USER, ROLES.PROJECT_MANAGER],
     'Approvals': [ROLES.ADMIN, ROLES.PROJECT_MANAGER],
     'Documents': [ROLES.ADMIN, ROLES.FINANCE_USER, ROLES.PROJECT_MANAGER],
     'Messages': [ROLES.ADMIN, ROLES.PROJECT_MANAGER, ROLES.VENDOR],
-    'Vendors': [ROLES.ADMIN, ROLES.FINANCE_USER, ROLES.VENDOR],
+    'Dashboard': [ROLES.ADMIN, ROLES.FINANCE_USER, ROLES.VENDOR],
     'Analytics': [ROLES.ADMIN, ROLES.FINANCE_USER],
     'Finance Dashboard': [ROLES.ADMIN, ROLES.FINANCE_USER],
     'Manual Entry': [ROLES.ADMIN, ROLES.FINANCE_USER],
     'Configuration': [ROLES.ADMIN],
     'User Management': [ROLES.ADMIN],
-    'Audit Logs': [ROLES.ADMIN]
+    'Audit Logs': [ROLES.ADMIN, ROLES.FINANCE_USER]
 };
 
 /**
@@ -98,7 +98,7 @@ export const hasPermission = (user, action, resource = null) => {
 
         case 'VIEW_AUDIT_LOGS':
         case 'VIEW_COMPLIANCE':
-            return effectiveRole === ROLES.ADMIN;
+            return [ROLES.ADMIN, ROLES.FINANCE_USER].includes(effectiveRole);
 
         case 'SUBMIT_INVOICE':
             return [ROLES.VENDOR, ROLES.FINANCE_USER].includes(effectiveRole);

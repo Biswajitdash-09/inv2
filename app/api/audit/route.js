@@ -36,8 +36,8 @@ export async function GET(request) {
             return NextResponse.json(logs);
         }
 
-        // Global audit list: only Admin
-        if (currentUser.role !== ROLES.ADMIN) {
+        // Global audit list: Admin & Finance User
+        if (currentUser.role !== ROLES.ADMIN && currentUser.role !== ROLES.FINANCE_USER) {
             return NextResponse.json({ error: 'Access denied. Audit logs are restricted to Admin only.' }, { status: 403 });
         }
 

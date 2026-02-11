@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES } from "@/constants/roles";
 import { getAllInvoices } from "@/lib/api";
@@ -12,9 +12,14 @@ import PageHeader from "@/components/Layout/PageHeader";
 
 export default function ApprovalsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user, isLoading: authLoading } = useAuth();
   const [invoices, setInvoices] = useState([]);
+  const [allInvoices, setAllInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [localStatusFilter, setLocalStatusFilter] = useState(searchParams?.get('status') || 'ALL');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (!authLoading) {
@@ -43,6 +48,7 @@ export default function ApprovalsPage() {
         const forReview = allInvoices.filter((inv) =>
           APPROVAL_WORKFLOW_STATUSES.includes(inv.status)
         );
+        setAllInvoices(forReview);
         setInvoices(forReview);
       } catch (error) {
         console.error("Failed to load approvals", error);
@@ -53,20 +59,84 @@ export default function ApprovalsPage() {
     loadData();
   }, []);
 
+  // Apply filter and sort
+  const displayedInvoices = invoices
+    .filter(inv => localStatusFilter === 'ALL' || inv.status === localStatusFilter)
+    .sort((a, b) => {
+      const dateA = new Date(a.receivedAt || a.updatedAt || a.created_at || 0);
+      const dateB = new Date(b.receivedAt || b.updatedAt || b.created_at || 0);
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+    });
+
+  const toggleFilterDropdown = () => {
+    setFilterDropdownOpen(!filterDropdownOpen);
+  };
+
+  const handleStatusFilter = (status) => {
+    setLocalStatusFilter(status);
+    setFilterDropdownOpen(false);
+  };
+
+  const toggleSortOrder = () => {
+    setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
+  };
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto h-full pb-10">
       <PageHeader
         title="Admin Approval Workflow"
-        subtitle="Pending invoices requiring managerial review and final sign-off. Vendor submissions appear here for review."
+        subtitle="Review and sign-off on pending invoices"
         icon="Stamp"
         accent="amber"
       />
-      <div className="flex gap-2 justify-end">
-        <button className="btn btn-sm btn-ghost bg-white/40 border border-white/60 shadow-sm gap-2">
-          <Icon name="Filter" size={16} /> Filter
-        </button>
-        <button className="btn btn-sm btn-ghost bg-white/40 border border-white/60 shadow-sm gap-2">
-          <Icon name="SortDesc" size={16} /> Sort
+      <div className="flex gap-2 justify-end relative">
+        {/* Filter Dropdown */}
+        <div className="relative">
+          <button
+            onClick={toggleFilterDropdown}
+            className={`btn btn-sm gap-2 ${localStatusFilter !== 'ALL' ? 'btn-warning bg-amber-500/20 border-amber-500/40 text-amber-700' : 'btn-ghost bg-white/40 border-white/60'} border shadow-sm`}
+          >
+            <Icon name="Filter" size={16} />
+            Filter
+            {localStatusFilter !== 'ALL' && <span className="badge badge-xs ml-1">1</span>}
+          </button>
+          
+          {filterDropdownOpen && (
+            <div className="dropdown-menu dropdown-menu-end z-50 animate-in fade-in slide-in-from-top-2">
+              <ul className="p-1 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/20 min-w-[200px]">
+                <li>
+                  <button
+                    onClick={() => handleStatusFilter('ALL')}
+                    className={`dropdown-item w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between ${localStatusFilter === 'ALL' ? 'bg-amber-500/20 text-amber-700 font-semibold' : 'hover:bg-white/60 text-gray-700'}`}
+                  >
+                    <span>All Statuses</span>
+                    {localStatusFilter === 'ALL' && <Icon name="Check" size={16} />}
+                  </button>
+                </li>
+                <li><div className="divider divider-gray-200 my-1"></div></li>
+                {APPROVAL_WORKFLOW_STATUSES.map((status) => (
+                  <li key={status}>
+                    <button
+                      onClick={() => handleStatusFilter(status)}
+                      className={`dropdown-item w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between ${localStatusFilter === status ? 'bg-amber-500/20 text-amber-700 font-semibold' : 'hover:bg-white/60 text-gray-700'}`}
+                    >
+                      <span>{status.replace(/_/g, ' ')}</span>
+                      {localStatusFilter === status && <Icon name="Check" size={16} />}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+        </div>
+        
+        {/* Sort Button */}
+        <button
+          onClick={toggleSortOrder}
+          className="btn btn-sm btn-ghost bg-white/40 border border-white/60 shadow-sm gap-2"
+        >
+          <Icon name={sortOrder === 'desc' ? 'SortDesc' : 'SortAsc'} size={16} />
+          Sort
         </button>
       </div>
 
@@ -85,7 +155,7 @@ export default function ApprovalsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {invoices.map((invoice, index) => (
+            {displayedInvoices.map((invoice, index) => (
               <motion.div
                 key={invoice.id}
                 initial={{ opacity: 0, y: 20 }}

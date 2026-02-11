@@ -14,13 +14,13 @@ import { useRouter } from "next/navigation";
 const SIDEBAR_COLLAPSED_KEY = "invoiceflow-sidebar-collapsed";
 
 const menuItems = [
-  { name: "Dashboard", icon: "LayoutDashboard", path: "/dashboard" },
+  { name: "Dashboard", icon: "LayoutDashboard", path: "/vendors" },
+  { name: "Messages", icon: "Mail", path: "/pm/messages" },
+  { name: "Overview", icon: "LayoutDashboard", path: "/dashboard" },
   { name: "Digitization", icon: "ScanLine", path: "/digitization" },
   { name: "Matching", icon: "GitMerge", path: "/matching" },
   { name: "Approvals", icon: "CheckCircle", path: "/pm/approvals" },
   { name: "Documents", icon: "FileText", path: "/pm/documents" },
-  { name: "Messages", icon: "Mail", path: "/pm/messages" },
-  { name: "Vendors", icon: "Users", path: "/vendors" },
   { name: "Analytics", icon: "BarChart3", path: "/analytics" },
   { name: "Finance Dashboard", icon: "LayoutPanelLine", path: "/finance/dashboard" },
   { name: "Manual Entry", icon: "FilePlus", path: "/finance/manual-entry" },

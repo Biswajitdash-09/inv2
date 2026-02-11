@@ -111,7 +111,7 @@ function PMApprovalsPageContent() {
         <div className="pb-10">
             <PageHeader
                 title="Invoice Approvals"
-                subtitle="Review and approve invoices for your assigned projects"
+                subtitle="Review and approve project invoices"
                 icon="CheckCircle"
                 accent="indigo"
             />

@@ -5,17 +5,33 @@ import { motion } from "framer-motion";
 import Icon from "@/components/Icon";
 
 import clsx from "clsx";
-import { ROLES } from "@/constants/roles";
+import { ROLES, getNormalizedRole } from "@/constants/roles";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
+
+// Safely parse an amount value to a number, returning 0 if unparsable
+const safeAmount = (val) => {
+  if (val == null || val === '') return 0;
+  const num = typeof val === 'string' ? parseFloat(val.replace(/[^0-9.-]/g, '')) : Number(val);
+  return isNaN(num) ? 0 : num;
+};
+
+// Format a date for display, with fallback
+const formatDate = (dateVal) => {
+  if (!dateVal) return '—';
+  const d = new Date(dateVal);
+  if (isNaN(d.getTime())) return String(dateVal);
+  return d.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
+};
 
 const MatchingList = ({ invoices }) => {
   const { user } = useAuth();
 
+  const userRole = getNormalizedRole(user);
   const filteredInvoices = invoices.filter(inv => {
     if (!user) return true;
-    if (user.role === ROLES.ADMIN) return true;
-    if (user.role === ROLES.PROJECT_MANAGER) {
+    if (userRole === ROLES.ADMIN) return true;
+    if (userRole === ROLES.PROJECT_MANAGER) {
       // PMs primarily handle Discrepancies or specific verification
       return inv.status === 'MATCH_DISCREPANCY' || inv.status === 'VERIFIED';
     }
@@ -69,17 +85,19 @@ const MatchingList = ({ invoices }) => {
             <div className="flex justify-between items-center text-sm border-b border-gray-200/50 pb-2">
               <span className="text-gray-500">Amount</span>
               <span className="font-bold text-gray-800 text-lg">
-                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(invoice.amount)}
+                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(safeAmount(invoice.amount))}
               </span>
             </div>
             <div className="flex justify-between items-center text-sm">
               <span className="text-gray-500">Date</span>
-              <span className="text-gray-700">{invoice.date}</span>
+              <span className="text-gray-700">{formatDate(invoice.date || invoice.created_at)}</span>
             </div>
-            <div className="flex justify-between items-center text-sm">
-              <span className="text-gray-500">Items</span>
-              <span className="text-gray-700">{invoice.items?.length || 0} Lines</span>
-            </div>
+            {invoice.items?.length > 0 && (
+              <div className="flex justify-between items-center text-sm">
+                <span className="text-gray-500">Items</span>
+                <span className="text-gray-700">{invoice.items.length} Lines</span>
+              </div>
+            )}
             {invoice.matching?.discrepancies?.length > 0 && (
               <div className="mt-2 p-2 bg-error/5 border border-error/10 rounded-lg text-[10px] text-error">
                 <div className="flex items-center gap-1 font-bold mb-1">

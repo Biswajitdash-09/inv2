@@ -52,37 +52,7 @@ const AnalyticsView = ({ user }) => {
                 </div>
             )}
             {/* KPI Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                <Card className="p-4 bg-white/60 border-white/60 hover:shadow-lg transition-all">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-blue-100 rounded-2xl text-blue-600">
-                            <Icon name="Clock" size={24} />
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Avg. Cycle Time</p>
-                            <h3 className="text-2xl font-bold text-gray-800">{data?.metrics.avgCycleTimeHours || 12} days</h3>
-                            <p className="text-[10px] text-green-600 font-bold flex items-center gap-1">
-                                <Icon name="TrendingDown" size={10} /> Target: &lt;15 days (PRD)
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
-                <Card className="p-4 bg-white/60 border-white/60 hover:shadow-lg transition-all">
-                    <div className="flex items-center gap-3">
-                        <div className="p-3 bg-green-100 rounded-2xl text-green-600">
-                            <Icon name="Target" size={24} />
-                        </div>
-                        <div>
-                            <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">OCR Accuracy</p>
-                            <h3 className="text-2xl font-bold text-gray-800">{data?.metrics.ocrAccuracy || 96.5}%</h3>
-                            <p className="text-[10px] text-green-600 font-bold flex items-center gap-1">
-                                <Icon name="Check" size={10} /> Target: &gt;95% (PRD)
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Card className="p-4 bg-white/60 border-white/60 hover:shadow-lg transition-all">
                     <div className="flex items-center gap-3">
                         <div className="p-3 bg-purple-100 rounded-2xl text-purple-600">

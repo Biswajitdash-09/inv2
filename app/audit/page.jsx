@@ -11,7 +11,8 @@ export default function AuditLogPage() {
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
     const [filterAction, setFilterAction] = useState("ALL");
-    const [exporting, setExporting] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const itemsPerPage = 20;
 
     useEffect(() => {
         fetchLogs();
@@ -40,6 +41,45 @@ export default function AuditLogPage() {
 
         return matchesSearch && matchesFilter;
     });
+
+    // Pagination
+    const totalPages = Math.ceil(filteredLogs.length / itemsPerPage);
+    const indexOfLastItem = currentPage * itemsPerPage;
+    const indexOfFirstItem = indexOfLastItem - itemsPerPage;
+    const paginatedLogs = filteredLogs.slice(indexOfFirstItem, indexOfLastItem);
+
+    const handlePageChange = (newPage) => {
+        setCurrentPage(newPage);
+    };
+
+    const handleExport = () => {
+        if (filteredLogs.length === 0) {
+            toast.error("No data to export");
+            return;
+        }
+
+        const headers = ["Timestamp", "User", "Action", "Details", "Invoice ID"];
+        const csvContent = [
+            headers.join(","),
+            ...filteredLogs.map(log => [
+                new Date(log.timestamp).toISOString(),
+                log.username || "System",
+                log.action,
+                `"${(log.details || "").replace(/"/g, '""')}"`,
+                log.invoice_id || ""
+            ].join(","))
+        ].join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const link = document.createElement("a");
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", `audit_request_${new Date().toISOString().split('T')[0]}.csv`);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
 
     const actionColors = {
         UPDATE: "bg-blue-50 text-blue-700 border-blue-100",
@@ -174,41 +214,28 @@ export default function AuditLogPage() {
                     </button>
                     <button
                         onClick={handleExport}
-                        disabled={exporting || loading || filteredLogs.length === 0}
-                        className={`flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 px-4 bg-slate-900 text-white rounded-xl shadow-lg shadow-slate-900/20 hover:bg-slate-800 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95 ${(exporting || loading || filteredLogs.length === 0) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                        className="flex-1 sm:flex-none flex items-center justify-center gap-2 h-10 px-4 bg-slate-900 text-white rounded-xl shadow-lg shadow-slate-900/20 hover:bg-slate-800 text-[10px] font-black uppercase tracking-widest transition-all active:scale-95"
                     >
-                        <Icon name="Download" size={14} className={exporting ? "animate-pulse" : ""} />
-                        {exporting ? "Exporting..." : "Export"}
+                        <Icon name="Download" size={14} />
+                        Export
                     </button>
                 </div>
             </div>
-
-            {/* Filters */}
+            {/* Filter */}
             <div className="bg-white/80 backdrop-blur-xl rounded-2xl border border-white/20 shadow-lg p-3 sm:p-4 mb-6">
-                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
-                    <div className="flex-1 relative">
-                        <Icon name="Search" size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-                        <input
-                            type="text"
-                            placeholder="Search user, action, or ID..."
-                            className="w-full pl-10 pr-4 py-2 text-xs sm:text-sm rounded-xl border border-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white/50"
-                            value={searchTerm}
-                            onChange={(e) => setSearchTerm(e.target.value)}
-                        />
-                    </div>
-                    <select
-                        value={filterAction}
-                        onChange={(e) => setFilterAction(e.target.value)}
-                        className="px-4 py-2 text-xs sm:text-sm rounded-xl border border-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white/50 font-medium shrink-0"
-                    >
-                        <option value="ALL">All Actions</option>
-                        <option value="UPDATE">Updates</option>
-                        <option value="CREATE">Creates</option>
-                        <option value="APPROVE">Approvals</option>
-                        <option value="REJECT">Rejections</option>
-                    </select>
-                </div>
+                <select
+                    value={filterAction}
+                    onChange={(e) => setFilterAction(e.target.value)}
+                    className="px-4 py-2 text-xs sm:text-sm rounded-xl border border-gray-100 focus:outline-none focus:ring-2 focus:ring-primary/20 bg-white/50 font-medium"
+                >
+                    <option value="ALL">All Actions</option>
+                    <option value="UPDATE">Updates</option>
+                    <option value="CREATE">Creates</option>
+                    <option value="APPROVE">Approvals</option>
+                    <option value="REJECT">Rejections</option>
+                </select>
             </div>
+
 
             {/* Logs Table */}
             <div className="bg-white/80 backdrop-blur-xl rounded-3xl border border-white/20 shadow-xl overflow-hidden">
@@ -234,7 +261,7 @@ export default function AuditLogPage() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {filteredLogs.map((log, idx) => (
+                                {paginatedLogs.map((log, idx) => (
                                     <tr key={log._id || idx} className="hover:bg-gray-50/50 transition-colors">
                                         <td className="px-6 py-4 whitespace-nowrap text-[10px] sm:text-xs text-slate-500 font-mono">
                                             {formatDate(log.timestamp)}
@@ -266,11 +293,50 @@ export default function AuditLogPage() {
                 )}
             </div>
 
-            {/* Stats Footer */}
-            <div className="mt-6 flex items-center justify-between text-sm text-gray-500">
-                <span>Showing {filteredLogs.length} of {logs.length} entries</span>
-                <span>Retention Policy: 7 Years (SOX/IFRS Compliance)</span>
-            </div>
+            {/* Pagination */}
+            {filteredLogs.length > 0 && (
+                <div className="mt-6 bg-white/80 backdrop-blur-xl rounded-2xl border border-white/20 shadow-lg p-4">
+                    <div className="flex items-center justify-between">
+                        <div className="text-sm text-gray-500">
+                            Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredLogs.length)} of {filteredLogs.length} entries
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 bg-white hover:bg-slate-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                            >
+                                <Icon name="ChevronLeft" size={16} />
+                            </button>
+                            <div className="flex items-center gap-1">
+                                {Array.from({ length: totalPages }, (_, i) => i + 1).slice(
+                                    Math.max(0, currentPage - 2),
+                                    Math.min(totalPages, currentPage + 1)
+                                ).map((page) => (
+                                    <button
+                                        key={page}
+                                        onClick={() => handlePageChange(page)}
+                                        className={`w-10 h-10 rounded-xl font-medium text-sm transition-all ${
+                                            currentPage === page
+                                                ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
+                                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-slate-50'
+                                        }`}
+                                    >
+                                        {page}
+                                    </button>
+                                ))}
+                            </div>
+                            <button
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="flex items-center justify-center w-10 h-10 rounded-xl border border-gray-200 bg-white hover:bg-slate-50 text-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                            >
+                                <Icon name="ChevronRight" size={16} />
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

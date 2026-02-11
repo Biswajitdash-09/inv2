@@ -222,8 +222,8 @@ function VendorPortalContent() {
     return (
         <div className="space-y-10 max-w-7xl mx-auto h-full pb-10 px-4 sm:px-6 lg:px-0">
             <PageHeader
-                title="Vendor Hub"
-                subtitle="Seamlessly manage your billing, track payments in real-time, and resolve discrepancies instantly."
+                title="Dashboard"
+                subtitle="Manage billing, track payments, and resolve discrepancies."
                 icon="Package"
                 accent="teal"
                 roleLabel={vendorProfile?.vendorCode ? `Vendor · ${vendorProfile.vendorCode}` : "Vendor"}

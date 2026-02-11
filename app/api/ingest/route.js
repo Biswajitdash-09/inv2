@@ -40,7 +40,8 @@ export async function POST(request) {
                 'csv': 'text/csv',
                 'jpg': 'image/jpeg',
                 'jpeg': 'image/jpeg',
-                'png': 'image/png'
+                'png': 'image/png',
+                'csv': 'text/csv'
             };
             mimeType = mimeMap[ext] || 'application/pdf';
         }
@@ -67,6 +68,7 @@ export async function POST(request) {
             invoiceNumber: formData.get('invoiceNumber'), // Manual override
             date: formData.get('date'), // Manual override
             amount: formData.get('amount') ? parseFloat(formData.get('amount')) : undefined, // Manual override
+            currency: 'INR', // Restricted to INR
             dueDate: formData.get('dueDate') // Manual override
         };
 
@@ -90,6 +92,7 @@ export async function POST(request) {
                 invoiceNumber: invoiceMetadata.invoiceNumber || result.data.invoiceNumber || invoiceMetadata.invoiceNumber,
                 date: invoiceMetadata.date || result.data.date,
                 amount: invoiceMetadata.amount || result.data.amount,
+                currency: 'INR',
                 dueDate: invoiceMetadata.dueDate || result.data.dueDate,
 
                 fileUrl: fileUrl,

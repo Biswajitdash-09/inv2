@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
-import { ROLES } from "@/constants/roles";
+import { ROLES, getNormalizedRole } from "@/constants/roles";
 import { getAllInvoices } from "@/lib/api";
 import MatchingList from "@/components/Matching/MatchingList";
 import Icon from "@/components/Icon";
@@ -30,8 +30,11 @@ function MatchingPageContent() {
     if (!authLoading) {
       if (!user) {
         router.push("/login");
-      } else if (![ROLES.ADMIN, ROLES.FINANCE_USER, ROLES.PROJECT_MANAGER].includes(user.role)) {
-        router.push("/dashboard");
+      } else {
+        const normalizedRole = getNormalizedRole(user);
+        if (![ROLES.ADMIN, ROLES.FINANCE_USER, ROLES.PROJECT_MANAGER].includes(normalizedRole)) {
+          router.push("/dashboard");
+        }
       }
     }
   }, [user, authLoading, router]);

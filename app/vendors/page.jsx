@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
+import { toast } from "sonner";
 import Icon from "@/components/Icon";
 import { getAllInvoices } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
@@ -85,6 +86,8 @@ export default function VendorPortal() {
         }
     }, [user, fetchProjects, fetchAllPms, fetchVendorProfile]);
 
+    const searchParams = useSearchParams();
+
     useEffect(() => {
         if (!authLoading && !user) {
             router.push("/login");
@@ -137,12 +140,52 @@ export default function VendorPortal() {
     const [viewerInvoiceId, setViewerInvoiceId] = useState(null);
     const [viewerLoading, setViewerLoading] = useState(true);
     const [isSubmissionModalOpen, setIsSubmissionModalOpen] = useState(false);
+    const [selectedFile, setSelectedFile] = useState(null);
+    const [spreadsheetData, setSpreadsheetData] = useState(null);
 
-    const handleViewDocument = (e, id) => {
+    const handleViewDocument = async (e, id) => {
         e.stopPropagation();
         setViewerInvoiceId(id);
         setViewerLoading(true);
+        setSpreadsheetData(null);
+
+        const inv = allSubmissions.find(i => i.id === id);
+        if (inv) {
+            const fileName = inv?.originalName?.toLowerCase() || "";
+            const isSpreadsheet = fileName.endsWith('.xls') || fileName.endsWith('.xlsx') || fileName.endsWith('.csv');
+
+            if (isSpreadsheet) {
+                try {
+                    const res = await fetch(`/api/invoices/${id}/preview`);
+                    const data = await res.json();
+                    if (data.data) {
+                        setSpreadsheetData(data.data);
+                    }
+                } catch (err) {
+                    console.error("Failed to fetch spreadsheet preview:", err);
+                }
+            }
+            setViewerLoading(false);
+        } else {
+            // Fetch if not in memory (though unlikely for submissions)
+            try {
+                await fetch(`/api/invoices/${id}`);
+            } catch (err) {
+                console.error("Failed to load invoice data", err);
+            } finally {
+                setViewerLoading(false);
+            }
+        }
     };
+
+    // Deep-linking: auto-open invoice viewer from query param
+    useEffect(() => {
+        const invoiceId = searchParams.get('invoiceId');
+        if (invoiceId && allSubmissions.length > 0) {
+            // Trigger the view document handler
+            handleViewDocument({ stopPropagation: () => { } }, invoiceId);
+        }
+    }, [searchParams, allSubmissions, handleViewDocument]);
 
     const handleDownloadCSV = () => {
         if (allSubmissions.length === 0) {
@@ -479,13 +522,14 @@ export default function VendorPortal() {
 
                                 <form onSubmit={async (e) => {
                                     e.preventDefault();
-                                    if (!selectedPM) { alert("Please select a PM."); return; }
+                                    if (!selectedPM) { toast.error("Please select a PM."); return; }
                                     const form = e.target;
                                     const formData = new FormData(form);
                                     const file = formData.get('file');
-                                    if (!file || file.size === 0) { alert("Please upload a file."); return; }
+                                    if (!file || file.size === 0) { toast.error("Please upload a file."); return; }
 
                                     setLoading(true);
+                                    const toastId = toast.loading("Uploading invoice...");
                                     try {
                                         const metadata = {
                                             ...(selectedProject && { projectId: selectedProject }),
@@ -496,11 +540,12 @@ export default function VendorPortal() {
                                             dueDate: formData.get('dueDate')
                                         };
                                         await import("@/lib/api").then(mod => mod.ingestInvoice(file, metadata));
-                                        alert("Submitted successfully!");
+                                        toast.success("Invoice submitted successfully!", { id: toastId });
                                         setIsSubmissionModalOpen(false);
+                                        setSelectedFile(null);
                                         handleUploadComplete();
                                     } catch (error) {
-                                        alert("Failed submission.");
+                                        toast.error("Failed to submit invoice. Please try again.", { id: toastId });
                                     } finally { setLoading(false); }
                                 }} className="space-y-6">
                                     <div className="space-y-5">
@@ -562,16 +607,31 @@ export default function VendorPortal() {
                                                 <input
                                                     type="file"
                                                     name="file"
-                                                    accept=".pdf,.jpg,.jpeg,.png"
+                                                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.csv"
                                                     className="absolute inset-0 opacity-0 cursor-pointer z-10"
                                                     required
+                                                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                                                 />
-                                                <div className="w-12 h-12 rounded-xl bg-slate-50 flex items-center justify-center text-slate-400 group-hover/modalfile:text-teal-600 group-hover/modalfile:bg-white transition-all shadow-sm">
-                                                    <Icon name="FileUp" size={24} />
+                                                <div className={clsx(
+                                                    "w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-sm",
+                                                    selectedFile ? "bg-teal-500 text-white" : "bg-slate-50 text-slate-400 group-hover/modalfile:text-teal-600 group-hover/modalfile:bg-white"
+                                                )}>
+                                                    <Icon name={selectedFile ? "FileCheck" : "FileUp"} size={24} />
                                                 </div>
                                                 <div className="text-center">
-                                                    <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Select Invoice File</p>
-                                                    <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tight">PDF, JPG or PNG (Max 10MB)</p>
+                                                    {selectedFile ? (
+                                                        <>
+                                                            <p className="text-[11px] font-black text-teal-600 uppercase tracking-widest">{selectedFile.name}</p>
+                                                            <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tight">
+                                                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB • Click to change
+                                                            </p>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Select Invoice File</p>
+                                                            <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tight">PDF, JPG, PNG, WORD, EXCEL or CSV (Max 10MB)</p>
+                                                        </>
+                                                    )}
                                                 </div>
                                             </div>
                                         </div>
@@ -656,10 +716,49 @@ export default function VendorPortal() {
                                 )}
                                 {(() => {
                                     const inv = allSubmissions.find(i => i.id === viewerInvoiceId);
-                                    const fileName = inv?.originalName?.toLowerCase() || "";
-                                    const isDoc = fileName.endsWith('.doc') || fileName.endsWith('.docx') || fileName.endsWith('.xls') || fileName.endsWith('.xlsx');
+                                    if (!inv) return null;
 
-                                    if (isDoc) {
+                                    const fileName = inv.originalName?.toLowerCase() || "";
+                                    const isSpreadsheet = fileName.endsWith('.xls') || fileName.endsWith('.xlsx') || fileName.endsWith('.csv');
+                                    const isDoc = fileName.endsWith('.doc') || fileName.endsWith('.docx');
+
+                                    if (Array.isArray(spreadsheetData) && isSpreadsheet) {
+                                        return (
+                                            <div className="absolute inset-0 bg-white overflow-auto p-4 sm:p-6">
+                                                <div className="min-w-max border border-slate-200 rounded-xl overflow-hidden shadow-sm bg-white">
+                                                    <table className="w-full text-left border-collapse text-[10px] sm:text-[11px]">
+                                                        <thead>
+                                                            <tr className="bg-slate-50 border-b border-slate-200">
+                                                                {spreadsheetData[0]?.map((cell, i) => (
+                                                                    <th key={i} className="px-4 py-3 font-black text-slate-500 uppercase tracking-widest border-r border-slate-200 last:border-0">
+                                                                        {cell || `Col ${i + 1}`}
+                                                                    </th>
+                                                                ))}
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody className="divide-y divide-slate-100">
+                                                            {spreadsheetData.slice(1).map((row, i) => (
+                                                                <tr key={i} className="hover:bg-slate-50/50 transition-colors">
+                                                                    {row.map((cell, j) => (
+                                                                        <td key={j} className="px-4 py-2 text-slate-600 border-r border-slate-100 last:border-0 whitespace-nowrap">
+                                                                            {cell}
+                                                                        </td>
+                                                                    ))}
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                {spreadsheetData.length >= 100 && (
+                                                    <p className="mt-4 text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest">
+                                                        Showing first 100 rows
+                                                    </p>
+                                                )}
+                                            </div>
+                                        );
+                                    }
+
+                                    if (isDoc || (isSpreadsheet && !spreadsheetData)) {
                                         return (
                                             <div className="flex flex-col items-center justify-center h-full p-20 text-center space-y-6">
                                                 <div className="w-24 h-24 rounded-[2.5rem] bg-amber-50 text-amber-600 flex items-center justify-center shadow-inner">
@@ -668,14 +767,13 @@ export default function VendorPortal() {
                                                 <div className="max-w-md">
                                                     <h4 className="text-xl font-black text-slate-800 uppercase tracking-tight">Preview Unavailable</h4>
                                                     <p className="text-sm font-medium text-slate-500 mt-2 leading-relaxed">
-                                                        Office documents (.doc, .xls) cannot be rendered directly in the browser vault. Please download the file to view its contents.
+                                                        Office documents (.doc, .xls, .csv) cannot be rendered directly in the browser vault. Please download the file to view its contents.
                                                     </p>
                                                 </div>
                                                 <a
                                                     href={`/api/invoices/${viewerInvoiceId}/file`}
                                                     download
                                                     className="inline-flex items-center gap-3 h-14 px-8 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-teal-200 transition-all active:scale-95"
-                                                    onLoad={() => setViewerLoading(false)}
                                                 >
                                                     <Icon name="Download" size={20} /> Download for Viewing
                                                 </a>

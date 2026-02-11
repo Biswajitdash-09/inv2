@@ -96,17 +96,19 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
         }
 
-        // Security Check: Ensure PM is allowed to message this recipient
-        // Admin can message anyone. PM/Vendor checks...
+        // Security Check
         const userRole = getNormalizedRole(session.user);
         if (userRole === ROLES.PROJECT_MANAGER) {
-            const allowedVendors = await db.getVendorsForProjects(session.user.assignedProjects || []);
-            const isAuthorized = allowedVendors.some(v => v.linkedUserId === recipientId || v.id === recipientId);
+            // Check if recipient is a Vendor for project-based restriction
+            if (recipient.role === ROLES.VENDOR) {
+                const allowedVendors = await db.getVendorsForProjects(session.user.assignedProjects || []);
+                const isAuthorized = allowedVendors.some(v => v.linkedUserId === recipientId || v.id === recipientId);
 
-            // Also allow messaging other PMs/Admins if needed, but for now strict vendor focus
-            if (!isAuthorized && recipient.role === ROLES.VENDOR) {
-                return NextResponse.json({ error: 'Not authorized to message this vendor' }, { status: 403 });
+                if (!isAuthorized) {
+                    return NextResponse.json({ error: 'Not authorized to message this vendor' }, { status: 403 });
+                }
             }
+            // Allow PM to message other PMs or Admins without project restriction for now
         }
 
         // Create message

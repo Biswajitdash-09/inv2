@@ -4,6 +4,9 @@ import { getSession } from '@/lib/auth';
 import { requireRole, checkPermission, getNormalizedRole } from '@/lib/rbac';
 import { sendStatusNotification } from '@/lib/notifications';
 import { ROLES } from '@/constants/roles';
+import Message from '@/models/Message';
+import { v4 as uuidv4 } from 'uuid';
+import connectToDatabase from '@/lib/mongodb';
 
 /**
  * POST /api/pm/approve/:id - PM approval for invoice
@@ -80,6 +83,40 @@ export async function POST(request, { params }) {
             auditAction: `PM_${action}`,
             auditDetails: `PM ${action.toLowerCase().replace('_', ' ')}${notes ? `: ${notes}` : ''}`
         });
+
+        // Automated Messaging for Info Request
+        if (action === 'REQUEST_INFO') {
+            try {
+                await connectToDatabase();
+                const recipientId = updatedInvoice.submittedByUserId;
+
+                if (recipientId) {
+                    const recipient = await db.getUserById(recipientId);
+                    if (recipient) {
+                        const messageId = uuidv4();
+                        await Message.create({
+                            id: messageId,
+                            invoiceId: updatedInvoice.id,
+                            projectId: updatedInvoice.project || null,
+                            senderId: session.user.id,
+                            senderName: session.user.name || session.user.email,
+                            senderRole: userRole,
+                            recipientId: recipient.id,
+                            recipientName: recipient.name,
+                            subject: `Info Request: Invoice ${updatedInvoice.invoiceNumber || updatedInvoice.id.slice(-6)}`,
+                            content: notes || 'PM requested more information regarding this invoice.',
+                            messageType: 'INFO_REQUEST',
+                            threadId: messageId
+                        });
+                        console.log(`[PM Approve] Automated message created for vendor ${recipientId}`);
+                    }
+                } else {
+                    console.warn(`[PM Approve] No submittedByUserId found for invoice ${id}, skipping automated message.`);
+                }
+            } catch (msgErr) {
+                console.error('[PM Approve] Failed to create automated message:', msgErr);
+            }
+        }
 
         const notificationType = action === 'REJECT' ? 'REJECTED' : action === 'REQUEST_INFO' ? 'AWAITING_INFO' : 'PENDING_APPROVAL';
         await sendStatusNotification(updatedInvoice, notificationType).catch((err) =>

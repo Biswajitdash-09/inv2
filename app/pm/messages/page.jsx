@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/Layout/PageHeader';
 import Card from '@/components/ui/Card';
 import Icon from '@/components/Icon';
+import { useAuth } from '@/context/AuthContext';
+import { ROLES } from '@/constants/roles';
 
 const MESSAGE_TYPES = [
     { value: 'GENERAL', label: 'General', color: 'gray' },
@@ -14,8 +16,10 @@ const MESSAGE_TYPES = [
 ];
 
 export default function PMMessagesPage() {
+    const { user } = useAuth();
     const [messages, setMessages] = useState([]);
-    const [vendors, setVendors] = useState([]);
+    const [pms, setPMs] = useState([]);
+    const [recipients, setRecipients] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -31,10 +35,39 @@ export default function PMMessagesPage() {
         invoiceId: ''
     });
 
+    const fetchRecipients = async () => {
+        try {
+            const res = await fetch('/api/pms');
+            if (res.ok) {
+                const data = await res.json();
+                const pmList = (data.pms || []).map(p => ({ ...p, type: 'PM' }));
+
+                // If PM, also fetch vendors
+                if (user?.role === ROLES.PROJECT_MANAGER || user?.role === ROLES.ADMIN) {
+                    const vRes = await fetch('/api/pm/vendors');
+                    if (vRes.ok) {
+                        const vData = await vRes.json();
+                        // API returns array directly
+                        const vendorList = (Array.isArray(vData) ? vData : []).map(v => ({ ...v, type: 'Vendor' }));
+                        setRecipients([...pmList, ...vendorList]);
+                    } else {
+                        setRecipients(pmList);
+                    }
+                } else {
+                    setRecipients(pmList);
+                }
+            }
+        } catch (error) {
+            console.error("Failed to fetch recipients", error);
+        }
+    };
+
     useEffect(() => {
-        fetchMessages();
-        fetchVendors();
-    }, [activeTab]);
+        if (user) {
+            fetchMessages();
+            fetchRecipients();
+        }
+    }, [user, activeTab]);
 
     const fetchMessages = async () => {
         try {
@@ -48,18 +81,6 @@ export default function PMMessagesPage() {
             setError(err.message);
         } finally {
             setLoading(false);
-        }
-    };
-
-    const fetchVendors = async () => {
-        try {
-            const res = await fetch('/api/pm/vendors');
-            if (res.ok) {
-                const data = await res.json();
-                setVendors(Array.isArray(data) ? data : []);
-            }
-        } catch (err) {
-            console.error('Error fetching vendors:', err);
         }
     };
 
@@ -109,7 +130,7 @@ export default function PMMessagesPage() {
         <div className="pb-10">
             <PageHeader
                 title="Messages"
-                subtitle="Communicate with vendors about invoices"
+                subtitle="Communicate with other project managers"
                 icon="Mail"
                 accent="purple"
             />
@@ -243,16 +264,16 @@ export default function PMMessagesPage() {
                             >
                                 <div className="flex justify-between items-start mb-8">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-300 mb-1">To (Vendor)</label>
+                                        <label className="block text-sm font-medium text-gray-300 mb-1">To (Project Manager)</label>
                                         <select
                                             value={composeData.recipientId}
                                             onChange={(e) => setComposeData({ ...composeData, recipientId: e.target.value })}
                                             required
                                             className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                         >
-                                            <option value="">Select Vendor</option>
-                                            {vendors.map(v => (
-                                                <option key={v.id} value={v.linkedUserId || v.id}>{v.vendorCode ? `${v.vendorCode} · ${v.name}` : v.name}</option>
+                                            <option value="">Select PM</option>
+                                            {pms.map(p => (
+                                                <option key={p.id} value={p.id}>{p.name}</option>
                                             ))}
                                         </select>
                                     </div>
@@ -264,16 +285,16 @@ export default function PMMessagesPage() {
                                 <form onSubmit={handleSendMessage} className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Recipient (Vendor)</label>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Recipient ({user?.role === ROLES.VENDOR ? 'Project Manager' : 'Contact'})</label>
                                             <select
                                                 required
                                                 value={composeData.recipientId}
                                                 onChange={(e) => setComposeData({ ...composeData, recipientId: e.target.value })}
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm"
                                             >
-                                                <option value="">Select Vendor</option>
-                                                {vendors.map(v => (
-                                                    <option key={v.id} value={v.linkedUserId || v.id}>{v.name}</option>
+                                                <option value="">Select Recipient</option>
+                                                {recipients.map(r => (
+                                                    <option key={r.id} value={r.id}>{r.name} {r.type ? `(${r.type})` : ''}</option>
                                                 ))}
                                             </select>
                                         </div>
@@ -388,10 +409,13 @@ export default function PMMessagesPage() {
                                             </div>
                                         </div>
                                         <a
-                                            href={`/approvals/${selectedMessage.invoiceId}`}
+                                            href={user?.role === ROLES.VENDOR
+                                                ? `/vendors?invoiceId=${selectedMessage.invoiceId}`
+                                                : `/pm/approvals?invoiceId=${selectedMessage.invoiceId}`
+                                            }
                                             className="px-4 py-2 bg-white text-purple-600 border border-purple-100 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm"
                                         >
-                                            View Profile
+                                            View Task
                                         </a>
                                     </div>
                                 )}

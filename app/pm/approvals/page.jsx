@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import PageHeader from '@/components/Layout/PageHeader';
 import Card from '@/components/ui/Card';
@@ -18,10 +19,19 @@ export default function PMApprovalsPage() {
     const [viewerInvoiceId, setViewerInvoiceId] = useState(null);
     const [viewerLoading, setViewerLoading] = useState(false);
 
+    const searchParams = useSearchParams();
+
     useEffect(() => {
         fetchInvoices();
         fetchProjects();
     }, [filterProject]);
+
+    useEffect(() => {
+        const invoiceId = searchParams.get('invoiceId');
+        if (invoiceId && invoices.length > 0) {
+            setViewerInvoiceId(invoiceId);
+        }
+    }, [searchParams, invoices.length]);
 
     const fetchInvoices = async () => {
         try {
@@ -185,11 +195,11 @@ export default function PMApprovalsPage() {
                                                 <span
                                                     className={`inline-flex px-2.5 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider border
                                                     ${invoice.pmApproval.status === 'APPROVED'
-                                                        ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
-                                                        : invoice.pmApproval.status === 'REJECTED'
-                                                            ? 'bg-rose-50 text-rose-700 border-rose-100'
-                                                            : 'bg-amber-50 text-amber-600 border-amber-100'
-                                                    }`}
+                                                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                                                            : invoice.pmApproval.status === 'REJECTED'
+                                                                ? 'bg-rose-50 text-rose-700 border-rose-100'
+                                                                : 'bg-amber-50 text-amber-600 border-amber-100'
+                                                        }`}
                                                 >
                                                     {invoice.pmApproval.status.replace(/_/g, ' ')}
                                                 </span>

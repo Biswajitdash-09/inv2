@@ -4,9 +4,11 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
+import { getFinanceDashboardData } from '@/lib/api';
 
 export default function FinanceDashboardPage() {
     const [invoices, setInvoices] = useState([]);
+    const [stats, setStats] = useState({ pendingApprovals: 0, mtdSpend: 0, weeklyProcessedCount: 0 });
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -17,35 +19,51 @@ export default function FinanceDashboardPage() {
     const fetchInvoices = async () => {
         try {
             setLoading(true);
-            const res = await fetch(`/api/invoices?t=${Date.now()}`);
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            setInvoices(Array.isArray(data) ? data : (data.invoices || []));
+            const data = await getFinanceDashboardData();
+            
+            // Finance API returns { stats: {...}, invoices: [...] }
+            const invoiceList = Array.isArray(data) ? data : (data?.invoices || []);
+            setInvoices(invoiceList);
+            
+            // Use backend-calculated stats when available
+            if (data?.stats) {
+                setStats({
+                    pendingApprovals: data.stats.pendingApprovals || 0,
+                    mtdSpend: data.stats.mtdSpend || 0,
+                    weeklyProcessedCount: data.stats.weeklyProcessedCount || 0
+                });
+            } else {
+                // Fallback to frontend calculation if backend stats not available
+                const fallbackPendingApprovals = invoiceList.filter(inv =>
+                    inv.status === 'PENDING' ||
+                    inv.status === 'VERIFIED' ||
+                    (inv.pmApproval?.status === 'APPROVED' && inv.financeApproval?.status !== 'APPROVED')
+                ).length;
+
+                const fallbackMTDSpend = invoiceList.filter(inv => {
+                    const date = new Date(inv.date);
+                    const now = new Date();
+                    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                }).reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
+
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                const fallbackWeeklyProcessed = invoiceList.filter(inv =>
+                    new Date(inv.created_at) > weekAgo && inv.status !== 'REJECTED'
+                ).length;
+
+                setStats({
+                    pendingApprovals: fallbackPendingApprovals,
+                    mtdSpend: fallbackMTDSpend,
+                    weeklyProcessedCount: fallbackWeeklyProcessed
+                });
+            }
         } catch (err) {
             setError(err.message);
         } finally {
             setLoading(false);
         }
     };
-
-    const pendingApprovals = invoices.filter(inv =>
-        inv.status === 'PENDING' ||
-        inv.status === 'VERIFIED' ||
-        (inv.pmApproval?.status === 'APPROVED' && inv.financeApproval?.status !== 'APPROVED')
-    ).length;
-
-    const totalSpend = invoices.reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
-    const thisMonthSpend = invoices.filter(inv => {
-        const date = new Date(inv.date);
-        const now = new Date();
-        return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
-    }).reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
-
-    const weekAgo = new Date();
-    weekAgo.setDate(weekAgo.getDate() - 7);
-    const processedThisWeek = invoices.filter(inv =>
-        new Date(inv.created_at) > weekAgo && inv.status !== 'REJECTED'
-    ).length;
 
     // Sort invoices by date descending for recent activity
     const recentInvoices = [...invoices]
@@ -106,7 +124,7 @@ export default function FinanceDashboardPage() {
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Pending Approvals</p>
-                                <p className="text-4xl font-bold text-white mt-2">{pendingApprovals}</p>
+                                <p className="text-4xl font-bold text-white mt-2">{stats.pendingApprovals}</p>
                             </div>
                             <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
                                 <Icon name="Clock" size={24} className="text-purple-300" />
@@ -126,11 +144,11 @@ export default function FinanceDashboardPage() {
                             <div>
                                 <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">MTD Spend</p>
                                 <p className="text-4xl font-bold text-white mt-2">
-                                    ₹{thisMonthSpend.toLocaleString()}
+                                    ₹ {stats.mtdSpend.toLocaleString()}
                                 </p>
                             </div>
                             <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
-                                <Icon name="DollarSign" size={24} className="text-green-300" />
+                                <Icon name="IndianRupee" size={24} className="text-green-300" />
                             </div>
                         </div>
                         <p className="text-gray-400 text-sm">Month-to-date total spend</p>
@@ -146,7 +164,7 @@ export default function FinanceDashboardPage() {
                         <div className="flex justify-between items-start mb-4">
                             <div>
                                 <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Processed (WoW)</p>
-                                <p className="text-4xl font-bold text-white mt-2">{processedThisWeek}</p>
+                                <p className="text-4xl font-bold text-white mt-2">{stats.weeklyProcessedCount}</p>
                             </div>
                             <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center">
                                 <Icon name="Activity" size={24} className="text-blue-300" />
@@ -247,7 +265,7 @@ export default function FinanceDashboardPage() {
                                                 </div>
                                             </td>
                                             <td className="px-6 py-4 text-white font-medium">
-                                                ₹{invoice.amount?.toLocaleString() || '-'}
+                                                ₹ {invoice.amount?.toLocaleString() || '-'}
                                             </td>
                                             <td className="px-6 py-4 text-gray-400">
                                                 {invoice.date || '-'}

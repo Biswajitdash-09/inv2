@@ -205,7 +205,7 @@ export default function FinanceApprovalQueuePage() {
                                             {invoice.vendorName}
                                         </td>
                                         <td className="px-4 py-4 text-white font-medium">
-                                            ₹{invoice.amount?.toLocaleString() || '-'}
+                                            ₹ {invoice.amount?.toLocaleString() || '-'}
                                         </td>
                                         <td className="px-4 py-4">
                                             <span className={`px-2 py-1 rounded-full text-xs font-medium ${invoice.pmApproval?.status === 'APPROVED' ? 'bg-green-500/20 text-green-300' :
@@ -275,7 +275,7 @@ export default function FinanceApprovalQueuePage() {
                                     Invoice #{approvalModal.invoice.invoiceNumber || approvalModal.invoice.id.slice(0, 8)}
                                     <br />
                                     <span className="text-white font-medium">
-                                        ₹{approvalModal.invoice.amount?.toLocaleString()} - {approvalModal.invoice.vendorCode && <span className="font-mono text-purple-300">{approvalModal.invoice.vendorCode}</span>} {approvalModal.invoice.vendorCode && '· '}{approvalModal.invoice.vendorName}
+                                        ₹ {approvalModal.invoice.amount?.toLocaleString()} - {approvalModal.invoice.vendorCode && <span className="font-mono text-purple-300">{approvalModal.invoice.vendorCode}</span>} {approvalModal.invoice.vendorCode && '· '}{approvalModal.invoice.vendorName}
                                     </span>
                                 </p>
                                 <div className="mb-6">

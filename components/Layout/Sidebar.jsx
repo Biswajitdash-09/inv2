@@ -14,9 +14,8 @@ import { useRouter } from "next/navigation";
 const SIDEBAR_COLLAPSED_KEY = "invoiceflow-sidebar-collapsed";
 
 const menuItems = [
-  { name: "Dashboard", icon: "LayoutDashboard", path: "/vendors" },
+  { name: "Dashboard", icon: "LayoutDashboard", path: "/dashboard" },
   { name: "Messages", icon: "Mail", path: "/pm/messages" },
-  { name: "Overview", icon: "LayoutDashboard", path: "/dashboard" },
   { name: "Digitization", icon: "ScanLine", path: "/digitization" },
   { name: "Matching", icon: "GitMerge", path: "/matching" },
   { name: "Approvals", icon: "CheckCircle", path: "/pm/approvals" },

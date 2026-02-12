@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { toast } from "sonner";
 import Icon from "@/components/Icon";
-import { getAllInvoices } from "@/lib/api";
+import { getAllInvoices, getVendorDashboardData } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import clsx from "clsx";
 import PageHeader from "@/components/Layout/PageHeader";
@@ -30,10 +30,13 @@ function VendorPortalContent() {
     const fetchSubmissions = useCallback(async () => {
         const thisFetchId = ++fetchIdRef.current;
         try {
-            const data = await getAllInvoices();
+            const data = await getVendorDashboardData();
             // If component unmounted or new fetch started, ignore result
             if (thisFetchId !== fetchIdRef.current) return;
-            setAllSubmissions(Array.isArray(data) ? data : []);
+            
+            // Vendor API returns { stats: {...}, invoices: [...] }
+            const invoiceList = Array.isArray(data) ? data : (data?.invoices || []);
+            setAllSubmissions(invoiceList);
         } catch (e) {
             console.error("Failed to fetch vendor submissions", e);
             if (thisFetchId !== fetchIdRef.current) return;

@@ -46,13 +46,14 @@ export default function PageHeader({
   const gradientClass =
     typeof accentStyle === "string" ? accentStyle : accentStyle.gradient;
 
-  const displayRole =
-    roleLabel ??
-    (user?.role
-      ? user.role === "PM" || user.role === "Project Manager"
-        ? "Project Manager"
-        : user.role
-      : "User");
+  const displayRole = (() => {
+    if (roleLabel) return roleLabel;
+    const role = user?.role ? (typeof user.role === 'string' ? user.role : user.role[0]) : '';
+    if (['PM', 'Project Manager', 'projectmanager'].includes(role.toLowerCase().replace(/\s/g, ''))) return "Project Manager";
+    if (role.toLowerCase() === 'admin') return "System Administrator";
+    if (role.toLowerCase() === 'finance user') return "Finance Officer";
+    return role || "User";
+  })();
 
   return (
     <header className="border-b border-slate-200/80 shadow-sm py-4 mb-8 px-4 md:px-6 rounded-t-3xl sticky top-0 z-40 backdrop-blur-md bg-white/90">

@@ -185,14 +185,14 @@ export default function ConfigurationPage() {
                             </div>
                             {testResults['SAP'] ? (
                                 <span className={`px-2 py-1 rounded-md text-xs font-medium border ${testResults['SAP'].status === 'connected'
-                                        ? 'bg-green-50 text-green-700 border-green-100'
-                                        : 'bg-red-50 text-red-700 border-red-100'
+                                    ? 'bg-green-50 text-green-700 border-green-100'
+                                    : 'bg-red-50 text-red-700 border-red-100'
                                     }`}>
                                     {testResults['SAP'].status === 'connected' ? 'Connected' : 'Error'}
                                 </span>
                             ) : (
-                                <span className="px-2 py-1 rounded-md bg-gray-50 text-gray-600 text-xs font-medium border border-gray-200">
-                                    Unknown
+                                <span className="px-2 py-1 rounded-md bg-rose-50 text-rose-600 text-xs font-semibold border border-rose-100 flex items-center gap-1.5 transition-all">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Disconnected
                                 </span>
                             )}
                         </div>
@@ -228,14 +228,14 @@ export default function ConfigurationPage() {
                             </div>
                             {testResults['Ringi'] ? (
                                 <span className={`px-2 py-1 rounded-md text-xs font-medium border ${testResults['Ringi'].status === 'connected'
-                                        ? 'bg-green-50 text-green-700 border-green-100'
-                                        : 'bg-red-50 text-red-700 border-red-100'
+                                    ? 'bg-green-50 text-green-700 border-green-100'
+                                    : 'bg-red-50 text-red-700 border-red-100'
                                     }`}>
                                     {testResults['Ringi'].status === 'connected' ? 'Connected' : 'Error'}
                                 </span>
                             ) : (
-                                <span className="px-2 py-1 rounded-md bg-gray-50 text-gray-600 text-xs font-medium border border-gray-200">
-                                    Unknown
+                                <span className="px-2 py-1 rounded-md bg-rose-50 text-rose-600 text-xs font-semibold border border-rose-100 flex items-center gap-1.5 transition-all">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Disconnected
                                 </span>
                             )}
                         </div>
@@ -271,14 +271,14 @@ export default function ConfigurationPage() {
                             </div>
                             {testResults['SharePoint'] ? (
                                 <span className={`px-2 py-1 rounded-md text-xs font-medium border ${testResults['SharePoint'].status === 'connected'
-                                        ? 'bg-green-50 text-green-700 border-green-100'
-                                        : 'bg-red-50 text-red-700 border-red-100'
+                                    ? 'bg-green-50 text-green-700 border-green-100'
+                                    : 'bg-red-50 text-red-700 border-red-100'
                                     }`}>
                                     {testResults['SharePoint'].status === 'connected' ? 'Connected' : 'Error'}
                                 </span>
                             ) : (
-                                <span className="px-2 py-1 rounded-md bg-gray-50 text-gray-600 text-xs font-medium border border-gray-200">
-                                    Unknown
+                                <span className="px-2 py-1 rounded-md bg-rose-50 text-rose-600 text-xs font-semibold border border-rose-100 flex items-center gap-1.5 transition-all">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Disconnected
                                 </span>
                             )}
                         </div>
@@ -314,14 +314,14 @@ export default function ConfigurationPage() {
                             </div>
                             {testResults['SMTP'] ? (
                                 <span className={`px-2 py-1 rounded-md text-xs font-medium border ${testResults['SMTP'].status === 'connected'
-                                        ? 'bg-green-50 text-green-700 border-green-100'
-                                        : 'bg-red-50 text-red-700 border-red-100'
+                                    ? 'bg-green-50 text-green-700 border-green-100'
+                                    : 'bg-red-50 text-red-700 border-red-100'
                                     }`}>
                                     {testResults['SMTP'].status === 'connected' ? 'Connected' : 'Error'}
                                 </span>
                             ) : (
-                                <span className="px-2 py-1 rounded-md bg-gray-50 text-gray-600 text-xs font-medium border border-gray-200">
-                                    Unknown
+                                <span className="px-2 py-1 rounded-md bg-rose-50 text-rose-600 text-xs font-semibold border border-rose-100 flex items-center gap-1.5 transition-all">
+                                    <span className="w-1.5 h-1.5 rounded-full bg-rose-500" /> Disconnected
                                 </span>
                             )}
                         </div>

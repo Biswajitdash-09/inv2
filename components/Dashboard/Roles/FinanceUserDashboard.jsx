@@ -124,7 +124,7 @@ const FinanceUserDashboard = ({ invoices, onUploadComplete, statusFilter = 'ALL'
                                                     </div>
                                                 </td>
                                                 <td className="font-semibold text-slate-700">
-                                                    {inv.amount ? `₹${Number(inv.amount).toLocaleString()}` : '-'}
+                                                    {inv.amount ? `₹ ${Number(inv.amount).toLocaleString()}` : '-'}
                                                 </td>
                                                 <td className="text-slate-500 text-xs">
                                                     {inv.date || new Date().toLocaleDateString()}

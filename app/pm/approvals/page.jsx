@@ -303,7 +303,7 @@ function PMApprovalsPageContent() {
                                     {actionModal.invoice.invoiceNumber || actionModal.invoice.id.slice(0, 8)}
                                     <br />
                                     <span className="text-white font-medium">
-                                        ₹{actionModal.invoice.amount?.toLocaleString()} - {actionModal.invoice.vendorCode && <span className="font-mono text-purple-300">{actionModal.invoice.vendorCode}</span>} {actionModal.invoice.vendorCode && '· '}{actionModal.invoice.vendorName}
+                                        ₹ {actionModal.invoice.amount?.toLocaleString()} - {actionModal.invoice.vendorCode && <span className="font-mono text-purple-300">{actionModal.invoice.vendorCode}</span>} {actionModal.invoice.vendorCode && '· '}{actionModal.invoice.vendorName}
                                     </span>
                                 </p>
                                 <div className="mb-6">

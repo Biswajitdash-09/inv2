@@ -75,7 +75,7 @@ const AnalyticsView = ({ user }) => {
                         </div>
                         <div>
                             <p className="text-xs text-gray-500 font-semibold uppercase tracking-wider">Processing Cost</p>
-                            <h3 className="text-2xl font-bold text-gray-800">₹{data?.metrics.savingsEstimated || 450}</h3>
+                            <h3 className="text-2xl font-bold text-gray-800">₹ {data?.metrics.savingsEstimated || 450}</h3>
                             <p className="text-[10px] text-gray-400 font-bold">Reduction: 77% (PRD)</p>
                         </div>
                     </div>

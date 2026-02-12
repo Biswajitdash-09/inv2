@@ -25,7 +25,7 @@ export default function LandingPage() {
         </div>
         <div className="flex gap-4">
           {!isLoading && user ? (
-            <Link href={isVendor ? "/vendors" : "/dashboard"}>
+            <Link href="/dashboard">
               <button className="btn btn-primary btn-sm md:btn-md rounded-full px-6 text-white shadow-lg shadow-primary/20">{isVendor ? "Vendor Hub" : "Dashboard"}</button>
             </Link>
           ) : (
@@ -67,7 +67,7 @@ export default function LandingPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-            <Link href={!isLoading && user ? (isVendor ? "/vendors" : "/dashboard") : "/signup"}>
+            <Link href={!isLoading && user ? "/dashboard" : "/signup"}>
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}

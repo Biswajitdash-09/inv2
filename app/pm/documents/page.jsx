@@ -15,7 +15,7 @@ const formatBillingMonth = (monthValue) => {
     if (!monthValue) return monthValue;
     const [year, month] = monthValue.split('-');
     if (!year || !month) return monthValue;
-    
+
     const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     return `${monthNames[parseInt(month)]} ${year}`;
 };
@@ -101,6 +101,12 @@ export default function PMDocumentsPage() {
         e.preventDefault();
         if (!uploadData.file || !uploadData.type) return;
 
+        // Require Project ID for all uploads to ensure they are linked
+        if (!uploadData.projectId) {
+            setError("Please select a valid Project for this document.");
+            return;
+        }
+
         try {
             // Start upload process
             setUploadingAttachment(true);
@@ -135,7 +141,7 @@ export default function PMDocumentsPage() {
                 body: formData
             });
             const data = await res.json();
-            
+
             if (!res.ok) {
                 // Handle specific error messages from backend
                 if (data.details) {
@@ -155,7 +161,7 @@ export default function PMDocumentsPage() {
             setSuccess(data.validation?.isValid
                 ? `Document "${uploadData.file.name}" uploaded and validated successfully!`
                 : `Document "${uploadData.file.name}" uploaded - pending review`);
-            
+
             // Close modal and reset form
             setShowUploadModal(false);
             setUploadData({
@@ -444,7 +450,7 @@ export default function PMDocumentsPage() {
                                     {/* File Input Area */}
                                     <div className="relative">
                                         <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">2. Attachment</label>
-                                        
+
                                         {/* Upload loading state */}
                                         {uploadingAttachment ? (
                                             <div className="relative border-2 border-dashed border-purple-400 bg-purple-50/50 rounded-2xl p-8 transition-all flex flex-col items-center justify-center gap-3">
@@ -515,6 +521,28 @@ export default function PMDocumentsPage() {
 
                                     {/* Project & Details Grid - Updated */}
                                     <div className="grid grid-cols-1 gap-6">
+                                        <div>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Select Project</label>
+                                            <select
+                                                value={uploadData.projectId}
+                                                onChange={(e) => {
+                                                    const pid = e.target.value;
+                                                    const proj = projects.find(p => p.id === pid);
+                                                    setUploadData({
+                                                        ...uploadData,
+                                                        projectId: pid,
+                                                        projectName: proj ? proj.name : ''
+                                                    });
+                                                }}
+                                                className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm appearance-none"
+                                            >
+                                                <option value="">-- Select Project associated with this document --</option>
+                                                {projects.map(p => (
+                                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+
                                         <div>
                                             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Billing cycle (Date)</label>
                                             <input

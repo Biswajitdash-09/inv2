@@ -181,7 +181,7 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
                                             </div>
                                             <div className="text-right shrink-0">
                                                 <p className="text-sm font-semibold text-gray-800">
-                                                    {inv.amount != null ? `₹${Number(inv.amount).toLocaleString()}` : "—"}
+                                                    {inv.amount != null ? `₹ ${Number(inv.amount).toLocaleString()}` : "—"}
                                                 </p>
                                                 <p className="text-xs text-slate-400">
                                                     {inv.receivedAt ? new Date(inv.receivedAt).toLocaleDateString() : "—"}
@@ -238,7 +238,9 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
                         </div>
                         <div className="flex justify-between items-center text-sm py-1">
                             <span className="text-slate-600">OCR Engine</span>
-                            <span className="font-mono bg-slate-100 px-2.5 py-1 rounded-lg text-slate-700 text-xs">Azure Form Recognizer</span>
+                            <span className="flex items-center gap-1.5 text-rose-600 font-medium text-xs">
+                                <span className="w-2 h-2 rounded-full bg-rose-500" /> Disconnected
+                            </span>
                         </div>
                         <div className="flex justify-between items-center text-sm py-1">
                             <span className="text-slate-600">Audit Retention</span>
@@ -246,8 +248,8 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
                         </div>
                         <div className="flex justify-between items-center text-sm py-1">
                             <span className="text-slate-600">SAP Integration</span>
-                            <span className="flex items-center gap-1.5 text-emerald-600 font-medium text-xs">
-                                <span className="w-2 h-2 rounded-full bg-emerald-500" /> Connected
+                            <span className="flex items-center gap-1.5 text-rose-600 font-medium text-xs">
+                                <span className="w-2 h-2 rounded-full bg-rose-500" /> Disconnected
                             </span>
                         </div>
                     </div>

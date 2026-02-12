@@ -90,12 +90,12 @@ export default function LoginPage() {
             if (res.ok && data.user) {
                 // Update AuthContext state immediately with the user data
                 setAuth(data.user);
-                
+
                 // Log OTP verification success
                 console.log(`[OTP Login] Verification successful for user: ${data.user.email}, role: ${data.user.role}`);
-                
+
                 // Success! Redirect based on role
-                router.push(data.user?.role === ROLES.VENDOR ? "/vendors" : "/dashboard");
+                router.push("/dashboard");
             } else {
                 // Log OTP verification failure for debugging
                 console.error(`[OTP Login] Verification failed:`, data);

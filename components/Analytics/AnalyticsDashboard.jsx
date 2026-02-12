@@ -199,7 +199,7 @@ const AnalyticsDashboard = () => {
               </h3>
             </div>
             <div className="p-3 bg-blue-500/10 rounded-xl text-blue-600">
-              <Icon name="DollarSign" size={24} />
+              <Icon name="IndianRupee" size={24} />
             </div>
           </div>
           <div className="mt-4 flex items-center text-xs font-bold text-success bg-success/10 w-fit px-2 py-1 rounded">
@@ -388,7 +388,7 @@ const AnalyticsDashboard = () => {
                       </div>
                     </td>
                     <td className="py-5 font-mono">{vendor.count}</td>
-                    <td className="py-5 font-mono">₹{vendor.total.toLocaleString()}</td>
+                    <td className="py-5 font-mono">₹ {vendor.total.toLocaleString()}</td>
                     <td className="py-5">
                       <div className="flex items-center gap-2">
                         <div className="flex-1 max-w-[100px] h-1.5 bg-slate-100 rounded-full overflow-hidden">

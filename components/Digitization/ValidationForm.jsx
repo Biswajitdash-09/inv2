@@ -212,7 +212,7 @@ const ValidationForm = ({ invoice: initialInvoice }) => {
           <div className="p-6 sm:p-8 bg-slate-50/50 rounded-[2.5rem] border border-slate-200/60 shadow-inner group/financial transition-all hover:bg-white hover:shadow-xl hover:shadow-slate-200/20">
             <div className="flex items-center gap-3 text-[11px] font-black uppercase tracking-[0.25em] text-emerald-600 mb-8 px-2">
               <div className="p-1.5 bg-emerald-50 rounded-lg">
-                <Icon name="DollarSign" size={14} />
+                <Icon name="IndianRupee" size={14} />
               </div>
               Financial Context
             </div>

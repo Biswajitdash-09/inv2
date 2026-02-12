@@ -238,6 +238,7 @@ export default function FinanceApprovalQueuePage() {
                 })}
             </div>
 
+<<<<<<< HEAD
             {/* Invoice Cards */}
             <div className="space-y-3">
                 {loading ? (
@@ -373,6 +374,81 @@ export default function FinanceApprovalQueuePage() {
                                     <div className="flex items-center gap-2">
                                         {isPending ? (
                                             <>
+=======
+                {/* Invoice Table */}
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 overflow-hidden"
+                >
+                    {loading ? (
+                        <div className="p-12 text-center text-gray-400">Loading invoices...</div>
+                    ) : (
+                        <table className="w-full">
+                            <thead className="bg-white/5">
+                                <tr>
+                                    <th className="px-4 py-4 text-left">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedIds.length === invoices.length && invoices.length > 0}
+                                            onChange={toggleSelectAll}
+                                            className="rounded border-white/30"
+                                        />
+                                    </th>
+                                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-300 uppercase">Invoice #</th>
+                                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-300 uppercase">Vendor</th>
+                                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-300 uppercase">Amount</th>
+                                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-300 uppercase">PM Approval</th>
+                                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-300 uppercase">HIL Status</th>
+                                    <th className="px-4 py-4 text-left text-xs font-semibold text-gray-300 uppercase">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-white/10">
+                                {invoices.map((invoice, idx) => (
+                                    <motion.tr
+                                        key={invoice.id}
+                                        initial={{ opacity: 0, x: -20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        transition={{ delay: idx * 0.03 }}
+                                        className="hover:bg-white/5 transition-colors"
+                                    >
+                                        <td className="px-4 py-4">
+                                            <input
+                                                type="checkbox"
+                                                checked={selectedIds.includes(invoice.id)}
+                                                onChange={() => toggleSelect(invoice.id)}
+                                                className="rounded border-white/30"
+                                            />
+                                        </td>
+                                        <td className="px-4 py-4 text-white font-medium">
+                                            {invoice.invoiceNumber || invoice.id.slice(0, 8)}
+                                        </td>
+                                        <td className="px-4 py-4 text-gray-300">
+                                            {invoice.vendorCode && <span className="font-mono text-purple-300 mr-1">{invoice.vendorCode}</span>}
+                                            {invoice.vendorName}
+                                        </td>
+                                        <td className="px-4 py-4 text-white font-medium">
+                                            ₹ {invoice.amount?.toLocaleString() || '-'}
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${invoice.pmApproval?.status === 'APPROVED' ? 'bg-green-500/20 text-green-300' :
+                                                invoice.pmApproval?.status === 'REJECTED' ? 'bg-red-500/20 text-red-300' :
+                                                    'bg-gray-500/20 text-gray-300'
+                                                }`}>
+                                                {invoice.pmApproval?.status || 'N/A'}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <span className={`px-2 py-1 rounded-full text-xs font-medium ${invoice.hilReview?.status === 'REVIEWED' ? 'bg-green-500/20 text-green-300' :
+                                                invoice.hilReview?.status === 'FLAGGED' ? 'bg-red-500/20 text-red-300' :
+                                                    'bg-yellow-500/20 text-yellow-300'
+                                                }`}>
+                                                {invoice.hilReview?.status || 'PENDING'}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-4">
+                                            <div className="flex gap-2">
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
                                                 <button
                                                     onClick={() => setActionModal({ invoice: inv, type: 'approve' })}
                                                     disabled={processingId === inv.id}
@@ -422,6 +498,7 @@ export default function FinanceApprovalQueuePage() {
                             onClick={(e) => e.stopPropagation()}
                             className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden"
                         >
+<<<<<<< HEAD
                             {/* Header */}
                             <div className="p-5 border-b border-slate-100 bg-emerald-50/50">
                                 <div className="flex items-center gap-3">
@@ -472,6 +549,27 @@ export default function FinanceApprovalQueuePage() {
                                 {/* Notes */}
                                 <div>
                                     <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Notes (optional)</label>
+=======
+                            <motion.div
+                                initial={{ scale: 0.9, opacity: 0 }}
+                                animate={{ scale: 1, opacity: 1 }}
+                                exit={{ scale: 0.9, opacity: 0 }}
+                                onClick={(e) => e.stopPropagation()}
+                                className="bg-slate-800/90 backdrop-blur-xl rounded-2xl p-8 w-full max-w-md border border-white/20"
+                            >
+                                <h2 className="text-xl font-bold text-white mb-4">
+                                    {approvalModal.action === 'APPROVE' ? 'Approve' : 'Reject'} Invoice?
+                                </h2>
+                                <p className="text-gray-300 mb-4">
+                                    Invoice #{approvalModal.invoice.invoiceNumber || approvalModal.invoice.id.slice(0, 8)}
+                                    <br />
+                                    <span className="text-white font-medium">
+                                        ₹ {approvalModal.invoice.amount?.toLocaleString()} - {approvalModal.invoice.vendorCode && <span className="font-mono text-purple-300">{approvalModal.invoice.vendorCode}</span>} {approvalModal.invoice.vendorCode && '· '}{approvalModal.invoice.vendorName}
+                                    </span>
+                                </p>
+                                <div className="mb-6">
+                                    <label className="block text-sm text-gray-400 mb-1">Notes (optional)</label>
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
                                     <textarea
                                         value={notes}
                                         onChange={(e) => setNotes(e.target.value)}

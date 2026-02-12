@@ -113,7 +113,7 @@ const VendorPortal = ({ onUploadClick }) => {
                     { label: 'Submissions', value: stats.total, icon: 'FileText', color: 'teal' },
                     { label: 'Paid Items', value: stats.paid, icon: 'CheckCircle', color: 'emerald' },
                     { label: 'Pending Logic', value: stats.pending, icon: 'Clock', color: 'amber' },
-                    { label: 'Gross Volume', value: `₹${stats.amount.toLocaleString()}`, icon: 'BarChart3', color: 'blue' }
+                    { label: 'Gross Volume', value: `₹ ${stats.amount.toLocaleString()}`, icon: 'BarChart3', color: 'blue' }
                 ].map((stat, i) => (
                     <motion.div
                         key={stat.label}
@@ -188,7 +188,7 @@ const VendorPortal = ({ onUploadClick }) => {
                                                 {inv.date || new Date(inv.receivedAt).toLocaleDateString()}
                                             </td>
                                             <td className="px-6 py-6 font-black text-slate-800 text-sm">
-                                                ₹{parseFloat(inv.amount || inv.totalAmount || 0).toLocaleString()}
+                                                ₹ {parseFloat(inv.amount || inv.totalAmount || 0).toLocaleString()}
                                             </td>
                                             <td className="px-6 py-6 text-center">
                                                 <span className={clsx(

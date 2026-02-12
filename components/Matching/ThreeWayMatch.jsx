@@ -270,7 +270,7 @@ const ThreeWayMatch = ({ invoice: initialInvoice }) => {
 
                     <div className="md:col-span-2 text-center">
                       <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Unit Price</p>
-                      <p className="text-sm font-black text-slate-800">₹{invItem.unitPrice.toLocaleString()}</p>
+                      <p className="text-sm font-black text-slate-800">₹ {invItem.unitPrice.toLocaleString()}</p>
                       <p className={`text-[10px] font-bold uppercase mt-1 ${priceMatch ? 'text-emerald-600' : 'text-rose-600'}`}>
                         ±5% Tolerance
                       </p>
@@ -291,7 +291,7 @@ const ThreeWayMatch = ({ invoice: initialInvoice }) => {
                           {rowMatch ? "Verified" : "Discrepancy"}
                         </div>
                         <p className="text-base font-black text-slate-900 tracking-tighter">
-                          ₹{(invItem.quantity * invItem.unitPrice).toLocaleString()}
+                          ₹ {(invItem.quantity * invItem.unitPrice).toLocaleString()}
                         </p>
                       </div>
                     </div>
@@ -374,7 +374,7 @@ const ThreeWayMatch = ({ invoice: initialInvoice }) => {
             <div className="space-y-4">
               <div className="flex justify-between items-center px-2">
                 <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Subtotal</span>
-                <span className="text-sm font-black text-slate-800">₹{safeAmount(invoice.amount).toLocaleString()}</span>
+                <span className="text-sm font-black text-slate-800">₹ {safeAmount(invoice.amount).toLocaleString()}</span>
               </div>
               <div className="flex justify-between items-center px-2">
                 <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Tax (GST 0%)</span>
@@ -383,7 +383,7 @@ const ThreeWayMatch = ({ invoice: initialInvoice }) => {
               <div className="flex justify-between items-center px-2 pt-4 border-t border-slate-100">
                 <span className="text-sm font-black text-slate-900 uppercase tracking-[0.2em]">Grand Total</span>
                 <div className="text-right">
-                  <span className="text-3xl font-black text-slate-900 tracking-tighter">₹{safeAmount(invoice.amount).toLocaleString()}</span>
+                  <span className="text-3xl font-black text-slate-900 tracking-tighter">₹ {safeAmount(invoice.amount).toLocaleString()}</span>
                   <p className="text-[9px] font-black text-indigo-500 uppercase tracking-[0.2em] mt-1">Verified Amount (INR)</p>
                 </div>
               </div>

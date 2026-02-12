@@ -153,7 +153,7 @@ export default function VendorInvoicesPage() {
                                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                                             <div>
                                                 <p className="text-gray-400">Amount</p>
-                                                <p className="text-white font-medium">₹{invoice.amount?.toLocaleString() || '-'}</p>
+                                                <p className="text-white font-medium">₹ {invoice.amount?.toLocaleString() || '-'}</p>
                                             </div>
                                             <div>
                                                 <p className="text-gray-400">Date</p>

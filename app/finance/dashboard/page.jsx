@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
+<<<<<<< HEAD
 import { useAuth } from '@/context/AuthContext';
 
 const fadeUp = {
@@ -31,6 +32,13 @@ const getStatus = (s) => STATUS_STYLES[s] || { bg: 'bg-slate-100', text: 'text-s
 export default function FinanceDashboardPage() {
     const { user } = useAuth();
     const [allInvoices, setAllInvoices] = useState([]);
+=======
+import { getFinanceDashboardData } from '@/lib/api';
+
+export default function FinanceDashboardPage() {
+    const [invoices, setInvoices] = useState([]);
+    const [stats, setStats] = useState({ pendingApprovals: 0, mtdSpend: 0, weeklyProcessedCount: 0 });
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [tableOpen, setTableOpen] = useState(true);
@@ -40,10 +48,52 @@ export default function FinanceDashboardPage() {
     const fetchInvoices = async () => {
         try {
             setLoading(true);
+<<<<<<< HEAD
             const res = await fetch(`/api/invoices?t=${Date.now()}`);
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setAllInvoices(Array.isArray(data) ? data : (data.invoices || []));
+=======
+            const data = await getFinanceDashboardData();
+            
+            // Finance API returns { stats: {...}, invoices: [...] }
+            const invoiceList = Array.isArray(data) ? data : (data?.invoices || []);
+            setInvoices(invoiceList);
+            
+            // Use backend-calculated stats when available
+            if (data?.stats) {
+                setStats({
+                    pendingApprovals: data.stats.pendingApprovals || 0,
+                    mtdSpend: data.stats.mtdSpend || 0,
+                    weeklyProcessedCount: data.stats.weeklyProcessedCount || 0
+                });
+            } else {
+                // Fallback to frontend calculation if backend stats not available
+                const fallbackPendingApprovals = invoiceList.filter(inv =>
+                    inv.status === 'PENDING' ||
+                    inv.status === 'VERIFIED' ||
+                    (inv.pmApproval?.status === 'APPROVED' && inv.financeApproval?.status !== 'APPROVED')
+                ).length;
+
+                const fallbackMTDSpend = invoiceList.filter(inv => {
+                    const date = new Date(inv.date);
+                    const now = new Date();
+                    return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
+                }).reduce((sum, inv) => sum + Number(inv.amount || 0), 0);
+
+                const weekAgo = new Date();
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                const fallbackWeeklyProcessed = invoiceList.filter(inv =>
+                    new Date(inv.created_at) > weekAgo && inv.status !== 'REJECTED'
+                ).length;
+
+                setStats({
+                    pendingApprovals: fallbackPendingApprovals,
+                    mtdSpend: fallbackMTDSpend,
+                    weeklyProcessedCount: fallbackWeeklyProcessed
+                });
+            }
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
         } catch (err) {
             setError(err.message);
         } finally {
@@ -51,6 +101,7 @@ export default function FinanceDashboardPage() {
         }
     };
 
+<<<<<<< HEAD
     // Filter invoices assigned to this finance user
     const invoices = useMemo(() => {
         if (!user) return allInvoices;
@@ -83,6 +134,9 @@ export default function FinanceDashboardPage() {
         inv.status === 'PM_APPROVED' || inv.status === 'PAID' || inv.status === 'Pending PM Approval'
     ).length;
 
+=======
+    // Sort invoices by date descending for recent activity
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
     const recentInvoices = [...invoices]
         .sort((a, b) => new Date(b.created_at || b.date) - new Date(a.created_at || a.date))
         .slice(0, 10);
@@ -156,6 +210,7 @@ export default function FinanceDashboardPage() {
                         animate="visible"
                         variants={fadeUp}
                     >
+<<<<<<< HEAD
                         <Link href={card.link || '#'}>
                             <div className={`relative rounded-2xl p-4 sm:p-5 bg-white border ${card.border} shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group`}>
                                 <div className="flex items-start justify-between mb-3">
@@ -174,6 +229,52 @@ export default function FinanceDashboardPage() {
                                 {card.urgent && (
                                     <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
                                 )}
+=======
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Pending Approvals</p>
+                                <p className="text-4xl font-bold text-white mt-2">{stats.pendingApprovals}</p>
+                            </div>
+                            <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center">
+                                <Icon name="Clock" size={24} className="text-purple-300" />
+                            </div>
+                        </div>
+                        <p className="text-gray-400 text-sm">Invoices awaiting finance review</p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.2 }}
+                        className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:bg-white/15 transition-all cursor-pointer"
+                        onClick={() => window.location.href = '/analytics'}
+                    >
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">MTD Spend</p>
+                                <p className="text-4xl font-bold text-white mt-2">
+                                    ₹ {stats.mtdSpend.toLocaleString()}
+                                </p>
+                            </div>
+                            <div className="w-12 h-12 rounded-xl bg-green-500/20 flex items-center justify-center">
+                                <Icon name="IndianRupee" size={24} className="text-green-300" />
+                            </div>
+                        </div>
+                        <p className="text-gray-400 text-sm">Month-to-date total spend</p>
+                    </motion.div>
+
+                    <motion.div
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: 0.3 }}
+                        className="bg-white/10 backdrop-blur-xl rounded-2xl border border-white/10 p-6 hover:bg-white/15 transition-all cursor-pointer"
+                        onClick={() => window.location.href = '/digitization'}
+                    >
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Processed (WoW)</p>
+                                <p className="text-4xl font-bold text-white mt-2">{stats.weeklyProcessedCount}</p>
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
                             </div>
                         </Link>
                     </motion.div>
@@ -416,11 +517,42 @@ export default function FinanceDashboardPage() {
                                                         <div className={`h-full rounded-full ${sc.dot} transition-all duration-500`} style={{ width: `${pct}%` }} />
                                                     </div>
                                                 </div>
+<<<<<<< HEAD
                                             );
                                         });
                                 })()}
                                 {invoices.length === 0 && !loading && (
                                     <p className="text-xs text-slate-300 text-center py-4">No data yet</p>
+=======
+                                            </td>
+                                            <td className="px-6 py-4 text-white font-medium">
+                                                ₹ {invoice.amount?.toLocaleString() || '-'}
+                                            </td>
+                                            <td className="px-6 py-4 text-gray-400">
+                                                {invoice.date || '-'}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${getStatusColor(invoice.status)}`}>
+                                                    {invoice.status}
+                                                </span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className={`px-3 py-1 rounded-full text-xs font-medium ${invoice.pmApproval?.status === 'APPROVED' ? 'bg-green-500/20 text-green-300' :
+                                                    invoice.pmApproval?.status === 'REJECTED' ? 'bg-red-500/20 text-red-300' :
+                                                        'bg-gray-500/20 text-gray-300'
+                                                    }`}>
+                                                    {invoice.pmApproval?.status || 'N/A'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    ))
+                                ) : (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-gray-400">
+                                            No recent activity found
+                                        </td>
+                                    </tr>
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
                                 )}
                             </div>
                         </div>

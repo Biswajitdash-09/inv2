@@ -176,7 +176,7 @@ export default function HILReviewPage() {
                                             </div>
                                             <div>
                                                 <p className="text-gray-400">Amount</p>
-                                                <p className="text-white">₹{invoice.amount?.toLocaleString() || '-'}</p>
+                                                <p className="text-white">₹ {invoice.amount?.toLocaleString() || '-'}</p>
                                             </div>
                                             <div>
                                                 <p className="text-gray-400">Date</p>

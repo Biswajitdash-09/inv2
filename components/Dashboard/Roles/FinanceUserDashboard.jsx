@@ -101,6 +101,7 @@ const FinanceUserDashboard = ({ invoices, onUploadComplete, statusFilter = 'ALL'
     return (
         <div className="space-y-6 sm:space-y-8 pb-10 px-2 sm:px-4 lg:px-0">
 
+<<<<<<< HEAD
             {/* ── Stat Cards ── */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-5">
                 {statCards.map((card, i) => (
@@ -118,6 +119,114 @@ const FinanceUserDashboard = ({ invoices, onUploadComplete, statusFilter = 'ALL'
                         {/* Glow */}
                         <div className="absolute top-0 right-0 w-20 h-20 bg-white/10 rounded-full -mt-6 -mr-6 blur-xl" />
                         <div className="absolute bottom-0 left-0 w-14 h-14 bg-white/10 rounded-full -mb-4 -ml-4 blur-lg" />
+=======
+                <Card
+                    className="p-5 border-l-4 border-l-info cursor-pointer transform hover:-translate-y-1 transition-all shadow-sm hover:shadow-md"
+                    onClick={() => router.push('/digitization?status=VALIDATION_REQUIRED')}
+                >
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Manual Entry</p>
+                            <p className="text-lg font-bold text-info mt-0.5">Review Queue</p>
+                            <p className="text-3xl font-black text-slate-800 mt-2">{manualReview}</p>
+                        </div>
+                        <div className="bg-info/10 p-3 rounded-xl">
+                            <Icon name="FileText" className="text-info" size={24} />
+                        </div>
+                    </div>
+                </Card>
+
+                <Card
+                    className="p-5 border-l-4 border-l-success cursor-pointer transform hover:-translate-y-1 transition-all shadow-sm hover:shadow-md"
+                    onClick={() => router.push('/approvals?status=APPROVED')}
+                >
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Finance Ops</p>
+                            <p className="text-lg font-bold text-success mt-0.5">Ready for Payment</p>
+                            <p className="text-3xl font-black text-slate-800 mt-2">{readyForPayment}</p>
+                        </div>
+                        <div className="bg-success/10 p-3 rounded-xl">
+                            <Icon name="CheckCircle" className="text-success" size={24} />
+                        </div>
+                    </div>
+                </Card>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+                {/* Left Column: Recent Activity & Status Tracking */}
+                <div className="xl:col-span-2 space-y-8">
+                    <Card className="overflow-hidden border-0 shadow-lg">
+                        <div className="p-5 border-b border-gray-100 flex justify-between items-center bg-white">
+                            <div>
+                                <h3 className="font-bold text-lg text-slate-800">Recent Invoice Activity</h3>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="table w-full">
+                                <thead>
+                                    <tr className="bg-slate-50 text-slate-500 text-xs uppercase tracking-wider">
+                                        <th className="font-semibold py-4 pl-6">Invoice / Vendor</th>
+                                        <th className="font-semibold py-4">Amount</th>
+                                        <th className="font-semibold py-4">Date</th>
+                                        <th className="font-semibold py-4">Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="text-sm">
+                                    {recentInvoices.length > 0 ? (
+                                        recentInvoices.map((inv) => (
+                                            <tr key={inv.id} className="border-b border-gray-50 hover:bg-slate-50/50 transition-colors">
+                                                <td className="pl-6 py-4">
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="w-10 h-10 rounded-lg bg-indigo-50 flex items-center justify-center font-bold text-indigo-600 text-xs">
+                                                            {inv.vendorName?.substring(0, 2).toUpperCase() || 'NA'}
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-bold text-slate-800">{inv.invoiceNumber || "Processing..."}</div>
+                                                            <div className="text-xs text-slate-500">{inv.vendorCode && <span className="font-mono text-indigo-600 font-medium">{inv.vendorCode}</span>}{inv.vendorCode && ' · '}{inv.vendorName || "Unknown Vendor"}</div>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="font-semibold text-slate-700">
+                                                    {inv.amount ? `₹ ${Number(inv.amount).toLocaleString()}` : '-'}
+                                                </td>
+                                                <td className="text-slate-500 text-xs">
+                                                    {inv.date || new Date().toLocaleDateString()}
+                                                </td>
+                                                <td>
+                                                    <span className={`badge badge-sm border-0 font-bold py-3 px-3 uppercase text-[10px] tracking-wide
+                                                        ${inv.status === 'PAID' || inv.status === 'APPROVED' || inv.status === 'VERIFIED' ? 'bg-success/10 text-success' :
+                                                            inv.status === 'REJECTED' ? 'bg-error/10 text-error' :
+                                                                inv.status === 'MATCH_DISCREPANCY' ? 'bg-warning/10 text-warning' :
+                                                                    inv.status === 'VALIDATION_REQUIRED' ? 'bg-info/10 text-info' :
+                                                                        inv.status === 'PENDING_APPROVAL' ? 'bg-warning/10 text-warning' :
+                                                                            'bg-slate-100 text-slate-500'
+                                                        }`}>
+                                                        {inv.status.replace('_', ' ')}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        ))
+                                    ) : (
+                                        <tr>
+                                            <td colSpan="4" className="text-center py-10 text-slate-400 italic">
+                                                No recent activity found. Upload an invoice to get started.
+                                            </td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Right Column: Upload Queue & System Status */}
+                <div className="space-y-6">
+                    <Card className="h-auto border-0 shadow-2xl bg-linear-to-br from-indigo-600 via-indigo-700 to-purple-800 text-white overflow-hidden relative shadow-indigo-200">
+                        {/* Abstract background pattern */}
+                        <div className="absolute top-0 right-0 -mt-4 -mr-4 w-32 h-32 bg-white/10 rounded-full blur-2xl"></div>
+                        <div className="absolute bottom-0 left-0 -mb-4 -ml-4 w-24 h-24 bg-white/10 rounded-full blur-2xl"></div>
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
 
                         <div className="relative z-10">
                             <div className="flex items-center justify-between mb-2 sm:mb-3">

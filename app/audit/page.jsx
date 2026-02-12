@@ -53,6 +53,7 @@ export default function AuditLogPage() {
         setCurrentPage(newPage);
     };
 
+
     const actionColors = {
         UPDATE: "bg-blue-50 text-blue-700 border-blue-100",
         CREATE: "bg-green-50 text-green-700 border-green-100",
@@ -106,7 +107,7 @@ export default function AuditLogPage() {
 
             // Generate CSV content
             const headers = ["Timestamp", "User Name", "User Type", "Action Category", "Action Type", "Details / Description"];
-            
+
             const csvRows = [
                 // Add header row
                 headers.map(escapeCSV).join(","),
@@ -288,11 +289,10 @@ export default function AuditLogPage() {
                                     <button
                                         key={page}
                                         onClick={() => handlePageChange(page)}
-                                        className={`w-10 h-10 rounded-xl font-medium text-sm transition-all ${
-                                            currentPage === page
+                                        className={`w-10 h-10 rounded-xl font-medium text-sm transition-all ${currentPage === page
                                                 ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
                                                 : 'bg-white border border-gray-200 text-gray-600 hover:bg-slate-50'
-                                        }`}
+                                            }`}
                                     >
                                         {page}
                                     </button>

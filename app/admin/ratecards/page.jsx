@@ -283,7 +283,7 @@ export default function RateCardManagementPage() {
                                                 {card.rates.map((rate, i) => (
                                                     <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-slate-50/50 border border-slate-100/50">
                                                         <span className="text-xs font-bold text-slate-600 truncate mr-2" title={rate.description}>{rate.description}</span>
-                                                        <span className="text-xs font-black text-purple-600 shrink-0">₹{rate.rate}/{rate.unit}</span>
+                                                        <span className="text-xs font-black text-purple-600 shrink-0">₹ {rate.rate}/{rate.unit}</span>
                                                     </div>
                                                 ))}
                                             </div>

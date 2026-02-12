@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
 <<<<<<< HEAD
+<<<<<<< HEAD
 import { useAuth } from '@/context/AuthContext';
 
 const fadeUp = {
@@ -33,11 +34,16 @@ export default function FinanceDashboardPage() {
     const { user } = useAuth();
     const [allInvoices, setAllInvoices] = useState([]);
 =======
+=======
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
 import { getFinanceDashboardData } from '@/lib/api';
 
 export default function FinanceDashboardPage() {
     const [invoices, setInvoices] = useState([]);
     const [stats, setStats] = useState({ pendingApprovals: 0, mtdSpend: 0, weeklyProcessedCount: 0 });
+<<<<<<< HEAD
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
+=======
 >>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -49,11 +55,14 @@ export default function FinanceDashboardPage() {
         try {
             setLoading(true);
 <<<<<<< HEAD
+<<<<<<< HEAD
             const res = await fetch(`/api/invoices?t=${Date.now()}`);
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setAllInvoices(Array.isArray(data) ? data : (data.invoices || []));
 =======
+=======
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
             const data = await getFinanceDashboardData();
             
             // Finance API returns { stats: {...}, invoices: [...] }
@@ -93,6 +102,9 @@ export default function FinanceDashboardPage() {
                     weeklyProcessedCount: fallbackWeeklyProcessed
                 });
             }
+<<<<<<< HEAD
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
+=======
 >>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
         } catch (err) {
             setError(err.message);
@@ -101,6 +113,7 @@ export default function FinanceDashboardPage() {
         }
     };
 
+<<<<<<< HEAD
 <<<<<<< HEAD
     // Filter invoices assigned to this finance user
     const invoices = useMemo(() => {
@@ -135,6 +148,8 @@ export default function FinanceDashboardPage() {
     ).length;
 
 =======
+=======
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
     // Sort invoices by date descending for recent activity
 >>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
     const recentInvoices = [...invoices]
@@ -274,6 +289,9 @@ export default function FinanceDashboardPage() {
                             <div>
                                 <p className="text-gray-400 text-sm font-medium uppercase tracking-wider">Processed (WoW)</p>
                                 <p className="text-4xl font-bold text-white mt-2">{stats.weeklyProcessedCount}</p>
+<<<<<<< HEAD
+>>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
+=======
 >>>>>>> 3fcc019224fb0e31258d3a29d65c7b1439dcb25c
                             </div>
                         </Link>

@@ -5,6 +5,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import Icon from '@/components/Icon';
 import { useAuth } from '@/context/AuthContext';
+import { ROLES, getNormalizedRole } from '@/constants/roles';
+import { useRouter } from 'next/navigation';
 
 const fadeUp = {
     hidden: { opacity: 0, y: 14 },
@@ -29,13 +31,26 @@ const STATUS_STYLES = {
 const getStatus = (s) => STATUS_STYLES[s] || { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400' };
 
 export default function FinanceDashboardPage() {
-    const { user } = useAuth();
+    const router = useRouter();
+    const { user, isLoading: authLoading } = useAuth();
     const [allInvoices, setAllInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [tableOpen, setTableOpen] = useState(true);
 
-    useEffect(() => { fetchInvoices(); }, []);
+    useEffect(() => {
+        const role = getNormalizedRole(user);
+        if (!authLoading && (!user || role !== ROLES.FINANCE_USER && role !== ROLES.ADMIN)) {
+            router.push("/dashboard");
+        }
+    }, [user, authLoading, router]);
+
+    useEffect(() => {
+        const role = getNormalizedRole(user);
+        if (!authLoading && (role === ROLES.FINANCE_USER || role === ROLES.ADMIN)) {
+            fetchInvoices();
+        }
+    }, [user, authLoading]);
 
     const fetchInvoices = async () => {
         try {

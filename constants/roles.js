@@ -5,7 +5,13 @@
  */
 export const getNormalizedRole = (user) => {
     if (!user?.role) return '';
-    const rawRole = user.role.toLowerCase();
+
+    // Handle array of roles if present
+    const roleValue = Array.isArray(user.role) ? user.role[0] : user.role;
+
+    if (typeof roleValue !== 'string') return '';
+
+    const rawRole = roleValue.toLowerCase();
 
     // Project Manager variations
     if (['projectmanager', 'project manager', 'project-manager', 'pm'].includes(rawRole)) {

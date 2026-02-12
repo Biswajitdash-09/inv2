@@ -1,7 +1,7 @@
 "use client";
 
 import { useAuth } from "@/context/AuthContext";
-import { ROLES } from "@/constants/roles";
+import { ROLES, getNormalizedRole } from "@/constants/roles";
 import Icon from "@/components/Icon";
 
 const RoleSwitcher = () => {

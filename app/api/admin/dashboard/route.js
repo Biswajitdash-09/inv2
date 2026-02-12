@@ -15,7 +15,7 @@ export async function GET() {
         }
 
         // Verify user has Admin role
-        const role = user.role;
+        const role = Array.isArray(user.role) ? user.role[0] : user.role;
         if (role !== ROLES.ADMIN) {
             return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
         }

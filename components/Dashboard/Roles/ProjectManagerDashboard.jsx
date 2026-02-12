@@ -6,57 +6,12 @@ import { getAllInvoices } from "@/lib/api";
 import Card from "@/components/ui/Card";
 import Icon from "@/components/Icon";
 import { formatCurrency } from "@/utils/format";
-import { AnimatePresence, motion } from "framer-motion";
 
 export default function ProjectManagerDashboard({ user, invoices = [], filteredInvoices = [], onUploadComplete }) {
     // const [invoices, setInvoices] = useState([]); // REMOVED: Using props
     // const [loading, setLoading] = useState(true); // REMOVED: Managed by parent
 
     // useEffect(() => { ... }, []); // REMOVED: Data fetching lifted to parent
-
-    const [showDelegateModal, setShowDelegateModal] = useState(false);
-    const [delegates, setDelegates] = useState([]);
-    const [selectedDelegate, setSelectedDelegate] = useState('');
-    const [delegationDuration, setDelegationDuration] = useState(7);
-    const [submittingDelegation, setSubmittingDelegation] = useState(false);
-
-    const [currentDelegation, setCurrentDelegation] = useState(null);
-
-    useEffect(() => {
-        if (showDelegateModal) {
-            fetch('/api/pm/delegate')
-                .then(res => res.json())
-                .then(data => {
-                    setDelegates(data.delegates || []);
-                    setCurrentDelegation(data.currentDelegation || null);
-                })
-                .catch(err => console.error("Failed to fetch delegates", err));
-        }
-    }, [showDelegateModal]);
-
-    const handleDelegate = async () => {
-        setSubmittingDelegation(true);
-        try {
-            const res = await fetch('/api/pm/delegate', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    delegateUserId: selectedDelegate,
-                    durationDays: delegationDuration
-                })
-            });
-            if (res.ok) {
-                setShowDelegateModal(false);
-                alert("Authority delegated successfully.");
-                window.location.reload(); // Refresh to update session/UI
-            }
-        } catch (e) {
-            console.error(e);
-            alert("Failed to delegate authority.");
-        } finally {
-            setSubmittingDelegation(false);
-        }
-    };
 
     // Filter Logic for PM - Standardized to SNAKE_CASE to match backend standard
     const pendingApprovals = invoices.filter(inv =>
@@ -246,6 +201,7 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                     </div>
                 </div>
 
+                {/* Project Assets Card */}
                 <div className="group relative p-8 bg-linear-to-br from-indigo-600 to-purple-700 rounded-3xl text-white shadow-2xl shadow-indigo-500/20 overflow-hidden active:scale-[0.98] transition-all">
                     <div className="absolute top-0 right-0 p-8 opacity-10 group-hover:scale-110 group-hover:rotate-12 transition-transform duration-500">
                         <Icon name="Files" size={120} />
@@ -284,109 +240,7 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                         </Link>
                     </div>
                 </div>
-
-                {/* Delegation Card */}
-                <div className="group relative p-8 bg-white border border-slate-200 rounded-3xl shadow-xl shadow-slate-200/40 overflow-hidden active:scale-[0.98] transition-all">
-                    <div className="absolute top-0 right-0 p-8 text-slate-50 group-hover:scale-110 group-hover:-rotate-12 transition-transform duration-500">
-                        <Icon name="Shield" size={120} />
-                    </div>
-                    <div className="relative z-10 flex flex-col h-full justify-between gap-6">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 mb-2">Access Control</p>
-                            <h3 className="text-2xl font-black text-slate-800 tracking-tight leading-tight">Delegation<br />Authority</h3>
-                            <p className="text-slate-500 text-sm mt-3 font-medium max-w-xs leading-relaxed">Temporarily delegate approval authority to ensure zero delays.</p>
-                        </div>
-                        <button
-                            onClick={() => setShowDelegateModal(true)}
-                            className="w-full sm:w-fit px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-slate-900/20 hover:shadow-slate-900/30 transition-all flex items-center justify-center gap-2 group/btn"
-                        >
-                            {user.delegatedTo ? 'Manage Delegation' : 'Delegate Authority'} <Icon name="UserPlus" size={16} className="group-hover/btn:scale-110 transition-transform" />
-                        </button>
-                    </div>
-                </div>
             </div>
-
-            {/* Delegation Modal */}
-            <AnimatePresence>
-                {showDelegateModal && (
-                    <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            exit={{ scale: 0.95, opacity: 0 }}
-                            className="bg-white rounded-3xl p-8 w-full max-w-md shadow-2xl border border-slate-100"
-                        >
-                            <h2 className="text-2xl font-black text-slate-800 tracking-tight mb-2">Delegate Authority</h2>
-                            <p className="text-slate-500 text-sm mb-6">Authorize another user to approve invoices on your behalf temporarily.</p>
-
-                            <div className="space-y-4">
-                                <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Select Delegate</label>
-                                    <select
-                                        value={selectedDelegate}
-                                        onChange={(e) => setSelectedDelegate(e.target.value)}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-100 font-bold text-sm"
-                                    >
-                                        <option value="">Select User...</option>
-                                        {delegates.map(d => (
-                                            <option key={d.id} value={d.id}>{d.name} ({d.email})</option>
-                                        ))}
-                                    </select>
-                                </div>
-
-                                {currentDelegation && (
-                                    <div className="p-4 bg-purple-50 rounded-2xl border border-purple-100">
-                                        <p className="text-[10px] font-black uppercase tracking-widest text-purple-600 mb-1">Current Delegation</p>
-                                        <div className="flex justify-between items-center">
-                                            <div>
-                                                <p className="text-sm font-bold text-slate-700">
-                                                    {delegates.find(d => d.id === currentDelegation.to)?.name || 'Active Delegate'}
-                                                </p>
-                                                <p className="text-[10px] text-slate-400 font-bold uppercase">Expires: {new Date(currentDelegation.expiresAt).toLocaleDateString()}</p>
-                                            </div>
-                                            <button
-                                                onClick={() => { setSelectedDelegate(''); handleDelegate(); }}
-                                                className="px-3 py-1 bg-white text-rose-600 border border-rose-100 rounded-lg text-[9px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all shadow-sm"
-                                            >
-                                                Revoke
-                                            </button>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div>
-                                    <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2">Duration (Days)</label>
-                                    <input
-                                        type="number"
-                                        min="1"
-                                        max="30"
-                                        value={delegationDuration}
-                                        onChange={(e) => setDelegationDuration(e.target.value)}
-                                        className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-slate-100 font-bold text-sm"
-                                    />
-                                </div>
-
-                                <div className="flex gap-3 pt-4 border-t border-slate-100 mt-6">
-                                    <button
-                                        onClick={() => setShowDelegateModal(false)}
-                                        className="flex-1 px-6 py-3 border border-slate-200 text-slate-600 rounded-xl font-black text-xs uppercase tracking-widest hover:bg-slate-50"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        onClick={handleDelegate}
-                                        disabled={!selectedDelegate || submittingDelegation}
-                                        className="flex-1 px-6 py-3 bg-slate-900 text-white rounded-xl font-black text-xs uppercase tracking-widest hover:shadow-lg disabled:opacity-50"
-                                    >
-                                        {submittingDelegation ? 'Processing...' : 'Confirm'}
-                                    </button>
-                                </div>
-                            </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
-
             {/* All Invoices / Recent Activity Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="border-slate-200/60 p-0 overflow-hidden shadow-xl shadow-slate-200/20">
@@ -532,7 +386,9 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                         </table>
                     </div>
                 </Card>
-            </div>
-        </div>
+            </div >
+        </div >
     );
 }
+
+

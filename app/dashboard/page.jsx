@@ -131,13 +131,33 @@ export default function DashboardPage() {
       return true;
     }
 
-    // 3. Project Managers - Specific Statuses Only
+    // 3. Project Managers - specific project access required
     if (isPM) {
-      return ['VERIFIED', 'MATCH_DISCREPANCY', 'PENDING_APPROVAL'].includes(inv.status);
+      // Log for debugging (safe version)
+      // console.log('PM Filtering:', inv.id, inv.project, user.assignedProjects);
+
+      if (invoices.length > 0 && filteredInvoices.length === 0) {
+        console.log('PM Access Debug:', {
+          userProjects: user.assignedProjects,
+          userId: user.id,
+          sampleInvProject: invoices[0]?.project,
+          sampleInvPM: invoices[0]?.assignedPM
+        });
+      }
+
+      const hasProjectAccess = (user.assignedProjects || []).includes(inv.project) || inv.assignedPM === user.id;
+      return hasProjectAccess;
     }
 
     // 4. Vendors / Others - No Access (Pending Vendor Portal)
     return false;
+  });
+
+  console.log('Dashboard Render Debug:', {
+    role: user?.role,
+    totalInvoices: invoices.length,
+    filteredCount: filteredInvoices.length,
+    isPM: isPM
   });
 
   const handleExportCSV = () => {

@@ -65,7 +65,7 @@ export const MENU_PERMISSIONS = {
     'Documents': [ROLES.ADMIN, ROLES.FINANCE_USER, ROLES.PROJECT_MANAGER],
     'Messages': [ROLES.ADMIN, ROLES.PROJECT_MANAGER, ROLES.VENDOR],
     'Analytics': [ROLES.ADMIN, ROLES.FINANCE_USER],
-    'Financial Dashboard': [ROLES.ADMIN],
+    'Financial Dashboard': [ROLES.FINANCE_USER],
     'Finance Approval Queue': [ROLES.FINANCE_USER],
     'Manual Entry': [ROLES.FINANCE_USER],
     'Configuration': [ROLES.ADMIN],

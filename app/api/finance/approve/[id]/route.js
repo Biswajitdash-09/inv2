@@ -65,12 +65,15 @@ export async function POST(request, { params }) {
             );
         }
 
-        // Check that PM has actually approved this invoice
-        if (!invoice.pmApproval || invoice.pmApproval.status !== 'APPROVED') {
-            return NextResponse.json(
-                { error: 'PM approval required before Finance review' },
-                { status: 400 }
-            );
+        // Check that PM has actually approved this invoice (only for standard workflow)
+        // Manual entries or legacy invoices might bypass PM approval
+        if (invoice.status === INVOICE_STATUS.PENDING_FINANCE_REVIEW) {
+            if (!invoice.pmApproval || invoice.pmApproval.status !== 'APPROVED') {
+                return NextResponse.json(
+                    { error: 'PM approval required before Finance review' },
+                    { status: 400 }
+                );
+            }
         }
 
         // Define status transitions for Finance actions for all valid statuses
@@ -175,8 +178,8 @@ export async function POST(request, { params }) {
         });
 
         const notificationType = action === 'APPROVE' ? 'FINANCE_APPROVED' :
-                                action === 'REJECT' ? 'FINANCE_REJECTED' :
-                                'AWAITING_INFO';
+            action === 'REJECT' ? 'FINANCE_REJECTED' :
+                'AWAITING_INFO';
         await sendStatusNotification(updatedInvoice, notificationType).catch((err) =>
             console.error('[Finance Approve] Notification failed:', err)
         );
@@ -186,8 +189,8 @@ export async function POST(request, { params }) {
             message: `Finance ${action.toLowerCase().replace('_', ' ')} invoice successfully`,
             newStatus,
             workflow: action === 'APPROVE' ? 'Invoice approved for payment' :
-                       action === 'REQUEST_INFO' ? 'Awaiting additional information' :
-                       'Workflow ended at Finance stage'
+                action === 'REQUEST_INFO' ? 'Awaiting additional information' :
+                    'Workflow ended at Finance stage'
         });
     } catch (error) {
         console.error('Error processing finance approval:', error);

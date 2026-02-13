@@ -28,6 +28,7 @@ const menuItems = [
   { name: "Configuration", icon: "Settings", path: "/config" },
   { name: "User Management", icon: "Shield", path: "/users" },
   { name: "Audit Logs", icon: "FileText", path: "/audit" },
+  { name: "Rate Cards", icon: "Layers", path: "/admin/ratecards" },
 ];
 
 const Sidebar = ({ mobileOpen, setMobileOpen }) => {
@@ -63,6 +64,11 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
       if (role === ROLES.PROJECT_MANAGER) return { ...item, path: '/pm/dashboard' };
       if (role === ROLES.ADMIN) return { ...item, path: '/admin/dashboard' };
       if (role === ROLES.VENDOR) return { ...item, path: '/vendors' };
+    }
+
+    if (item.name === 'Rate Cards' && user) {
+      const role = getNormalizedRole(user);
+      if (role === ROLES.PROJECT_MANAGER) return { ...item, path: '/pm/rate-cards' };
     }
     return item;
   });

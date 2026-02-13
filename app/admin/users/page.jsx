@@ -31,7 +31,7 @@ export default function UserManagementPage() {
 
     const fetchProjects = async () => {
         try {
-            const res = await fetch('/api/admin/projects');
+            const res = await fetch('/api/admin/projects', { cache: 'no-store' });
             const data = await res.json();
             if (res.ok) setProjects(data.projects || []);
         } catch (err) {
@@ -318,9 +318,9 @@ export default function UserManagementPage() {
                                             onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                                             className="w-full px-4 py-2 bg-white/5 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
                                         >
-{ROLES_LIST.map(role => (
-                                            <option key={role} value={role}>{role}</option>
-                                        ))}
+                                            {ROLES_LIST.map(role => (
+                                                <option key={role} value={role}>{role}</option>
+                                            ))}
                                         </select>
                                     </div>
 
@@ -333,8 +333,8 @@ export default function UserManagementPage() {
                                                         key={project.id}
                                                         onClick={() => toggleProjectAssignment(project.id)}
                                                         className={`px-3 py-1.5 rounded cursor-pointer text-sm transition-colors flex items-center justify-between ${formData.assignedProjects?.includes(project.id)
-                                                                ? 'bg-purple-600 text-white'
-                                                                : 'hover:bg-white/10 text-gray-300'
+                                                            ? 'bg-purple-600 text-white'
+                                                            : 'hover:bg-white/10 text-gray-300'
                                                             }`}
                                                     >
                                                         <span>{project.name}</span>

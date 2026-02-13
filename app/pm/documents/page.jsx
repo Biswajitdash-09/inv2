@@ -70,7 +70,7 @@ export default function PMDocumentsPage() {
             if (filterType) params.append('type', filterType);
             if (filterProject) params.append('projectId', filterProject);
 
-            const res = await fetch(`/api/pm/documents?${params}`);
+            const res = await fetch(`/api/pm/documents?${params}`, { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setDocuments(data.documents || []);
@@ -83,7 +83,7 @@ export default function PMDocumentsPage() {
 
     const fetchProjects = async () => {
         try {
-            const res = await fetch('/api/pm/projects');
+            const res = await fetch('/api/pm/projects', { cache: 'no-store' });
             const data = await res.json();
             if (res.ok) setProjects(data.projects || []);
         } catch (err) {

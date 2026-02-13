@@ -38,7 +38,7 @@ export default function RateCardManagementPage() {
             if (filterVendor) params.append('vendorId', filterVendor);
             if (filterStatus) params.append('status', filterStatus);
 
-            const res = await fetch(`/api/admin/ratecards?${params}`);
+            const res = await fetch(`/api/admin/ratecards?${params}`, { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setRatecards(data.ratecards || []);
@@ -51,7 +51,7 @@ export default function RateCardManagementPage() {
 
     const fetchVendors = async () => {
         try {
-            const res = await fetch('/api/vendors');
+            const res = await fetch('/api/vendors', { cache: 'no-store' });
             const data = await res.json();
             if (res.ok) setVendors(data.vendors || []);
         } catch (err) {

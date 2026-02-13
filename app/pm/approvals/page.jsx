@@ -50,7 +50,7 @@ function PMApprovalsPageContent() {
         try {
             if (!silent) setLoading(true);
             setError(null);
-            const res = await fetch(`/api/invoices?t=${Date.now()}`);
+            const res = await fetch(`/api/invoices?t=${Date.now()}`, { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data?.error || 'Failed to fetch');
             const list = Array.isArray(data) ? data : (data.invoices || []);

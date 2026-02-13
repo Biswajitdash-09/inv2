@@ -78,7 +78,7 @@ export default function FinanceDocumentsPage() {
             if (filterType) params.append('type', filterType);
             if (filterProject) params.append('projectId', filterProject);
 
-            const res = await fetch(`/api/finance/documents?${params}`);
+            const res = await fetch(`/api/finance/documents?${params}`, { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setDocuments(data.documents || []);
@@ -91,7 +91,7 @@ export default function FinanceDocumentsPage() {
 
     const fetchProjects = async () => {
         try {
-            const res = await fetch('/api/finance/projects');
+            const res = await fetch('/api/finance/projects', { cache: 'no-store' });
             const data = await res.json();
             if (res.ok) setProjects(data.projects || []);
         } catch (err) {

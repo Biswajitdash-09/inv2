@@ -37,7 +37,7 @@ export default function PMMessagesPage() {
 
     const fetchRecipients = async () => {
         try {
-            const res = await fetch('/api/pms');
+            const res = await fetch('/api/pms', { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 const pmList = (data.pms || []).map(p => ({ ...p, type: 'PM' }));
@@ -45,7 +45,7 @@ export default function PMMessagesPage() {
                 const role = getNormalizedRole(user);
                 // If PM, also fetch vendors
                 if (role === ROLES.PROJECT_MANAGER || role === ROLES.ADMIN) {
-                    const vRes = await fetch('/api/pm/vendors');
+                    const vRes = await fetch('/api/pm/vendors', { cache: 'no-store' });
                     if (vRes.ok) {
                         const vData = await vRes.json();
                         // API returns array directly
@@ -73,7 +73,7 @@ export default function PMMessagesPage() {
     const fetchMessages = async () => {
         try {
             setLoading(true);
-            const res = await fetch(`/api/pm/messages?type=${activeTab}`);
+            const res = await fetch(`/api/pm/messages?type=${activeTab}`, { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setMessages(data.messages || []);

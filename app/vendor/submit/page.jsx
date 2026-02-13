@@ -38,7 +38,7 @@ export default function VendorSubmitPage() {
 
     const fetchProjects = async () => {
         try {
-            const res = await fetch('/api/projects');
+            const res = await fetch('/api/projects', { cache: 'no-store' });
             const data = await res.json();
             if (res.ok) setProjects(data.projects || []);
         } catch (err) {
@@ -48,7 +48,7 @@ export default function VendorSubmitPage() {
 
     const fetchPMs = async () => {
         try {
-            const res = await fetch('/api/pms');
+            const res = await fetch('/api/pms', { cache: 'no-store' });
             const data = await res.json();
             if (res.ok) setPMs(data.pms || []);
         } catch (err) {
@@ -58,7 +58,7 @@ export default function VendorSubmitPage() {
 
     const fetchFinanceUsers = async () => {
         try {
-            const res = await fetch('/api/finance-users');
+            const res = await fetch('/api/finance-users', { cache: 'no-store' });
             const data = await res.json();
             if (res.ok) setFinanceUsers(data.financeUsers || []);
         } catch (err) {

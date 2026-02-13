@@ -21,7 +21,7 @@ export default function HILReviewPage() {
     const fetchInvoices = async () => {
         try {
             setLoading(true);
-            const res = await fetch(`/api/finance/hil-review?status=${filterStatus}`);
+            const res = await fetch(`/api/finance/hil-review?status=${filterStatus}`, { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setInvoices(Array.isArray(data) ? data : (data.invoices || []));

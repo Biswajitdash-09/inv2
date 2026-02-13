@@ -46,7 +46,7 @@ export default function PMApprovalQueuePage() {
     const fetchInvoices = async () => {
         try {
             setLoading(true);
-            const res = await fetch(`/api/invoices?t=${Date.now()}`);
+            const res = await fetch(`/api/invoices?t=${Date.now()}`, { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setAllInvoices(Array.isArray(data) ? data : (data.invoices || []));
@@ -63,10 +63,10 @@ export default function PMApprovalQueuePage() {
         return allInvoices.filter(inv =>
             (inv.assignedPM === user.id || inv.assignedPM === user.email) &&
             (inv.status === INVOICE_STATUS.PENDING_PM_APPROVAL ||
-             inv.status === INVOICE_STATUS.MORE_INFO_NEEDED ||
-             inv.pmApproval?.status === 'PENDING' ||
-             inv.pmApproval?.status === 'APPROVED' ||
-             inv.pmApproval?.status === 'REJECTED')
+                inv.status === INVOICE_STATUS.MORE_INFO_NEEDED ||
+                inv.pmApproval?.status === 'PENDING' ||
+                inv.pmApproval?.status === 'APPROVED' ||
+                inv.pmApproval?.status === 'REJECTED')
         );
     }, [allInvoices, user]);
 
@@ -201,8 +201,8 @@ export default function PMApprovalQueuePage() {
                             key={tab.key}
                             onClick={() => setActiveTab(tab.key)}
                             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap border ${activeTab === tab.key
-                                    ? `${colors.active} shadow-sm`
-                                    : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 border-transparent'
+                                ? `${colors.active} shadow-sm`
+                                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 border-transparent'
                                 }`}
                         >
                             <Icon name={tab.icon} size={16} />
@@ -371,8 +371,8 @@ export default function PMApprovalQueuePage() {
                                             </>
                                         ) : (
                                             <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg ${inv.pmApproval?.status === 'APPROVED'
-                                                    ? 'bg-emerald-50 text-emerald-600'
-                                                    : 'bg-rose-50 text-rose-600'
+                                                ? 'bg-emerald-50 text-emerald-600'
+                                                : 'bg-rose-50 text-rose-600'
                                                 }`}>
                                                 <Icon name={inv.pmApproval?.status === 'APPROVED' ? 'CheckCircle2' : 'XCircle'} size={12} />
                                                 {inv.pmApproval?.status === 'APPROVED' ? 'Approved by you' : 'Rejected by you'}

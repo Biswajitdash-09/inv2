@@ -53,7 +53,7 @@ const ManualInvoiceEntryPage = () => {
         const fetchPMs = async () => {
             setPmsLoading(true);
             try {
-                const response = await fetch('/api/pms');
+                const response = await fetch('/api/pms', { cache: 'no-store' });
                 if (!response.ok) return;
                 const data = await response.json();
                 setPms(data.pms || []);

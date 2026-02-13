@@ -21,7 +21,7 @@ export default function VendorInvoicesPage() {
             const params = new URLSearchParams();
             if (filterStatus) params.append('status', filterStatus);
 
-            const res = await fetch(`/api/vendor/invoices?${params}`);
+            const res = await fetch(`/api/vendor/invoices?${params}`, { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setInvoices(data.invoices || []);
@@ -196,8 +196,8 @@ export default function VendorInvoicesPage() {
                                                 {invoice.stages.map((stage, i) => (
                                                     <div key={i} className="flex flex-col items-center flex-1">
                                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center text-xl ${stage.completed ? 'bg-green-500/20' :
-                                                                stage.status === 'REJECTED' ? 'bg-red-500/20' :
-                                                                    'bg-white/10'
+                                                            stage.status === 'REJECTED' ? 'bg-red-500/20' :
+                                                                'bg-white/10'
                                                             }`}>
                                                             {getStageIcon(stage)}
                                                         </div>

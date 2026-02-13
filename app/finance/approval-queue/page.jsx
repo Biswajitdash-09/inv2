@@ -53,7 +53,7 @@ export default function FinanceApprovalQueuePage() {
     const fetchInvoices = async () => {
         try {
             setLoading(true);
-            const res = await fetch(`/api/invoices?t=${Date.now()}`);
+            const res = await fetch(`/api/invoices?t=${Date.now()}`, { cache: 'no-store' });
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setAllInvoices(Array.isArray(data) ? data : (data.invoices || []));

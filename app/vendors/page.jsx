@@ -57,7 +57,7 @@ function VendorPortalContent() {
 
     const fetchFinanceUsers = useCallback(async () => {
         try {
-            const res = await fetch('/api/finance-users');
+            const res = await fetch('/api/finance-users', { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 setFinanceUsers(data.financeUsers || []);
@@ -69,7 +69,7 @@ function VendorPortalContent() {
 
     const fetchAllPms = useCallback(async () => {
         try {
-            const res = await fetch('/api/pms');
+            const res = await fetch('/api/pms', { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 setPms(data.pms || []);
@@ -81,7 +81,7 @@ function VendorPortalContent() {
 
     const fetchVendorProfile = useCallback(async () => {
         try {
-            const res = await fetch('/api/vendor/me');
+            const res = await fetch('/api/vendor/me', { cache: 'no-store' });
             if (res.ok) {
                 const data = await res.json();
                 setVendorProfile(data);
@@ -169,7 +169,7 @@ function VendorPortalContent() {
 
             if (isSpreadsheet) {
                 try {
-                    const res = await fetch(`/api/invoices/${id}/preview`);
+                    const res = await fetch(`/api/invoices/${id}/preview`, { cache: 'no-store' });
                     const data = await res.json();
                     if (data.data) {
                         setSpreadsheetData(data.data);

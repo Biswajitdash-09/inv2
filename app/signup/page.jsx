@@ -13,7 +13,7 @@ export default function SignupPage() {
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-    const [role, setRole] = useState(ROLES.FINANCE_USER); // Default role
+    const [role] = useState(ROLES.VENDOR); // Default and only role for public signup
     const [error, setError] = useState("");
 
     const handleSubmit = async (e) => {
@@ -112,17 +112,13 @@ export default function SignupPage() {
                             </div>
                         </div>
 
-                        <div className="space-y-2">
-                            <label className="text-sm font-semibold text-gray-900 ml-1">Role</label>
-                            <select
-                                value={role}
-                                onChange={(e) => setRole(e.target.value)}
-                                className="select w-full bg-white/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-xl transition-all text-gray-900"
-                            >
-                                <option value={ROLES.FINANCE_USER} className="text-gray-900 bg-white">Finance User</option>
-                                <option value={ROLES.PROJECT_MANAGER} className="text-gray-900 bg-white">Project Manager</option>
-                                <option value={ROLES.VENDOR} className="text-gray-900 bg-white">Vendor</option>
-                            </select>
+                        <div className="bg-blue-50/50 rounded-xl p-4 border border-blue-100 text-sm text-blue-700">
+                            <p className="flex gap-2">
+                                <Icon name="Info" size={18} className="shrink-0 mt-0.5" />
+                                <span>
+                                    You will be signed up as a <strong>Vendor</strong>. Project Manager and Finance User accounts require Admin approval.
+                                </span>
+                            </p>
                         </div>
 
                         <button

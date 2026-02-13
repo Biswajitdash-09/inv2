@@ -96,19 +96,29 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Recipient not found' }, { status: 404 });
         }
 
-        // Security Check
+        // Security Check - Role-based messaging (cross-role only)
         const userRole = getNormalizedRole(session.user);
-        if (userRole === ROLES.PROJECT_MANAGER) {
-            // Check if recipient is a Vendor for project-based restriction
-            if (recipient.role === ROLES.VENDOR) {
-                const allowedVendors = await db.getVendorsForProjects(session.user.assignedProjects || []);
-                const isAuthorized = allowedVendors.some(v => v.linkedUserId === recipientId || v.id === recipientId);
+        const recipientRole = getNormalizedRole(recipient);
 
-                if (!isAuthorized) {
-                    return NextResponse.json({ error: 'Not authorized to message this vendor' }, { status: 403 });
-                }
-            }
-            // Allow PM to message other PMs or Admins without project restriction for now
+        // Block same-role messaging
+        if (userRole === recipientRole) {
+            return NextResponse.json({
+                error: 'Cannot send messages to users of the same role. Cross-role messaging only.'
+            }, { status: 403 });
+        }
+
+        // Allow cross-role messaging: PM ↔ Vendor
+        if (userRole === ROLES.PROJECT_MANAGER && recipientRole === ROLES.VENDOR) {
+            // PM can message any vendor (role-based, no project restriction)
+        } else if (userRole === ROLES.VENDOR && recipientRole === ROLES.PROJECT_MANAGER) {
+            // Vendor can message any PM
+        } else if (userRole === ROLES.ADMIN) {
+            // Admin can message anyone (optional: can restrict to vendors only if needed)
+        } else {
+            // Block any other combinations (e.g., Vendor → Vendor, PM → PM)
+            return NextResponse.json({
+                error: 'Not authorized to send message to this recipient'
+            }, { status: 403 });
         }
 
         // Create message

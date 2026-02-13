@@ -42,6 +42,7 @@ export default function FinanceApprovalQueuePage() {
 
     // Document viewer
     const [viewerInvoice, setViewerInvoice] = useState(null);
+    const [spreadsheetData, setSpreadsheetData] = useState(null);
 
     // Filter
     const [activeTab, setActiveTab] = useState('pending'); // pending | approved | rejected | all
@@ -49,6 +50,43 @@ export default function FinanceApprovalQueuePage() {
     useEffect(() => {
         fetchInvoices();
     }, []);
+
+    // Load CSV/XLS/XLSX preview data (like Vendor view)
+    useEffect(() => {
+        if (!viewerInvoice) {
+            setSpreadsheetData(null);
+            return;
+        }
+
+        const fileName = (viewerInvoice.originalName || '').toLowerCase();
+        const isSpreadsheet =
+            fileName.endsWith('.xls') ||
+            fileName.endsWith('.xlsx') ||
+            fileName.endsWith('.csv');
+
+        if (!isSpreadsheet) {
+            setSpreadsheetData(null);
+            return;
+        }
+
+        let cancelled = false;
+
+        (async () => {
+            try {
+                const res = await fetch(`/api/invoices/${viewerInvoice.id}/preview`, { cache: 'no-store' });
+                const data = await res.json();
+                if (!cancelled && Array.isArray(data?.data)) {
+                    setSpreadsheetData(data.data);
+                }
+            } catch (err) {
+                console.error('Failed to fetch spreadsheet preview for finance viewer:', err);
+            }
+        })();
+
+        return () => {
+            cancelled = true;
+        };
+    }, [viewerInvoice]);
 
     const fetchInvoices = async () => {
         try {
@@ -584,7 +622,8 @@ export default function FinanceApprovalQueuePage() {
                             <div className="flex-1 bg-slate-100 relative min-h-[60vh] max-h-[80vh] overflow-y-auto">
                                 <DocumentViewer
                                     invoiceId={viewerInvoice.id}
-                                    originalName={viewerInvoice.originalName}
+                                    fileName={viewerInvoice.originalName}
+                                    spreadsheetData={spreadsheetData}
                                 />
                             </div>
                         </motion.div>

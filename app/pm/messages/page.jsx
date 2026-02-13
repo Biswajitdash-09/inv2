@@ -17,6 +17,7 @@ const MESSAGE_TYPES = [
 
 export default function PMMessagesPage() {
     const { user } = useAuth();
+    const role = user ? getNormalizedRole(user) : null;
     const [messages, setMessages] = useState([]);
     const [pms, setPMs] = useState([]);
     const [recipients, setRecipients] = useState([]);
@@ -37,25 +38,23 @@ export default function PMMessagesPage() {
 
     const fetchRecipients = async () => {
         try {
-            const res = await fetch('/api/pms', { cache: 'no-store' });
+            const role = getNormalizedRole(user);
             let allRecipients = [];
 
+            // Call the dedicated messaging recipients API
+            const res = await fetch('/api/pm/messages/recipients', { cache: 'no-store' });
+            
             if (res.ok) {
                 const data = await res.json();
-                const pmList = (data.pms || [])
-                    .filter(p => p.email !== user?.email) // Filter out self
-                    .map(p => ({ ...p, type: 'PM' }));
-                allRecipients = [...pmList];
-            }
-
-            const role = getNormalizedRole(user);
-            // If PM or Admin, also fetch vendors
-            if (role === ROLES.PROJECT_MANAGER || role === ROLES.ADMIN) {
-                const vRes = await fetch('/api/pm/vendors', { cache: 'no-store' });
-                if (vRes.ok) {
-                    const vData = await vRes.json();
-                    const vendorList = (Array.isArray(vData) ? vData : []).map(v => ({ ...v, type: 'Vendor' }));
-                    allRecipients = [...allRecipients, ...vendorList];
+                const recipientsData = Array.isArray(data) ? data : [];
+                
+                // Set the appropriate type based on logged-in user's role
+                if ([ROLES.PROJECT_MANAGER, ROLES.ADMIN].includes(role)) {
+                    // PM/Admin receive vendors (type: 'Vendor')
+                    allRecipients = recipientsData.map(v => ({ ...v, type: 'Vendor' }));
+                } else if (role === ROLES.VENDOR) {
+                    // Vendor receives PMs (type: 'PM') - already filtered in API
+                    allRecipients = recipientsData.map(p => ({ ...p, type: 'PM' }));
                 }
             }
 
@@ -133,7 +132,11 @@ export default function PMMessagesPage() {
         <div className="pb-10">
             <PageHeader
                 title="Messages"
-                subtitle="Communicate with other project managers"
+                subtitle={
+                    role === ROLES.VENDOR
+                        ? 'Communicate with project managers'
+                        : 'Communicate with vendors'
+                }
                 icon="Mail"
                 accent="purple"
             />
@@ -277,7 +280,11 @@ export default function PMMessagesPage() {
                                 <form onSubmit={handleSendMessage} className="space-y-6">
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div>
-                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">Recipient (Vendor / Contact)</label>
+                                            <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">
+                                                {role === ROLES.VENDOR
+                                                    ? 'Recipient (Project Manager)'
+                                                    : 'Recipient (Vendor / Contact)'}
+                                            </label>
                                             <select
                                                 required
                                                 value={composeData.recipientId}
@@ -285,14 +292,16 @@ export default function PMMessagesPage() {
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm"
                                             >
                                                 <option value="">Select Recipient</option>
-                                                {recipients.filter(r => r.type === 'Vendor').length > 0 && (
+                                                {/* Show Vendors only for PM and Admin users */}
+                                                {[ROLES.PROJECT_MANAGER, ROLES.ADMIN].includes(role) && recipients.filter(r => r.type === 'Vendor').length > 0 && (
                                                     <optgroup label="Vendors">
                                                         {recipients.filter(r => r.type === 'Vendor').map(r => (
                                                             <option key={r.id} value={r.id || r.linkedUserId || r._id}>{r.name}</option>
                                                         ))}
                                                     </optgroup>
                                                 )}
-                                                {recipients.filter(r => r.type === 'PM').length > 0 && (
+                                                {/* Show PMs only for Vendor users */}
+                                                {role === ROLES.VENDOR && recipients.filter(r => r.type === 'PM').length > 0 && (
                                                     <optgroup label="Project Managers">
                                                         {recipients.filter(r => r.type === 'PM').map(r => (
                                                             <option key={r.id} value={r.id}>{r.name}</option>

@@ -53,22 +53,33 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     });
   };
 
-  // Dynamic menu path replacement for Dashboard based on role
-  // This ensures the "Dashboard" link points directly to the user's actual dashboard
-  // and stays highlighted because the path matches
+  // Dynamic menu path replacement based on role
+  // - "Dashboard" points to the role-specific landing page
+  // - "Messages" points to the correct messages area per role
   const dynamicMenuItems = menuItems.map(item => {
-    if (item.name === 'Dashboard' && user) {
+    if (user) {
       const role = getNormalizedRole(user);
-      if (role === ROLES.FINANCE_USER) return { ...item, path: '/finance/dashboard' };
-      if (role === ROLES.PROJECT_MANAGER) return { ...item, path: '/pm/dashboard' };
-      if (role === ROLES.ADMIN) return { ...item, path: '/admin/dashboard' };
-      if (role === ROLES.VENDOR) return { ...item, path: '/vendors' };
+
+      if (item.name === 'Dashboard') {
+        if (role === ROLES.FINANCE_USER) return { ...item, path: '/finance/dashboard' };
+        if (role === ROLES.PROJECT_MANAGER) return { ...item, path: '/pm/dashboard' };
+        if (role === ROLES.ADMIN) return { ...item, path: '/admin/dashboard' };
+        if (role === ROLES.VENDOR) return { ...item, path: '/vendors' };
+      }
+
+      if (item.name === 'Messages') {
+        if (role === ROLES.ADMIN) return { ...item, path: '/admin/messages' };
+        // PM and Vendor already use /pm/messages as shared messaging area
+        if (role === ROLES.PROJECT_MANAGER || role === ROLES.VENDOR) {
+          return { ...item, path: '/pm/messages' };
+        }
+      }
+
+      if (item.name === 'Rate Cards') {
+        if (role === ROLES.PROJECT_MANAGER) return { ...item, path: '/pm/rate-cards' };
+      }
     }
 
-    if (item.name === 'Rate Cards' && user) {
-      const role = getNormalizedRole(user);
-      if (role === ROLES.PROJECT_MANAGER) return { ...item, path: '/pm/rate-cards' };
-    }
     return item;
   });
 

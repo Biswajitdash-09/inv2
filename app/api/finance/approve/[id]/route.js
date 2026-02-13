@@ -50,10 +50,17 @@ export async function POST(request, { params }) {
         const previousStatus = invoice.status;
 
         // Validate workflow state using state machine
-        // Finance can only transition from 'Pending Finance Review'
-        if (invoice.status !== INVOICE_STATUS.PENDING_FINANCE_REVIEW) {
+        // Finance can transition from multiple valid finance-ready statuses
+        const VALID_FINANCE_STATUSES = [
+            INVOICE_STATUS.PENDING_FINANCE_REVIEW,
+            'PM Approved',
+            'APPROVED',
+            'VERIFIED',
+            'RECEIVED'
+        ];
+        if (!VALID_FINANCE_STATUSES.includes(invoice.status)) {
             return NextResponse.json(
-                { error: `Invalid workflow state: Invoice status '${invoice.status}' is not pending Finance review. Finance can only review invoices in status: ${INVOICE_STATUS.PENDING_FINANCE_REVIEW}` },
+                { error: `Invalid workflow state: Invoice status '${invoice.status}' is not pending Finance review. Finance can only review invoices in statuses: ${VALID_FINANCE_STATUSES.join(', ')}` },
                 { status: 400 }
             );
         }
@@ -66,9 +73,29 @@ export async function POST(request, { params }) {
             );
         }
 
-        // Define status transitions for Finance actions using constants
+        // Define status transitions for Finance actions for all valid statuses
         const statusTransitions = {
             [INVOICE_STATUS.PENDING_FINANCE_REVIEW]: {
+                'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
+                'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
+                'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
+            },
+            'PM Approved': {
+                'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
+                'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
+                'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
+            },
+            'APPROVED': {
+                'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
+                'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
+                'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
+            },
+            'VERIFIED': {
+                'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
+                'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
+                'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
+            },
+            'RECEIVED': {
                 'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
                 'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
                 'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED

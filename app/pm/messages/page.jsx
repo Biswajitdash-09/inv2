@@ -38,26 +38,28 @@ export default function PMMessagesPage() {
     const fetchRecipients = async () => {
         try {
             const res = await fetch('/api/pms', { cache: 'no-store' });
+            let allRecipients = [];
+
             if (res.ok) {
                 const data = await res.json();
-                const pmList = (data.pms || []).map(p => ({ ...p, type: 'PM' }));
+                const pmList = (data.pms || [])
+                    .filter(p => p.email !== user?.email) // Filter out self
+                    .map(p => ({ ...p, type: 'PM' }));
+                allRecipients = [...pmList];
+            }
 
-                const role = getNormalizedRole(user);
-                // If PM, also fetch vendors
-                if (role === ROLES.PROJECT_MANAGER || role === ROLES.ADMIN) {
-                    const vRes = await fetch('/api/pm/vendors', { cache: 'no-store' });
-                    if (vRes.ok) {
-                        const vData = await vRes.json();
-                        // API returns array directly
-                        const vendorList = (Array.isArray(vData) ? vData : []).map(v => ({ ...v, type: 'Vendor' }));
-                        setRecipients([...pmList, ...vendorList]);
-                    } else {
-                        setRecipients(pmList);
-                    }
-                } else {
-                    setRecipients(pmList);
+            const role = getNormalizedRole(user);
+            // If PM or Admin, also fetch vendors
+            if (role === ROLES.PROJECT_MANAGER || role === ROLES.ADMIN) {
+                const vRes = await fetch('/api/pm/vendors', { cache: 'no-store' });
+                if (vRes.ok) {
+                    const vData = await vRes.json();
+                    const vendorList = (Array.isArray(vData) ? vData : []).map(v => ({ ...v, type: 'Vendor' }));
+                    allRecipients = [...allRecipients, ...vendorList];
                 }
             }
+
+            setRecipients(allRecipients);
         } catch (error) {
             console.error("Failed to fetch recipients", error);
         }
@@ -283,9 +285,20 @@ export default function PMMessagesPage() {
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm"
                                             >
                                                 <option value="">Select Recipient</option>
-                                                {recipients.map(r => (
-                                                    <option key={r.id} value={r.id || r.linkedUserId || r._id}>{r.name} {r.type ? `(${r.type})` : ''}</option>
-                                                ))}
+                                                {recipients.filter(r => r.type === 'Vendor').length > 0 && (
+                                                    <optgroup label="Vendors">
+                                                        {recipients.filter(r => r.type === 'Vendor').map(r => (
+                                                            <option key={r.id} value={r.id || r.linkedUserId || r._id}>{r.name}</option>
+                                                        ))}
+                                                    </optgroup>
+                                                )}
+                                                {recipients.filter(r => r.type === 'PM').length > 0 && (
+                                                    <optgroup label="Project Managers">
+                                                        {recipients.filter(r => r.type === 'PM').map(r => (
+                                                            <option key={r.id} value={r.id}>{r.name}</option>
+                                                        ))}
+                                                    </optgroup>
+                                                )}
                                             </select>
                                         </div>
                                         <div>

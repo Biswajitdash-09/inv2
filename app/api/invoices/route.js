@@ -158,6 +158,12 @@ export async function POST(request) {
             userAgent: userAgent
         };
 
+        // Determine assignedFinanceUser for manual entries by Finance Users
+        let assignedFinanceUser = null;
+        if (originatorRole === ROLES.FINANCE_USER) {
+            assignedFinanceUser = user.id;
+        }
+
         // Create invoice with proper workflow status
         const invoiceData = {
             vendorName,
@@ -171,6 +177,7 @@ export async function POST(request) {
             poNumber,
             project,
             assignedPM,
+            assignedFinanceUser,
             status: invoiceStatus,
             originatorRole,
             pmApproval: { status: 'PENDING' },  // Initialize PM approval field

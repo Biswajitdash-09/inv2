@@ -39,29 +39,27 @@ export async function GET() {
         } else {
             // PM sees vendors for assigned projects AND delegated projects
             await connectToDatabase();
-            
+
             // Get the user's assigned projects
             const userRecord = await User.findOne({ id: user.id });
             const assignedProjectIds = userRecord?.assignedProjects || [];
-            
+
             // Check for projects delegated TO this user
             const delegators = await User.find({
                 delegatedTo: user.id,
                 delegationExpiresAt: { $gt: new Date() }
             });
             const delegatedProjectIds = delegators.flatMap(u => u.assignedProjects || []);
-            
+
             // Combine both assigned and delegated project IDs
             const allAccessibleProjectIds = [...new Set([...assignedProjectIds, ...delegatedProjectIds])];
-            
-            console.log(`[PM Vendors API] PM ${user.id} assigned projects:`, assignedProjectIds);
-            console.log(`[PM Vendors API] PM ${user.id} delegated projects:`, delegatedProjectIds);
-            
+
+
             if (allAccessibleProjectIds.length === 0) {
                 console.warn(`[PM Vendors API] PM ${user.id} has no accessible projects`);
                 return NextResponse.json([]);
             }
-            
+
             vendorList = await db.getVendorsForProjects(allAccessibleProjectIds);
             console.log(`[PM Vendors API] PM ${user.id} fetched ${vendorList.length} vendors for projects`);
         }

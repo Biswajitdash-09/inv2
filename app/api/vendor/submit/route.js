@@ -197,7 +197,7 @@ export async function POST(request) {
                     messageType: 'STATUS_UPDATE',
                     threadId: msgId
                 });
-                console.log(`[Vendor Submit] Finance notification sent to ${assignedFinanceUser}`);
+                // console.log(`[Vendor Submit] Finance notification sent to ${assignedFinanceUser}`);
             } catch (msgErr) {
                 console.error('[Vendor Submit] Failed to notify Finance:', msgErr);
             }

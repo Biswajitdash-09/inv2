@@ -60,7 +60,8 @@ export async function POST(request) {
         };
 
         // Log successful login for observability
-        console.log(`[OTP Verify] Login successful for user: ${email}, role: ${normalizedRole}, id: ${user.id}`);
+        // Log successful login for observability
+        // console.log(`[OTP Verify] Login successful for user: ${email}, role: ${normalizedRole}, id: ${user.id}`);
 
         await login(sessionUser);
 
@@ -68,7 +69,7 @@ export async function POST(request) {
         await Otp.deleteOne({ _id: validOtp._id });
 
         // Log session created and user data being returned
-        console.log(`[OTP Verify] Session created, returning user data:`, JSON.stringify(sessionUser));
+        // console.log(`[OTP Verify] Session created, returning user data:`, JSON.stringify(sessionUser));
 
         return NextResponse.json({
             success: true,

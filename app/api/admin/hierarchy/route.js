@@ -4,7 +4,7 @@ export const dynamic = 'force-dynamic';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
 import { requireRole } from '@/lib/rbac';
-import { ROLES } from '@/constants/roles';
+import { ROLES, getNormalizedRole } from '@/constants/roles';
 
 /**
  * GET /api/admin/hierarchy - Get all users structured as a hierarchy tree
@@ -37,12 +37,8 @@ export async function GET(request) {
         const unassigned = []; // Users with no managedBy
 
         allUsers.forEach(u => {
-            const normalizedRole = u.role === 'ADMIN' ? ROLES.ADMIN :
-                                 u.role === 'PM' ? ROLES.PROJECT_MANAGER :
-                                 u.role === 'PROJECT_MANAGER' ? ROLES.PROJECT_MANAGER :
-                                 u.role === 'FINANCE_USER' ? ROLES.FINANCE_USER :
-                                 u.role === 'VENDOR' ? ROLES.VENDOR : u.role;
-            
+            const normalizedRole = getNormalizedRole(u) || u.role;
+
             const node = userMap[u.id];
             node.role = normalizedRole; // Ensure node in tree has normalized role
 
@@ -62,7 +58,7 @@ export async function GET(request) {
                 id: u.id,
                 name: u.name,
                 email: u.email,
-                role: u.role,
+                role: getNormalizedRole(u) || u.role,
                 managedBy: u.managedBy,
                 isActive: u.isActive
             }))
@@ -134,7 +130,7 @@ export async function PUT(request) {
             // 1. Get current children of this manager (using custom id)
             const currentChildren = await db.getAllUsers();
             const childrenToUnassign = currentChildren.filter(u => u.managedBy === userId && !children.includes(u.id));
-            
+
             // 2. Unassign those no longer in the list
             for (const child of childrenToUnassign) {
                 await db.updateUserManagedBy(child.id, null);

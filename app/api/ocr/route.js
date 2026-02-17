@@ -29,6 +29,8 @@ export async function POST(request) {
         const buffer = Buffer.from(await file.arrayBuffer());
 
         // Use pdf-parse v2 to extract text from the PDF
+        // Worker import MUST come before PDFParse import (required for Vercel/serverless)
+        await import('pdf-parse/worker');
         const { PDFParse } = await import('pdf-parse');
         const parser = new PDFParse({ data: buffer });
         const pdfData = await parser.getText();

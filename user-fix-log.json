@@ -1,0 +1,86 @@
+[
+  {
+    "email": "vendor@technovasolutions.com",
+    "name": "TechNova Solutions",
+    "oldRole": "Vendor",
+    "newRole": "Vendor"
+  },
+  {
+    "email": "vendor@blupeakent.com",
+    "name": "BluePeak Enterprises",
+    "oldRole": "Vendor",
+    "newRole": "Vendor"
+  },
+  {
+    "email": "vendor@meridianglobal.com",
+    "name": "Meridian Global Corp",
+    "oldRole": "Vendor",
+    "newRole": "Vendor"
+  },
+  {
+    "email": "vendor@apexdigitalworks.com",
+    "name": "Apex Digital Works",
+    "oldRole": "Vendor",
+    "newRole": "Vendor"
+  },
+  {
+    "email": "vendor@stellarsupplies.com",
+    "name": "Stellar Supplies Co.",
+    "oldRole": "Vendor",
+    "newRole": "Vendor"
+  },
+  {
+    "email": "vendor@crestlineind.com",
+    "name": "Crestline Industries",
+    "oldRole": "Vendor",
+    "newRole": "Vendor"
+  },
+  {
+    "email": "vendor@horizontradegroup.com",
+    "name": "Horizon Trade Group",
+    "oldRole": "Vendor",
+    "newRole": "Vendor"
+  },
+  {
+    "email": "vendor@nexbridgepartners.com",
+    "name": "NexBridge Partners",
+    "oldRole": "Vendor",
+    "newRole": "Vendor"
+  },
+  {
+    "email": "pm.sales@company.com",
+    "name": "PM-Sales",
+    "oldRole": "PROJECT_MANAGER",
+    "newRole": "PM"
+  },
+  {
+    "email": "pm.marketing@company.com",
+    "name": "PM-Marketing",
+    "oldRole": "PROJECT_MANAGER",
+    "newRole": "PM"
+  },
+  {
+    "email": "pm.operations@company.com",
+    "name": "PM-Operations",
+    "oldRole": "PROJECT_MANAGER",
+    "newRole": "PM"
+  },
+  {
+    "email": "finance.user1@company.com",
+    "name": "Finance User 1",
+    "oldRole": "Finance User",
+    "newRole": "Finance User"
+  },
+  {
+    "email": "finance.user2@company.com",
+    "name": "Finance User 2",
+    "oldRole": "Finance User",
+    "newRole": "Finance User"
+  },
+  {
+    "email": "admin@company.com",
+    "name": "Admin",
+    "oldRole": "Admin",
+    "newRole": "Admin"
+  }
+]

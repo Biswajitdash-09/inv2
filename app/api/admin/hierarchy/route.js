@@ -37,8 +37,16 @@ export async function GET(request) {
         const unassigned = []; // Users with no managedBy
 
         allUsers.forEach(u => {
+            const normalizedRole = u.role === 'ADMIN' ? ROLES.ADMIN :
+                                 u.role === 'PM' ? ROLES.PROJECT_MANAGER :
+                                 u.role === 'PROJECT_MANAGER' ? ROLES.PROJECT_MANAGER :
+                                 u.role === 'FINANCE_USER' ? ROLES.FINANCE_USER :
+                                 u.role === 'VENDOR' ? ROLES.VENDOR : u.role;
+            
             const node = userMap[u.id];
-            if (u.role === ROLES.ADMIN) {
+            node.role = normalizedRole; // Ensure node in tree has normalized role
+
+            if (normalizedRole === ROLES.ADMIN) {
                 roots.push(node);
             } else if (u.managedBy && userMap[u.managedBy]) {
                 userMap[u.managedBy].children.push(node);
@@ -109,7 +117,7 @@ export async function PUT(request) {
             };
 
             const allowedManagerRoles = validHierarchy[user.role];
-            if (!allowedManagerRoles || !allowedManagerRoles.includes(manager.role)) {
+            if (!allowedManagerRoles || !allowedManagerRoles.some(r => r.toLowerCase() === manager.role.toLowerCase())) {
                 return NextResponse.json({
                     error: `A ${user.role} can only be managed by: ${allowedManagerRoles?.join(', ') || 'nobody'}`
                 }, { status: 400 });
@@ -121,9 +129,18 @@ export async function PUT(request) {
             await db.updateUserManagedBy(userId, managedBy || null);
         }
 
-        // Update children (bulk)
+        // Update children (bulk replacement)
         if (Array.isArray(children)) {
-            // Update each child's managedBy to point to this user
+            // 1. Get current children of this manager (using custom id)
+            const currentChildren = await db.getAllUsers();
+            const childrenToUnassign = currentChildren.filter(u => u.managedBy === userId && !children.includes(u.id));
+            
+            // 2. Unassign those no longer in the list
+            for (const child of childrenToUnassign) {
+                await db.updateUserManagedBy(child.id, null);
+            }
+
+            // 3. Assign new children
             for (const childId of children) {
                 await db.updateUserManagedBy(childId, userId);
             }
@@ -134,7 +151,7 @@ export async function PUT(request) {
             invoice_id: null,
             username: session.user.name || session.user.email,
             action: 'HIERARCHY_UPDATED',
-            details: `Updated hierarchy for ${user.name} (${user.role}). Parent: ${managedBy || 'None'}, Children updated: ${children?.length || 0}`
+            details: `Atomic hierarchy update for ${user.name}. Parent: ${managedBy || 'None'}, Subordinates count: ${children?.length || 0}`
         });
 
         return NextResponse.json({ success: true });

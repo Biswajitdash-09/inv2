@@ -12,7 +12,6 @@ const ROLE_CONFIG = {
     [ROLES.VENDOR]: { color: 'orange', bg: 'bg-orange-500/20', text: 'text-orange-300', border: 'border-orange-500/40', icon: '🏪' },
 };
 
-// What role manages what
 const PARENT_ROLE_MAP = {
     [ROLES.FINANCE_USER]: ROLES.ADMIN,
     [ROLES.PROJECT_MANAGER]: ROLES.FINANCE_USER,
@@ -68,36 +67,40 @@ function TreeNode({ node, depth = 0, onOpenAssign, onUnassign }) {
 
                 <span className={`w-2 h-2 rounded-full ${node.isActive !== false ? 'bg-emerald-400' : 'bg-red-400'}`} />
 
-                {/* Manage button for all non-admin users */}
-                {node.role !== ROLES.ADMIN && (
-                    <button
-                        onClick={() => onOpenAssign(node)}
-                        className="opacity-0 group-hover:opacity-100 px-2 py-1 text-xs text-purple-300 hover:text-purple-200 hover:bg-purple-500/20 rounded transition-all"
-                        title="Manage assignments"
-                    >
-                        ⚙️
-                    </button>
-                )}
-                {/* Admin can also manage their children */}
-                {node.role === ROLES.ADMIN && (
-                    <button
-                        onClick={() => onOpenAssign(node)}
-                        className="opacity-0 group-hover:opacity-100 px-2 py-1 text-xs text-purple-300 hover:text-purple-200 hover:bg-purple-500/20 rounded transition-all"
-                        title="Manage children"
-                    >
-                        ⚙️
-                    </button>
-                )}
+                {/* Action buttons (always visible now) */}
+                <div className="flex items-center gap-1">
+                    {/* Add Subordinate Button (if allowed by role) */}
+                    {CHILD_ROLE_MAP[node.role] && (
+                        <button
+                            onClick={() => onOpenAssign(node)}
+                            className="p-1.5 text-xs text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/20 rounded-lg transition-all"
+                            title={`Add ${CHILD_ROLE_MAP[node.role].join('/')}`}
+                        >
+                            ➕
+                        </button>
+                    )}
 
-                {node.role !== ROLES.ADMIN && node.managedBy && (
-                    <button
-                        onClick={() => onUnassign(node.id)}
-                        className="opacity-0 group-hover:opacity-100 px-2 py-1 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded transition-all"
-                        title="Remove from this manager"
-                    >
-                        ✕
-                    </button>
-                )}
+                    {/* Manage button for all non-admin users */}
+                    {node.role !== ROLES.ADMIN && (
+                        <button
+                            onClick={() => onOpenAssign(node)}
+                            className="p-1.5 text-xs text-purple-300 hover:text-purple-200 hover:bg-purple-500/20 rounded-lg transition-all"
+                            title="Manage this node"
+                        >
+                            ⚙️
+                        </button>
+                    )}
+
+                    {node.role !== ROLES.ADMIN && node.managedBy && (
+                        <button
+                            onClick={() => onUnassign(node.id)}
+                            className="p-1.5 text-xs text-red-400 hover:text-red-300 hover:bg-red-500/20 rounded-lg transition-all"
+                            title="Remove from manager"
+                        >
+                            ✕
+                        </button>
+                    )}
+                </div>
             </motion.div>
 
             <AnimatePresence>
@@ -166,16 +169,13 @@ export default function HierarchyPage() {
 
     const handleSaveAssignment = async () => {
         if (!assignModal) return;
+
         try {
-            const body = { userId: assignModal.id };
-
-            // Only send managedBy if user is not admin
-            if (assignModal.role !== ROLES.ADMIN) {
-                body.managedBy = selectedParent || null;
-            }
-
-            // Send children array
-            body.children = selectedChildren;
+            const body = {
+                userId: assignModal.id,
+                managedBy: selectedParent || null,
+                children: selectedChildren
+            };
 
             const res = await fetch('/api/admin/hierarchy', {
                 method: 'PUT',
@@ -185,18 +185,7 @@ export default function HierarchyPage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error || 'Failed to save');
 
-            // Also unassign children that were removed
-            const previousChildren = allUsers.filter(u => u.managedBy === assignModal.id).map(u => u.id);
-            const removedChildren = previousChildren.filter(id => !selectedChildren.includes(id));
-            for (const childId of removedChildren) {
-                await fetch('/api/admin/hierarchy', {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ userId: childId, managedBy: null })
-                });
-            }
-
-            setSuccess(`Hierarchy updated for ${assignModal.name}.`);
+            setSuccess(`Hierarchy updated successfully for ${assignModal.name}.`);
             setAssignModal(null);
             setSelectedParent('');
             setSelectedChildren([]);
@@ -226,20 +215,26 @@ export default function HierarchyPage() {
 
     // Get valid parent options for a given role
     const getValidParents = (role) => {
-        const parentRole = PARENT_ROLE_MAP[role];
-        if (!parentRole) return [];
-        return allUsers.filter(u => u.role === parentRole && u.isActive !== false);
+        const parentRoles = PARENT_ROLE_MAP[role];
+        if (!parentRoles) return [];
+        const rolesToMatch = Array.isArray(parentRoles) ? parentRoles : [parentRoles];
+        
+        return allUsers.filter(u => {
+            const uRole = u.role;
+            return rolesToMatch.some(r => r.toLowerCase() === uRole.toLowerCase()) && u.isActive !== false;
+        });
     };
 
     // Get valid child candidates for a given user
     const getValidChildCandidates = (user) => {
         const childRoles = CHILD_ROLE_MAP[user.role];
         if (!childRoles) return [];
-        return allUsers.filter(u =>
-            childRoles.includes(u.role) &&
-            u.isActive !== false &&
-            u.id !== user.id
-        );
+        return allUsers.filter(u => {
+            const uRole = u.role;
+            return childRoles.some(r => r.toLowerCase() === uRole.toLowerCase()) && 
+                   u.isActive !== false && 
+                   u.id !== user.id
+        });
     };
 
     // Toggle child selection
@@ -355,7 +350,7 @@ export default function HierarchyPage() {
                                 className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10"
                             >
                                 <h2 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                                    <span>📋</span> Unassigned Users
+                                    <span>📋</span> Available for Assignment
                                 </h2>
                                 {Object.keys(unassignedByRole).length === 0 ? (
                                     <div className="text-gray-400 text-center py-4 text-sm">
@@ -447,41 +442,7 @@ export default function HierarchyPage() {
                                     </div>
                                 </div>
 
-                                {/* ===== PARENT SECTION (only for non-Admin) ===== */}
-                                {assignModal.role !== ROLES.ADMIN && (() => {
-                                    const parentRole = PARENT_ROLE_MAP[assignModal.role];
-                                    const parents = getValidParents(assignModal.role);
-                                    const parentConf = ROLE_CONFIG[parentRole] || {};
-                                    return (
-                                        <div className="mb-6">
-                                            <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-                                                <span>⬆️</span> Reports To ({parentRole})
-                                            </h3>
-                                            {parents.length === 0 ? (
-                                                <p className="text-xs text-gray-500 italic">No {parentRole}s available</p>
-                                            ) : (
-                                                <select
-                                                    value={selectedParent}
-                                                    onChange={(e) => setSelectedParent(e.target.value)}
-                                                    className="w-full px-4 py-2.5 bg-white/5 border border-white/20 rounded-xl text-white focus:outline-none focus:ring-2 focus:ring-purple-500"
-                                                >
-                                                    <option value="">— No manager assigned —</option>
-                                                    {parents.map(p => {
-                                                        // Show the parent's own manager for context
-                                                        const grandparent = getManagerName(p.managedBy);
-                                                        return (
-                                                            <option key={p.id} value={p.id}>
-                                                                {p.name}{grandparent ? ` [under ${grandparent}]` : ''}
-                                                            </option>
-                                                        );
-                                                    })}
-                                                </select>
-                                            )}
-                                        </div>
-                                    );
-                                })()}
-
-                                {/* ===== CHILDREN SECTION ===== */}
+                                {/* ===== CHILDREN SECTION (Managers select subordinates) ===== */}
                                 {CHILD_ROLE_MAP[assignModal.role] && (() => {
                                     const childRoles = CHILD_ROLE_MAP[assignModal.role];
                                     const candidates = getValidChildCandidates(assignModal);
@@ -489,10 +450,10 @@ export default function HierarchyPage() {
                                     return (
                                         <div className="mb-6">
                                             <h3 className="text-sm font-semibold text-gray-300 mb-3 flex items-center gap-2">
-                                                <span>⬇️</span> Manages ({childRoles.join(', ')})
+                                                <span>⬇️</span> Assign Subordinates ({childRoles.join(', ')})
                                             </h3>
                                             <p className="text-xs text-gray-500 mb-3">
-                                                Select the users that should report to {assignModal.name}. Unchecking a user will remove them.
+                                                Select the {childRoles.join('/')}s that report to {assignModal.name}. 
                                             </p>
 
                                             {candidates.length === 0 ? (

@@ -1,0 +1,69 @@
+{
+  "rootsCount": 1,
+  "unassignedCount": 11,
+  "roots": [
+    {
+      "id": "1f22480f-723c-480a-be99-bf7338972b98",
+      "name": "Admin",
+      "role": "Admin",
+      "childrenCount": 0
+    }
+  ],
+  "unassigned": [
+    {
+      "id": "064909d7-d7ae-4441-9f0c-7577f23401a2",
+      "name": "TechNova Solutions",
+      "role": "Vendor"
+    },
+    {
+      "id": "fe074754-cb0e-4138-8e6e-155484f7afbd",
+      "name": "BluePeak Enterprises",
+      "role": "Vendor"
+    },
+    {
+      "id": "4ede1c7e-1d55-434b-865b-80d0f961e67a",
+      "name": "Meridian Global Corp",
+      "role": "Vendor"
+    },
+    {
+      "id": "0c39b2d2-e833-4f47-8daa-e905c0fe03eb",
+      "name": "Apex Digital Works",
+      "role": "Vendor"
+    },
+    {
+      "id": "028ada7f-8b30-40e8-abf9-8d4cb8ac7df5",
+      "name": "Stellar Supplies Co.",
+      "role": "Vendor"
+    },
+    {
+      "id": "1ff8b26f-a0e8-4c15-8055-64fa5f7541a6",
+      "name": "Crestline Industries",
+      "role": "Vendor"
+    },
+    {
+      "id": "34d828ec-e5c4-4f8b-b910-c9b43bac5006",
+      "name": "Horizon Trade Group",
+      "role": "Vendor"
+    },
+    {
+      "id": "25956641-0d44-403e-84d5-1eef8795d220",
+      "name": "PM-Sales",
+      "role": "PM"
+    },
+    {
+      "id": "9d90cf77-e415-4560-acee-c12a4a2d28a7",
+      "name": "PM-Marketing",
+      "role": "PM"
+    },
+    {
+      "id": "f6a9fbc4-4e67-4518-9f0b-c500547e85b5",
+      "name": "Finance User 1",
+      "role": "Finance User"
+    },
+    {
+      "id": "44c6b0e4-e3ee-4f2d-8263-2c6496553f2c",
+      "name": "Finance User 2",
+      "role": "Finance User"
+    }
+  ]
+}

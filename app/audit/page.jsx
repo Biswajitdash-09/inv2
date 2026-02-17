@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/lib/axios";
 import { toast } from "sonner";
 import Icon from "@/components/Icon";
 import Link from "next/link";
@@ -22,7 +22,7 @@ export default function AuditLogPage() {
     const fetchLogs = async () => {
         try {
             setLoading(true);
-            const res = await axios.get("/api/audit?limit=200");
+            const res = await api.get("/api/audit?limit=200");
             setLogs(res.data);
         } catch (error) {
             toast.error("Failed to fetch audit logs");
@@ -290,8 +290,8 @@ export default function AuditLogPage() {
                                         key={page}
                                         onClick={() => handlePageChange(page)}
                                         className={`w-10 h-10 rounded-xl font-medium text-sm transition-all ${currentPage === page
-                                                ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
-                                                : 'bg-white border border-gray-200 text-gray-600 hover:bg-slate-50'
+                                            ? 'bg-slate-900 text-white shadow-lg shadow-slate-900/20'
+                                            : 'bg-white border border-gray-200 text-gray-600 hover:bg-slate-50'
                                             }`}
                                     >
                                         {page}

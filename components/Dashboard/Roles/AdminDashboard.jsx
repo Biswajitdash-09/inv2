@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Card from "@/components/ui/Card";
 import Icon from "@/components/Icon";
 import Link from "next/link";
-import axios from "axios";
+import api from "@/lib/axios";
 import { motion, AnimatePresence } from "framer-motion";
 
 const AdminDashboard = ({ invoices = [], onRefresh }) => {
@@ -32,9 +32,9 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
     const fetchData = async () => {
         try {
             const [logsRes, usersRes, healthRes] = await Promise.all([
-                axios.get('/api/audit?limit=5'),
-                axios.get('/api/users'),
-                axios.get('/api/health')
+                api.get('/api/audit?limit=5'),
+                api.get('/api/users'),
+                api.get('/api/health')
             ]);
             setRecentLogs(logsRes.data || []);
             setUserCount(usersRes.data?.length || 0);

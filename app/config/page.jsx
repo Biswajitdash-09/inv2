@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Icon from "@/components/Icon";
 import { toast } from "sonner";
-import axios from "axios";
+import api from "@/lib/axios";
 
 export default function ConfigurationPage() {
     const [settings, setSettings] = useState({
@@ -27,7 +27,7 @@ export default function ConfigurationPage() {
     const fetchConfig = async () => {
         try {
             setLoading(true);
-            const res = await axios.get("/api/config");
+            const res = await api.get("/api/config");
             if (res.data) {
                 setSettings(prev => ({ ...prev, ...res.data }));
             }
@@ -50,7 +50,7 @@ export default function ConfigurationPage() {
             setTesting(prev => ({ ...prev, [integration]: true }));
             setTestResults(prev => ({ ...prev, [integration]: null }));
 
-            const res = await axios.post("/api/integrations/test", { integration });
+            const res = await api.post("/api/integrations/test", { integration });
 
             setTestResults(prev => ({
                 ...prev,

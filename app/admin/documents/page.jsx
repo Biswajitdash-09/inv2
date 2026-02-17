@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import axios from "axios";
+import api from "@/lib/axios";
 import { useAuth } from "@/context/AuthContext";
 import { ROLES, getNormalizedRole } from "@/constants/roles";
 import Icon from "@/components/Icon";
@@ -33,7 +33,7 @@ export default function AdminDocumentsPage() {
 
     const fetchDocuments = async () => {
         try {
-            const res = await axios.get('/api/admin/documents');
+            const res = await api.get('/api/admin/documents');
             setDocuments(res.data.documents || []);
         } catch (error) {
             console.error('Failed to fetch documents:', error);

@@ -48,11 +48,9 @@ export async function POST(request) {
             );
         }
 
-        // Normalize role for internal consistency
-        let normalizedRole = user.role;
-        if (user.role === 'Project Manager' || user.role === 'ProjectManager') {
-            normalizedRole = 'PM';
-        }
+        // Normalize role for internal consistency via helper
+        const { getNormalizedRole: normalize } = await import('@/constants/roles');
+        const normalizedRole = normalize({ role: user.role });
 
         // Clean user object for session
         const sessionUser = {

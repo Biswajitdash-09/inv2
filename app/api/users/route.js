@@ -9,7 +9,9 @@ export const dynamic = 'force-dynamic';
 export async function GET() {
     try {
         const currentUser = await getCurrentUser();
-        if (!currentUser || currentUser.role !== ROLES.ADMIN) {
+        const { getNormalizedRole: normalize } = await import('@/constants/roles');
+        const role = normalize(currentUser);
+        if (!currentUser || role !== ROLES.ADMIN) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 
@@ -24,7 +26,9 @@ export async function GET() {
 export async function POST(request) {
     try {
         const currentUser = await getCurrentUser();
-        if (!currentUser || currentUser.role !== ROLES.ADMIN) {
+        const { getNormalizedRole: normalize } = await import('@/constants/roles');
+        const role = normalize(currentUser);
+        if (!currentUser || role !== ROLES.ADMIN) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 403 });
         }
 

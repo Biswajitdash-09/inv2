@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import axios from "axios";
+import api from "@/lib/axios";
 import { toast } from "sonner";
 import Icon from "@/components/Icon";
 import { ROLES, ROLES_LIST } from "@/constants/roles";
@@ -31,7 +31,7 @@ export default function UserManagementPage() {
     const fetchUsers = async () => {
         try {
             setLoading(true);
-            const res = await axios.get("/api/users");
+            const res = await api.get("/api/users");
             setUsers(res.data);
         } catch (error) {
             toast.error("Failed to fetch users");
@@ -79,7 +79,7 @@ export default function UserManagementPage() {
     const handleDelete = async (id) => {
         if (!confirm("Are you sure you want to delete this user?")) return;
         try {
-            await axios.delete(`/api/users/${id}`);
+            await api.delete(`/api/users/${id}`);
             toast.success("User deleted");
             fetchUsers();
         } catch (error) {
@@ -89,7 +89,7 @@ export default function UserManagementPage() {
 
     const handleToggleStatus = async (user) => {
         try {
-            await axios.put(`/api/users/${user.id}`, { isActive: !user.isActive });
+            await api.put(`/api/users/${user.id}`, { isActive: !user.isActive });
             toast.success(`User ${user.isActive ? 'deactivated' : 'activated'}`);
             fetchUsers();
         } catch (error) {
@@ -106,10 +106,10 @@ export default function UserManagementPage() {
             };
 
             if (editingUser) {
-                await axios.put(`/api/users/${editingUser.id}`, payload);
+                await api.put(`/api/users/${editingUser.id}`, payload);
                 toast.success("User updated");
             } else {
-                await axios.post("/api/users", payload);
+                await api.post("/api/users", payload);
                 toast.success("User created");
             }
             setIsModalOpen(false);

@@ -14,8 +14,10 @@ export async function GET() {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
-        // Verify user has Admin role
-        const role = Array.isArray(user.role) ? user.role[0] : user.role;
+        // Verify user has Admin role using helper
+        const { getNormalizedRole: normalize } = await import('@/constants/roles');
+        const role = normalize(user);
+
         if (role !== ROLES.ADMIN) {
             return NextResponse.json({ error: 'Forbidden: Admin access required' }, { status: 403 });
         }

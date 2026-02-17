@@ -12,8 +12,11 @@ export async function GET(request) {
     try {
         const currentUser = await getCurrentUser();
 
-        // Only Admin can access system health
-        if (!currentUser || currentUser.role !== ROLES.ADMIN) {
+        // Only Admin can access system health (using normalized check)
+        const { getNormalizedRole: normalize } = await import('@/constants/roles');
+        const role = normalize(currentUser);
+
+        if (!currentUser || role !== ROLES.ADMIN) {
             return NextResponse.json({ error: 'Access denied. System health is restricted to Admin only.' }, { status: 403 });
         }
 

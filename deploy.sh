@@ -5,18 +5,12 @@
 
 echo "🚀 Starting InvoiceFlow Deployment..."
 
-# Increment version number
-CURRENT_VERSION=$(grep "NEXT_PUBLIC_APP_VERSION" .env.local | cut -d '=' -f2)
+# Get current version from package.json
+CURRENT_VERSION=$(node -p "require('./package.json').version")
 echo "Current version: $CURRENT_VERSION"
 
-# Update version (increment patch version)
-NEW_VERSION=$(echo $CURRENT_VERSION | awk -F. '{$NF = $NF + 1;} 1' | sed 's/ /./g')
-echo "New version: $NEW_VERSION"
-
-# Update .env.local
-sed -i "s/NEXT_PUBLIC_APP_VERSION=.*/NEXT_PUBLIC_APP_VERSION=$NEW_VERSION/" .env.local
-
-echo "✅ Version updated to $NEW_VERSION"
+# Version is now incremented automatically by 'npm run build' via prebuild script
+echo "Version management is handled by scripts/bump_version.js during build."
 
 # Build the application
 echo "📦 Building application..."

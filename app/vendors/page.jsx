@@ -99,12 +99,13 @@ function VendorPortalContent() {
 
             if (res.ok && result.success && result.data) {
                 const d = result.data;
-                setOcrInvoiceNumber(d.invoiceNumber ?? '');
+                // Show 'null' for fields not found in the invoice
+                setOcrInvoiceNumber(d.invoiceNumber ?? 'null');
                 setOcrInvoiceDate(d.invoiceDate ?? '');
-                setOcrBasicAmount(d.basicAmount != null ? String(d.basicAmount) : '');
-                setOcrTotalAmount(d.totalAmount != null ? String(d.totalAmount) : '');
+                setOcrBasicAmount(d.basicAmount != null ? String(d.basicAmount) : 'null');
+                setOcrTotalAmount(d.totalAmount != null ? String(d.totalAmount) : 'null');
                 setOcrTaxType(d.taxType ?? '');
-                setOcrHsnCode(d.hsnCode ?? '');
+                setOcrHsnCode(d.hsnCode ?? 'null');
                 toast.success('Invoice fields auto-filled from OCR!', { id: ocrToast });
             } else {
                 toast.error(result.error || 'OCR extraction failed. Please fill fields manually.', { id: ocrToast });
@@ -721,6 +722,42 @@ function VendorPortalContent() {
                                     } finally { setLoading(false); }
                                 }} className="space-y-6">
                                     <div className="space-y-5">
+                                        {/* Invoice File (PDF) - Moved to top */}
+                                        <div className="space-y-2">
+                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Invoice (PDF) <span className="text-rose-500">*</span></label>
+                                            <div className="relative group/modalfile border-2 border-dashed border-slate-200 rounded-2xl hover:border-teal-500 hover:bg-teal-50/30 transition-all p-8 flex flex-col items-center justify-center gap-3">
+                                                <input
+                                                    type="file"
+                                                    name="file"
+                                                    accept=".pdf"
+                                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                                    required={!selectedFile}
+                                                    onChange={handleInvoiceFileChange}
+                                                />
+                                                <div className={clsx(
+                                                    "w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-sm",
+                                                    selectedFile ? "bg-teal-500 text-white" : ocrLoading ? "bg-amber-500 text-white animate-pulse" : "bg-slate-50 text-slate-400 group-hover/modalfile:text-teal-600 group-hover/modalfile:bg-white"
+                                                )}>
+                                                    <Icon name={ocrLoading ? "Loader" : selectedFile ? "FileCheck" : "FileUp"} size={24} />
+                                                </div>
+                                                <div className="text-center">
+                                                    {selectedFile ? (
+                                                        <>
+                                                            <p className="text-[11px] font-black text-teal-600 uppercase tracking-widest">{selectedFile.name}</p>
+                                                            <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tight">
+                                                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB • {ocrLoading ? 'OCR in progress...' : 'Click to change'}
+                                                            </p>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Select Invoice PDF</p>
+                                                            <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tight">PDF Only (Max 10MB) • Fields will auto-fill via OCR</p>
+                                                        </>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+
                                         <div className="space-y-2">
                                             <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Assign to Project Manager <span className="text-rose-500">*</span></label>
                                             <select
@@ -795,41 +832,7 @@ function VendorPortalContent() {
                                             </div>
                                         </div>
 
-                                        {/* Invoice File (PDF) */}
-                                        <div className="space-y-2">
-                                            <label className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] ml-1">Invoice (PDF) <span className="text-rose-500">*</span></label>
-                                            <div className="relative group/modalfile border-2 border-dashed border-slate-200 rounded-2xl hover:border-teal-500 hover:bg-teal-50/30 transition-all p-8 flex flex-col items-center justify-center gap-3">
-                                                <input
-                                                    type="file"
-                                                    name="file"
-                                                    accept=".pdf"
-                                                    className="absolute inset-0 opacity-0 cursor-pointer z-10"
-                                                    required
-                                                    onChange={handleInvoiceFileChange}
-                                                />
-                                                <div className={clsx(
-                                                    "w-12 h-12 rounded-xl flex items-center justify-center transition-all shadow-sm",
-                                                    selectedFile ? "bg-teal-500 text-white" : ocrLoading ? "bg-amber-500 text-white animate-pulse" : "bg-slate-50 text-slate-400 group-hover/modalfile:text-teal-600 group-hover/modalfile:bg-white"
-                                                )}>
-                                                    <Icon name={ocrLoading ? "Loader" : selectedFile ? "FileCheck" : "FileUp"} size={24} />
-                                                </div>
-                                                <div className="text-center">
-                                                    {selectedFile ? (
-                                                        <>
-                                                            <p className="text-[11px] font-black text-teal-600 uppercase tracking-widest">{selectedFile.name}</p>
-                                                            <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tight">
-                                                                {(selectedFile.size / 1024 / 1024).toFixed(2)} MB • {ocrLoading ? 'OCR in progress...' : 'Click to change'}
-                                                            </p>
-                                                        </>
-                                                    ) : (
-                                                        <>
-                                                            <p className="text-[11px] font-black text-slate-600 uppercase tracking-widest">Select Invoice PDF</p>
-                                                            <p className="text-[9px] font-bold text-slate-400 mt-1 uppercase tracking-tight">PDF Only (Max 10MB) • Fields will auto-fill via OCR</p>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        </div>
+
 
                                         {/* Additional Documents Section */}
                                         <div className="space-y-4 pt-2">

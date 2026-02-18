@@ -23,6 +23,15 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
 
+        // Validate disclaimer acceptance (FR-6: Declaration & Confirmation)
+        const disclaimerAccepted = formData.get('disclaimerAccepted');
+        if (disclaimerAccepted !== 'true') {
+            return NextResponse.json({
+                error: 'Declaration & Confirmation must be accepted before submitting an invoice',
+                detail: 'Please check the certification checkbox to confirm the invoice data is accurate'
+            }, { status: 400 });
+        }
+
         const buffer = Buffer.from(await file.arrayBuffer());
 
         // Vercel Fix: Do not write to filesystem (read-only).
@@ -75,6 +84,9 @@ export async function POST(request) {
             taxType: formData.get('taxType') || undefined,
             hsnCode: formData.get('hsnCode') || undefined,
             currency: 'INR', // Restricted to INR
+            // Disclaimer acceptance for audit trail
+            disclaimerAccepted: disclaimerAccepted,
+            disclaimerAcceptedAt: new Date().toISOString(),
         };
 
         // Persist to DB and create audit trail (Admin can see via Audit log - RBAC)

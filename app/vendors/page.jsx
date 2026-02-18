@@ -67,6 +67,9 @@ function VendorPortalContent() {
     // Upload indicator state
     const [rfpFileName, setRfpFileName] = useState('');
     const [commercialFileName, setCommercialFileName] = useState('');
+    
+    // Disclaimer checkbox state
+    const [disclaimerChecked, setDisclaimerChecked] = useState(false);
 
     const resetOcrFields = useCallback(() => {
         setOcrInvoiceNumber('');
@@ -766,6 +769,7 @@ function VendorPortalContent() {
                                             basicAmount: formData.get('basicAmount'),
                                             taxType: formData.get('taxType'),
                                             hsnCode: formData.get('hsnCode'),
+                                            disclaimerAccepted: formData.get('disclaimerAccepted'),
                                         };
                                         const additionalFiles = {
                                             rfpFile: formData.get('rfpFile'),
@@ -974,6 +978,28 @@ function VendorPortalContent() {
                                         </div>
                                     </div>
 
+                                    {/* Declaration & Confirmation Section */}
+                                    <div className="space-y-3 pt-4">
+                                        <div className="text-amber-600 text-[11px] font-bold uppercase leading-relaxed">
+                                            DECLARATION & CONFIRMATION
+                                        </div>
+                                        <div className="border border-slate-200 bg-slate-50/80 rounded-2xl p-6 flex items-center gap-3">
+                                            <input
+                                                type="checkbox"
+                                                name="disclaimerAccepted"
+                                                value="true"
+                                                required
+                                                onChange={(e) => setDisclaimerChecked(e.target.checked)}
+                                            />
+                                            <div className="text-slate-600 text-xs font-medium leading-relaxed">
+                                                I hereby certify that the invoice data entered above is accurate, complete, and correct to the best of my knowledge. This declaration is made in good faith.
+                                            </div>
+                                            <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center shadow-sm">
+                                                <Icon name={disclaimerChecked ? "CheckCircle" : "Warning"} size={18} />
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div className="pt-4 flex items-center gap-4">
                                         <button
                                             type="button"
@@ -985,7 +1011,7 @@ function VendorPortalContent() {
                                         <button
                                             type="submit"
                                             className="flex-[2] h-12 bg-teal-600 hover:bg-teal-700 text-white rounded-2xl font-black text-[10px] uppercase tracking-widest shadow-lg shadow-teal-500/20 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:grayscale"
-                                            disabled={loading}
+                                            disabled={loading || !disclaimerChecked}
                                         >
                                             {loading ? <span className="loading loading-spinner loading-xs"></span> : <Icon name="Send" size={16} />}
                                             Submit Invoice

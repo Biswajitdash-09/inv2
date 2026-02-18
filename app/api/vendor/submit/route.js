@@ -75,8 +75,17 @@ export async function POST(request) {
         if (lineItems.length > 0) {
             // Find applicable rate cards
             // Priority: Project-specific > Global
+            const vendorEntityId = session.user.vendorId;
+            
+            if (!vendorEntityId) {
+                return NextResponse.json(
+                    { error: 'No vendor entity linked to this account. Rate validation cannot be performed.' },
+                    { status: 400 }
+                );
+            }
+            
             const rateQuery = {
-                vendorId: session.user.id, // Assuming vendor user ID is the link
+                vendorId: vendorEntityId,
                 status: 'ACTIVE',
                 $or: [
                     { effectiveTo: { $exists: false } },

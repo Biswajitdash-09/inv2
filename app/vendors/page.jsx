@@ -992,7 +992,7 @@ function VendorPortalContent() {
                                                 onChange={(e) => setDisclaimerChecked(e.target.checked)}
                                             />
                                             <div className="text-slate-600 text-xs font-medium leading-relaxed">
-                                                I hereby certify that the invoice data entered above is accurate, complete, and correct to the best of my knowledge. This declaration is made in good faith.
+                                                Disclaimer- I have verified all the information as per agreed terms with Maruti Suzuki India Limited. The Invoice, RFP Proposal/Timesheet is strictly as per agreement.
                                             </div>
                                             <div className="w-10 h-10 rounded-2xl bg-white flex items-center justify-center shadow-sm">
                                                 <Icon name={disclaimerChecked ? "CheckCircle" : "Warning"} size={18} />

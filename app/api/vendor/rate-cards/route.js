@@ -19,7 +19,14 @@ export async function GET(request) {
 
         const { searchParams } = new URL(request.url);
         const projectId = searchParams.get('projectId');
-        const vendorId = session.user.id;
+        const vendorId = session.user.vendorId;
+        
+        if (!vendorId) {
+            return NextResponse.json({
+                rateCards: [],
+                warning: 'No vendor entity linked to this account'
+            });
+        }
 
         await connectToDatabase();
 

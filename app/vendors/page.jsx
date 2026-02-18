@@ -8,6 +8,7 @@ import Icon from "@/components/Icon";
 import { getAllInvoices, getVendorDashboardData } from "@/lib/api";
 import { useAuth } from "@/context/AuthContext";
 import { getNormalizedRole, ROLES } from "@/constants/roles";
+import { INVOICE_STATUS } from "@/lib/invoice-workflow";
 import DocumentViewer from "@/components/ui/DocumentViewer";
 import clsx from "clsx";
 import PageHeader from "@/components/Layout/PageHeader";
@@ -27,6 +28,7 @@ function VendorPortalContent() {
     logoutRef.current = logout;
     const [allSubmissions, setAllSubmissions] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [unreadRecheckCount, setUnreadRecheckCount] = useState(0);
     const fetchIdRef = useRef(0);
 
     const fetchSubmissions = useCallback(async () => {
@@ -180,12 +182,33 @@ function VendorPortalContent() {
         return () => clearTimeout(timeoutId);
     }, [user, authLoading, router, fetchSubmissions]);
 
+    // Fetch unread re-check count (dynamic — disappears after vendor reads messages)
+    const fetchUnreadRechecks = useCallback(async () => {
+        try {
+            const res = await fetch('/api/vendor/rechecks', { cache: 'no-store' });
+            if (res.ok) {
+                const data = await res.json();
+                setUnreadRecheckCount(data.unreadCount || 0);
+            }
+        } catch (e) {
+            console.error('Failed to fetch unread recheck count', e);
+        }
+    }, []);
+
+    useEffect(() => {
+        if (!user || authLoading) return;
+        fetchUnreadRechecks();
+        const interval = setInterval(fetchUnreadRechecks, 10000);
+        return () => clearInterval(interval);
+    }, [user, authLoading, fetchUnreadRechecks]);
+
     const stats = useMemo(() => {
         const total = allSubmissions.length;
         const paid = allSubmissions.filter((i) => i.status === "PAID").length;
         const pending = allSubmissions.filter((i) => !["PAID", "REJECTED"].includes(i.status)).length;
+        const recheckCount = allSubmissions.filter((i) => i.status === INVOICE_STATUS.MORE_INFO_NEEDED || i.pmApproval?.status === "INFO_REQUESTED").length;
         const amount = allSubmissions.reduce((sum, i) => sum + (parseFloat(i.amount || i.totalAmount) || 0), 0);
-        return { total, paid, pending, amount };
+        return { total, paid, pending, amount, recheckCount };
     }, [allSubmissions]);
 
     const handleUploadComplete = useCallback(() => {
@@ -207,6 +230,9 @@ function VendorPortalContent() {
             case "DIGITIZING":
             case "RECEIVED":
                 return "text-amber-600 bg-amber-50 border-amber-100 animate-pulse";
+            case INVOICE_STATUS.MORE_INFO_NEEDED:
+            case "INFO_REQUESTED":
+                return "text-amber-600 bg-amber-50 border-amber-100";
             default:
                 return "text-slate-500 bg-slate-50 border-slate-100";
         }
@@ -377,6 +403,36 @@ function VendorPortalContent() {
                 ))}
             </div>
 
+            {/* Attention Required Banner — only shows for UNREAD re-check messages */}
+            <AnimatePresence>
+                {unreadRecheckCount > 0 && (
+                    <motion.div
+                        initial={{ opacity: 0, y: -20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -20 }}
+                        className="bg-amber-50 border-2 border-amber-200 p-6 rounded-[2rem] flex flex-col sm:flex-row items-center justify-between gap-6 shadow-xl shadow-amber-500/5"
+                    >
+                        <div className="flex items-center gap-5">
+                            <div className="w-14 h-14 bg-amber-500 text-white rounded-2xl flex items-center justify-center shadow-lg shadow-amber-500/20 animate-bounce">
+                                <Icon name="AlertTriangle" size={28} />
+                            </div>
+                            <div>
+                                <h3 className="text-xl font-black text-slate-800 tracking-tight">Attention Required: {unreadRecheckCount} Invoice{unreadRecheckCount > 1 ? 's' : ''}</h3>
+                                <p className="text-sm font-bold text-amber-700 mt-1 uppercase tracking-widest flex items-center gap-2">
+                                    <Icon name="MessageSquare" size={14} /> PM has requested re-verification of your documents
+                                </p>
+                            </div>
+                        </div>
+                        <button
+                            onClick={() => router.push('/vendors/rechecks')}
+                            className="w-full sm:w-auto px-8 py-4 bg-slate-900 text-white rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-xl hover:bg-slate-800 transition-all active:scale-95 flex items-center justify-center gap-3"
+                        >
+                            <Icon name="AlertCircle" size={16} /> View Re-checks
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
             <div className="max-w-screen-2xl mx-auto">
                 <div className="bg-white rounded-2xl sm:rounded-[3rem] shadow-2xl shadow-slate-200/40 border border-slate-100 overflow-hidden flex flex-col min-h-[500px]">
                     <div className="p-6 sm:p-10 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-end justify-between bg-white/50 backdrop-blur-xl gap-4">
@@ -434,6 +490,8 @@ function VendorPortalContent() {
                                             pmDisplay = { label: 'Approved', color: 'emerald', icon: 'CheckCircle2' };
                                         } else if (pmStatus === 'REJECTED') {
                                             pmDisplay = { label: 'Rejected', color: 'rose', icon: 'XCircle' };
+                                        } else if (pmStatus === 'INFO_REQUESTED' || inv.status === INVOICE_STATUS.MORE_INFO_NEEDED) {
+                                            pmDisplay = { label: 'Re-check', color: 'amber', icon: 'AlertCircle' };
                                         }
 
                                         // Finance Step Logic (SECOND approval - only after PM approves)
@@ -485,6 +543,17 @@ function VendorPortalContent() {
                                                             <Icon name={pmDisplay.icon} size={14} className={pmDisplay.label === 'Waiting' ? 'animate-pulse' : ''} />
                                                             Project Mgr: {pmDisplay.label}
                                                         </div>
+                                                        {/* Show PM Recheck Message Tooltip */}
+                                                        {pmDisplay.label === 'Re-check' && inv.pmApproval?.notes && (
+                                                            <div className="group/tooltip relative inline-block ml-1">
+                                                                <Icon name="MessageSquare" size={14} className="text-amber-500 cursor-help" />
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-slate-800 text-white text-[10px] rounded-xl shadow-xl z-50 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none">
+                                                                    <div className="font-bold mb-1 text-amber-400">PM Request:</div>
+                                                                    {inv.pmApproval.notes}
+                                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+                                                                </div>
+                                                            </div>
+                                                        )}
                                                         {/* Finance Step (SECOND approval) */}
                                                         <div className={clsx(
                                                             "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider w-fit transition-all",
@@ -504,12 +573,23 @@ function VendorPortalContent() {
                                                     </div>
                                                 </td>
                                                 <td className="px-10 py-6 text-right">
-                                                    <button
-                                                        onClick={(e) => handleViewDocument(e, inv.id)}
-                                                        className="w-12 h-12 inline-flex items-center justify-center text-slate-300 group-hover:text-teal-600 bg-white group-hover:bg-teal-50 border border-slate-100 group-hover:border-teal-200 rounded-[1rem] shadow-sm transition-all duration-300 hover:scale-110 active:scale-90"
-                                                    >
-                                                        <Icon name="Eye" size={20} />
-                                                    </button>
+                                                    <div className="flex items-center justify-end gap-3">
+                                                        {(pmDisplay.label === 'Re-check' || inv.status === INVOICE_STATUS.MORE_INFO_NEEDED) && (
+                                                            <button
+                                                                onClick={(e) => { e.stopPropagation(); router.push('/pm/messages'); }}
+                                                                className="w-12 h-12 inline-flex items-center justify-center text-amber-500 bg-amber-50 border border-amber-100 rounded-[1rem] shadow-sm transition-all duration-300 hover:scale-110 active:scale-90"
+                                                                title="View PM message"
+                                                            >
+                                                                <Icon name="MessageSquare" size={20} />
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={(e) => handleViewDocument(e, inv.id)}
+                                                            className="w-12 h-12 inline-flex items-center justify-center text-slate-300 group-hover:text-teal-600 bg-white group-hover:bg-teal-50 border border-slate-100 group-hover:border-teal-200 rounded-[1rem] shadow-sm transition-all duration-300 hover:scale-110 active:scale-90"
+                                                        >
+                                                            <Icon name="Eye" size={20} />
+                                                        </button>
+                                                    </div>
                                                 </td>
                                             </motion.tr>
                                         );
@@ -541,6 +621,8 @@ function VendorPortalContent() {
                                         pmDisplay = { label: 'Approved', color: 'emerald', icon: 'CheckCircle2' };
                                     } else if (pmStatus === 'REJECTED') {
                                         pmDisplay = { label: 'Rejected', color: 'rose', icon: 'XCircle' };
+                                    } else if (pmStatus === 'INFO_REQUESTED' || inv.status === INVOICE_STATUS.MORE_INFO_NEEDED) {
+                                        pmDisplay = { label: 'Re-check', color: 'amber', icon: 'AlertCircle' };
                                     }
 
                                     // Finance Step Logic (SECOND approval - only after PM approves)
@@ -593,6 +675,13 @@ function VendorPortalContent() {
                                                     <Icon name={pmDisplay.icon} size={12} />
                                                     PM: {pmDisplay.label}
                                                 </div>
+                                                {/* Mobile Tooltip/Message Indicator */}
+                                                {pmDisplay.label === 'Re-check' && inv.pmApproval?.notes && (
+                                                    <div className="col-span-2 mt-2 p-3 bg-amber-50 border border-amber-100 rounded-xl text-xs text-amber-800">
+                                                        <span className="font-bold block mb-1 flex items-center gap-1"><Icon name="MessageSquare" size={12} /> PM Request:</span>
+                                                        {inv.pmApproval.notes}
+                                                    </div>
+                                                )}
                                                 <div className={clsx(
                                                     "flex items-center gap-2 p-2 rounded-xl border text-[9px] font-black uppercase tracking-wider",
                                                     getStepStyle(financeDisplay)

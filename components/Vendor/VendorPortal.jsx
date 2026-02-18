@@ -47,7 +47,9 @@ const VendorPortal = ({ onUploadClick }) => {
             case 'APPROVED': return 'text-blue-600 bg-blue-50 border-blue-100';
             case 'REJECTED': return 'text-rose-600 bg-rose-50 border-rose-100';
             case 'DIGITIZING':
-            case 'RECEIVED': return 'text-amber-600 bg-amber-50 border-amber-100 animate-pulse';
+            case 'RECEIVED':
+            case 'MORE_INFO_NEEDED':
+            case 'INFO_REQUESTED': return 'text-amber-600 bg-amber-50 border-amber-100';
             default: return 'text-slate-500 bg-slate-50 border-slate-100';
         }
     };
@@ -191,12 +193,30 @@ const VendorPortal = ({ onUploadClick }) => {
                                                 ₹ {parseFloat(inv.amount || inv.totalAmount || 0).toLocaleString()}
                                             </td>
                                             <td className="px-6 py-6 text-center">
-                                                <span className={clsx(
-                                                    "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm transition-all",
-                                                    getStatusStyle(inv.status)
-                                                )}>
-                                                    {inv.status.replace('_', ' ')}
-                                                </span>
+                                                <div className="flex flex-col items-center gap-1">
+                                                    <span className={clsx(
+                                                        "px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest border shadow-sm transition-all",
+                                                        getStatusStyle(inv.status)
+                                                    )}>
+                                                        {inv.status.replace(/_/g, ' ')}
+                                                    </span>
+                                                    {/* Show Recheck Message if present */}
+                                                    {(inv.status === 'MORE_INFO_NEEDED' || inv.status === 'INFO_REQUESTED' || inv.pmApproval?.status === 'INFO_REQUESTED') && (
+                                                        <div className="group/tooltip relative">
+                                                            <span className="cursor-help flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-100">
+                                                                <Icon name="MessageSquare" size={10} />
+                                                                See Message
+                                                            </span>
+                                                            {inv.pmApproval?.notes && (
+                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-slate-800 text-white text-[10px] rounded-xl shadow-xl z-50 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none">
+                                                                    <div className="font-bold mb-1 text-amber-400">PM Request:</div>
+                                                                    {inv.pmApproval.notes}
+                                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
                                             </td>
                                             <td className="px-8 py-6 text-right">
                                                 <Button variant="ghost" size="sm" icon="Eye" className="text-slate-300 hover:text-teal-600 bg-transparent hover:bg-teal-50 rounded-xl" />

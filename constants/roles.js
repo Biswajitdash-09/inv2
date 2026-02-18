@@ -71,7 +71,8 @@ export const MENU_PERMISSIONS = {
     'User Management': [ROLES.ADMIN],
     'Audit Logs': [ROLES.ADMIN, ROLES.FINANCE_USER],
     'Rate Cards': [ROLES.ADMIN, ROLES.PROJECT_MANAGER],
-    'Hierarchy': [ROLES.ADMIN]
+    'Hierarchy': [ROLES.ADMIN],
+    'Re-check Requests': [ROLES.VENDOR]
 };
 
 /**

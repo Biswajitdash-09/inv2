@@ -20,7 +20,7 @@ const MessageSchema = new mongoose.Schema({
     content: { type: String, required: true },
     messageType: {
         type: String,
-        enum: ['GENERAL', 'INFO_REQUEST', 'CLARIFICATION', 'DOCUMENT_REQUEST', 'APPROVAL_NOTIFICATION'],
+        enum: ['GENERAL', 'INFO_REQUEST', 'CLARIFICATION', 'DOCUMENT_REQUEST', 'APPROVAL_NOTIFICATION', 'REJECTION', 'STATUS_UPDATE'],
         default: 'GENERAL'
     },
     // Status

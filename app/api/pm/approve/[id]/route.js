@@ -64,8 +64,9 @@ export async function POST(request, { params }) {
             'MATCH_DISCREPANCY',
             'Pending',
             INVOICE_STATUS.SUBMITTED,
-            INVOICE_STATUS.PENDING_PM_APPROVAL
-        ].includes(invoice.status) || !invoice.pmApproval?.status || invoice.pmApproval?.status === 'PENDING';
+            INVOICE_STATUS.PENDING_PM_APPROVAL,
+            INVOICE_STATUS.MORE_INFO_NEEDED
+        ].includes(invoice.status) || !invoice.pmApproval?.status || invoice.pmApproval?.status === 'PENDING' || invoice.pmApproval?.status === 'INFO_REQUESTED';
 
         if (!allowPMReview) {
             return NextResponse.json(
@@ -136,6 +137,11 @@ export async function POST(request, { params }) {
                 'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
             },
             'Pending': {
+                'APPROVE': INVOICE_STATUS.PENDING_FINANCE_REVIEW,
+                'REJECT': INVOICE_STATUS.PM_REJECTED,
+                'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
+            },
+            [INVOICE_STATUS.MORE_INFO_NEEDED]: {
                 'APPROVE': INVOICE_STATUS.PENDING_FINANCE_REVIEW,
                 'REJECT': INVOICE_STATUS.PM_REJECTED,
                 'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED

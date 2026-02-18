@@ -153,7 +153,7 @@ export async function POST(request) {
         }
 
         // Validate document type
-        const validTypes = ['RINGI', 'ANNEX', 'TIMESHEET', 'RATE_CARD'];
+        const validTypes = ['RINGI', 'ANNEX', 'TIMESHEET', 'RATE_CARD', 'INVOICE'];
         if (type === 'RFP_COMMERCIAL') type = 'ANNEX'; // Compatibility
 
         if (!validTypes.includes(type)) {

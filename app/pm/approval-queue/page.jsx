@@ -35,6 +35,96 @@ export default function PMApprovalQueuePage() {
     const [actionModal, setActionModal] = useState(null); // { invoice, type: 'approve'|'reject' }
     const [notes, setNotes] = useState('');
 
+    // Invoice details table state per invoice
+    const [invoiceDocs, setInvoiceDocs] = useState({});
+
+    // Accepted file types per document type
+    const getAcceptForDocType = (docType) => {
+        switch (docType) {
+            case 'Ringi': return '.pdf';
+            case 'Annexure': return '.pdf,.doc,.docx,.xls,.xlsx';
+            case 'Timesheet': return '.xls,.xlsx,.pdf';
+            case 'Rate Card': return '.xls,.xlsx,.pdf';
+            case 'Invoice': return '.pdf';
+            default: return '.pdf,.doc,.docx,.xls,.xlsx';
+        }
+    };
+
+    // Map frontend doc type to API type enum
+    const mapDocTypeToApi = (docType) => {
+        switch (docType) {
+            case 'Ringi': return 'RINGI';
+            case 'Annexure': return 'ANNEX';
+            case 'Timesheet': return 'TIMESHEET';
+            case 'Rate Card': return 'RATE_CARD';
+            case 'Invoice': return 'INVOICE';
+            default: return 'ANNEX';
+        }
+    };
+
+    const addDocRow = (invoiceId, invoice) => {
+        setInvoiceDocs(prev => {
+            const existing = prev[invoiceId] || [];
+            const mapTax = (t) => {
+                if (t === 'CGST_SGST') return 'CGST+SGST';
+                if (t === 'IGST') return 'IGST';
+                return '';
+            };
+            const newRow = existing.length === 0 ? {
+                invoiceNo: invoice?.invoiceNumber || '',
+                invoiceDate: invoice?.invoiceDate || invoice?.date || '',
+                basicAmount: invoice?.basicAmount || invoice?.amount || '',
+                taxType: mapTax(invoice?.taxType) || '',
+                hsnCode: invoice?.hsnCode || '',
+                docType: 'Invoice',
+                description: invoice?.category || '',
+                file: null, fileName: '', uploadedDocId: '', uploadStatus: ''
+            } : {
+                invoiceNo: '', invoiceDate: '', basicAmount: '', taxType: '', hsnCode: '',
+                docType: '', description: '',
+                file: null, fileName: '', uploadedDocId: '', uploadStatus: ''
+            };
+            return { ...prev, [invoiceId]: [...existing, newRow] };
+        });
+    };
+
+    const updateDocRow = (invoiceId, rowIndex, field, value) => {
+        setInvoiceDocs(prev => {
+            const rows = [...(prev[invoiceId] || [])];
+            rows[rowIndex] = { ...rows[rowIndex], [field]: value };
+            return { ...prev, [invoiceId]: rows };
+        });
+    };
+
+    const removeDocRow = (invoiceId, rowIndex) => {
+        setInvoiceDocs(prev => {
+            const rows = [...(prev[invoiceId] || [])];
+            rows.splice(rowIndex, 1);
+            return { ...prev, [invoiceId]: rows };
+        });
+    };
+
+    // Upload a document file for a specific row
+    const uploadDocFile = async (invoiceId, rowIndex, file, docType) => {
+        if (!file || !docType) return;
+        updateDocRow(invoiceId, rowIndex, 'uploadStatus', 'uploading');
+        updateDocRow(invoiceId, rowIndex, 'fileName', file.name);
+        try {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('type', mapDocTypeToApi(docType));
+            fd.append('invoiceId', invoiceId);
+            const res = await fetch('/api/pm/documents', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Upload failed');
+            updateDocRow(invoiceId, rowIndex, 'uploadedDocId', data.document?.id || '');
+            updateDocRow(invoiceId, rowIndex, 'uploadStatus', 'done');
+        } catch (err) {
+            console.error('Doc upload error:', err);
+            updateDocRow(invoiceId, rowIndex, 'uploadStatus', 'error');
+        }
+    };
+
     // Document viewer
     const [viewerInvoice, setViewerInvoice] = useState(null);
     const [spreadsheetData, setSpreadsheetData] = useState(null);
@@ -104,13 +194,45 @@ export default function PMApprovalQueuePage() {
                 inv.status === INVOICE_STATUS.MORE_INFO_NEEDED ||
                 inv.pmApproval?.status === 'PENDING' ||
                 inv.pmApproval?.status === 'APPROVED' ||
-                inv.pmApproval?.status === 'REJECTED')
+                inv.pmApproval?.status === 'REJECTED' ||
+                inv.pmApproval?.status === 'INFO_REQUESTED')
         );
     }, [allInvoices, user]);
+
+    // Auto-populate invoice details for each invoice on load
+    useEffect(() => {
+        if (myInvoices.length === 0) return;
+        const mapTax = (t) => {
+            if (t === 'CGST_SGST') return 'CGST+SGST';
+            if (t === 'IGST') return 'IGST';
+            return '';
+        };
+        setInvoiceDocs(prev => {
+            const next = { ...prev };
+            myInvoices.forEach(inv => {
+                if (!next[inv.id] || next[inv.id].length === 0) {
+                    next[inv.id] = [{
+                        invoiceNo: inv.invoiceNumber || '',
+                        invoiceDate: inv.invoiceDate || inv.date || '',
+                        basicAmount: inv.basicAmount || inv.amount || '',
+                        taxType: mapTax(inv.taxType) || '',
+                        hsnCode: inv.hsnCode || '',
+                        docType: 'Invoice',
+                        description: inv.category || '',
+                        file: null, fileName: inv.originalName || '', uploadedDocId: '', uploadStatus: inv.originalName ? 'done' : ''
+                    }];
+                }
+            });
+            return next;
+        });
+    }, [myInvoices]);
 
     // Tab counts
     const pendingCount = myInvoices.filter(inv =>
         !inv.pmApproval?.status || inv.pmApproval?.status === 'PENDING'
+    ).length;
+    const recheckCount = myInvoices.filter(inv =>
+        inv.pmApproval?.status === 'INFO_REQUESTED'
     ).length;
     const approvedCount = myInvoices.filter(inv =>
         inv.pmApproval?.status === 'APPROVED'
@@ -126,6 +248,8 @@ export default function PMApprovalQueuePage() {
                 return myInvoices.filter(inv =>
                     !inv.pmApproval?.status || inv.pmApproval?.status === 'PENDING'
                 );
+            case 'recheck':
+                return myInvoices.filter(inv => inv.pmApproval?.status === 'INFO_REQUESTED');
             case 'approved':
                 return myInvoices.filter(inv => inv.pmApproval?.status === 'APPROVED');
             case 'rejected':
@@ -183,8 +307,31 @@ export default function PMApprovalQueuePage() {
         }
     };
 
+    const handleRecheck = async (invoiceId) => {
+        try {
+            setProcessingId(invoiceId);
+            const res = await fetch(`/api/pm/approve/${invoiceId}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'REQUEST_INFO', notes: notes || 'Please re-check the submitted documents and re-submit.' })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setActionModal(null);
+            setNotes('');
+            setSuccessMsg('Re-check request sent to vendor!');
+            setTimeout(() => setSuccessMsg(null), 4000);
+            fetchInvoices();
+        } catch (err) {
+            setError(err.message);
+        } finally {
+            setProcessingId(null);
+        }
+    };
+
     const TAB_COLORS = {
         pending: { active: 'bg-indigo-50 text-indigo-700 border-indigo-200', badge: 'bg-indigo-100 text-indigo-700' },
+        recheck: { active: 'bg-amber-50 text-amber-700 border-amber-200', badge: 'bg-amber-100 text-amber-700' },
         approved: { active: 'bg-emerald-50 text-emerald-700 border-emerald-200', badge: 'bg-emerald-100 text-emerald-700' },
         rejected: { active: 'bg-rose-50 text-rose-700 border-rose-200', badge: 'bg-rose-100 text-rose-700' },
         all: { active: 'bg-slate-100 text-slate-700 border-slate-200', badge: 'bg-slate-200 text-slate-700' },
@@ -192,6 +339,7 @@ export default function PMApprovalQueuePage() {
 
     const tabs = [
         { key: 'pending', label: 'Pending Review', count: pendingCount, icon: 'Clock' },
+        { key: 'recheck', label: 'Re-check Sent', count: recheckCount, icon: 'RefreshCw' },
         { key: 'approved', label: 'Approved', count: approvedCount, icon: 'CheckCircle2' },
         { key: 'rejected', label: 'Rejected', count: rejectedCount, icon: 'XCircle' },
         { key: 'all', label: 'All', count: myInvoices.length, icon: 'LayoutList' },
@@ -276,7 +424,7 @@ export default function PMApprovalQueuePage() {
                 ) : (
                     filteredInvoices.map((inv, idx) => {
                         const sc = getStatus(inv.status);
-                        const isPending = !inv.pmApproval?.status || inv.pmApproval?.status === 'PENDING';
+                        const isPending = !inv.pmApproval?.status || inv.pmApproval?.status === 'PENDING' || inv.pmApproval?.status === 'INFO_REQUESTED';
                         return (
                             <motion.div
                                 key={inv.id}
@@ -363,49 +511,226 @@ export default function PMApprovalQueuePage() {
                                             </span>
                                         )}
                                     </div>
-                                    
-                                    {/* Line Items Display */}
-                                    {inv.lineItems && inv.lineItems.length > 0 && (
-                                        <div className="mt-4 pl-13 sm:pl-14 border-t border-slate-100 pt-3">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Line Items & Validation</p>
-                                            <div className="space-y-2">
-                                                {inv.lineItems.map((item, i) => (
-                                                    <div key={i} className="flex items-center justify-between text-xs bg-slate-50/50 p-2 rounded-lg border border-slate-100">
-                                                        <div className="flex items-center gap-2">
-                                                            {item.status === 'MATCH' ? (
-                                                                <Icon name="CheckCircle2" size={14} className="text-emerald-500 shrink-0" />
-                                                            ) : item.status === 'MISMATCH' ? (
-                                                                <Icon name="AlertTriangle" size={14} className="text-amber-500 shrink-0" />
-                                                            ) : (
-                                                                <Icon name="HelpCircle" size={14} className="text-slate-400 shrink-0" />
-                                                            )}
-                                                            <div>
-                                                                <p className="font-medium text-slate-700">{item.role} <span className="text-slate-400">({item.experienceRange})</span></p>
-                                                                {item.status !== 'MATCH' && (
-                                                                    <p className="text-[10px] text-amber-600 font-medium">{item.description || 'Rate mismatch or manual validation needed'}</p>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                        <div className="text-right">
-                                                            <p className="font-bold text-slate-700">₹{Number(item.rate).toLocaleString()}</p>
-                                                            <p className="text-[10px] text-slate-400">{item.quantity} {item.unit} · ₹{Number(item.amount).toLocaleString()}</p>
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                            
-                                            {/* Validation Summary Alert */}
-                                            {inv.lineItems.some(i => i.status === 'MISMATCH') && (
-                                                <div className="mt-3 bg-red-50 border border-red-100 rounded-lg p-2.5 flex items-center gap-2 text-xs text-red-700">
-                                                    <Icon name="AlertTriangle" size={16} />
-                                                    <div>
-                                                        <span className="font-bold block">Rate Mismatch Detected!</span>
-                                                        Submitted rates do not match the Master Rate Card.
-                                                    </div>
-                                                </div>
+
+                                    {/* Invoice Details Table */}
+                                    <div className="mt-4 pl-13 sm:pl-14 border-t border-slate-100 pt-3">
+                                        <div className="flex items-center justify-between mb-2">
+                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Invoice Details</p>
+                                            {isPending && (
+                                                <button
+                                                    onClick={() => addDocRow(inv.id, inv)}
+                                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
+                                                >
+                                                    <Icon name="Plus" size={12} />
+                                                    Add Row
+                                                </button>
                                             )}
                                         </div>
-                                    )}
+                                        <div className="rounded-xl border border-slate-200 overflow-hidden overflow-x-auto">
+                                            <table className="w-full text-xs min-w-[1050px]">
+                                                <thead>
+                                                    <tr className="bg-slate-50 border-b border-slate-200">
+                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-10">S.No</th>
+                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-24">Invoice No</th>
+                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-24">Invoice Date</th>
+                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-24">Basic Amt</th>
+                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-28">Taxes</th>
+                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-20">HSN Code</th>
+                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-28">Type of Doc</th>
+                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-36">Attachment</th>
+                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Description</th>
+                                                        {isPending && <th className="w-8"></th>}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {(invoiceDocs[inv.id] || []).length === 0 ? (
+                                                        <tr>
+                                                            <td colSpan={isPending ? 10 : 9} className="text-center py-6 text-slate-300 text-xs">
+                                                                <div className="flex flex-col items-center gap-1">
+                                                                    <Icon name="FileText" size={20} className="text-slate-200" />
+                                                                    <span>No invoice details added yet</span>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ) : (
+                                                        (invoiceDocs[inv.id] || []).map((doc, i) => (
+                                                            <tr key={i} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors">
+                                                                <td className="px-3 py-2 text-slate-500 font-medium">{i + 1}</td>
+                                                                {/* Invoice No */}
+                                                                <td className="px-3 py-2">
+                                                                    {isPending ? (
+                                                                        <input
+                                                                            type="text"
+                                                                            value={doc.invoiceNo}
+                                                                            onChange={(e) => updateDocRow(inv.id, i, 'invoiceNo', e.target.value)}
+                                                                            placeholder="INV-001"
+                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
+                                                                        />
+                                                                    ) : (
+                                                                        <span className="text-slate-700 font-medium">{doc.invoiceNo || '—'}</span>
+                                                                    )}
+                                                                </td>
+                                                                {/* Invoice Date */}
+                                                                <td className="px-3 py-2">
+                                                                    {isPending ? (
+                                                                        <input
+                                                                            type="date"
+                                                                            value={doc.invoiceDate}
+                                                                            onChange={(e) => updateDocRow(inv.id, i, 'invoiceDate', e.target.value)}
+                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
+                                                                        />
+                                                                    ) : (
+                                                                        <span className="text-slate-700">{doc.invoiceDate || '—'}</span>
+                                                                    )}
+                                                                </td>
+                                                                {/* Basic Amount (before taxes) */}
+                                                                <td className="px-3 py-2">
+                                                                    {isPending ? (
+                                                                        <div className="flex items-center gap-1">
+                                                                            <span className="text-slate-400 text-xs">₹</span>
+                                                                            <input
+                                                                                type="number"
+                                                                                value={doc.basicAmount}
+                                                                                onChange={(e) => updateDocRow(inv.id, i, 'basicAmount', e.target.value)}
+                                                                                placeholder="0.00"
+                                                                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
+                                                                            />
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className="text-slate-700 font-medium">₹{Number(doc.basicAmount || 0).toLocaleString('en-IN')}</span>
+                                                                    )}
+                                                                </td>
+                                                                {/* Taxes Dropdown */}
+                                                                <td className="px-3 py-2">
+                                                                    {isPending ? (
+                                                                        <select
+                                                                            value={doc.taxType}
+                                                                            onChange={(e) => updateDocRow(inv.id, i, 'taxType', e.target.value)}
+                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
+                                                                        >
+                                                                            <option value="">Select tax...</option>
+                                                                            <option value="CGST+SGST">CGST + SGST</option>
+                                                                            <option value="IGST">IGST</option>
+                                                                        </select>
+                                                                    ) : (
+                                                                        <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md ${doc.taxType === 'CGST+SGST' ? 'bg-blue-50 text-blue-600' :
+                                                                            doc.taxType === 'IGST' ? 'bg-violet-50 text-violet-600' :
+                                                                                'text-slate-400'
+                                                                            }`}>{doc.taxType || '—'}</span>
+                                                                    )}
+                                                                </td>
+                                                                {/* HSN Code */}
+                                                                <td className="px-3 py-2">
+                                                                    {isPending ? (
+                                                                        <input
+                                                                            type="text"
+                                                                            value={doc.hsnCode}
+                                                                            onChange={(e) => updateDocRow(inv.id, i, 'hsnCode', e.target.value)}
+                                                                            placeholder="e.g. 9983"
+                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
+                                                                        />
+                                                                    ) : (
+                                                                        <span className="text-slate-700 font-mono">{doc.hsnCode || '—'}</span>
+                                                                    )}
+                                                                </td>
+                                                                {/* Type of Doc */}
+                                                                <td className="px-3 py-2">
+                                                                    {isPending ? (
+                                                                        <select
+                                                                            value={doc.docType}
+                                                                            onChange={(e) => updateDocRow(inv.id, i, 'docType', e.target.value)}
+                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
+                                                                        >
+                                                                            <option value="">Select type...</option>
+                                                                            <option value="Invoice">Invoice</option>
+                                                                            <option value="Ringi">Ringi</option>
+                                                                            <option value="Annexure">Annexure</option>
+                                                                            <option value="Timesheet">Timesheet</option>
+                                                                            <option value="Rate Card">Rate Card</option>
+                                                                        </select>
+                                                                    ) : (
+                                                                        <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md ${doc.docType === 'Invoice' ? 'bg-indigo-50 text-indigo-600' :
+                                                                            doc.docType === 'Ringi' ? 'bg-amber-50 text-amber-600' :
+                                                                                doc.docType === 'Annexure' ? 'bg-teal-50 text-teal-600' :
+                                                                                    doc.docType === 'Timesheet' ? 'bg-sky-50 text-sky-600' :
+                                                                                        doc.docType === 'Rate Card' ? 'bg-purple-50 text-purple-600' :
+                                                                                            'text-slate-400'
+                                                                            }`}>{doc.docType || '—'}</span>
+                                                                    )}
+                                                                </td>
+                                                                {/* Attachment */}
+                                                                <td className="px-3 py-2">
+                                                                    {isPending ? (
+                                                                        <div className="flex flex-col gap-1">
+                                                                            {doc.uploadStatus === 'done' ? (
+                                                                                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-md truncate max-w-[140px]" title={doc.fileName}>
+                                                                                    <Icon name="CheckCircle" size={10} /> {doc.fileName?.length > 16 ? doc.fileName.slice(0, 14) + '...' : doc.fileName}
+                                                                                </span>
+                                                                            ) : doc.uploadStatus === 'uploading' ? (
+                                                                                <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-md">
+                                                                                    <span className="animate-spin">⏳</span> Uploading...
+                                                                                </span>
+                                                                            ) : doc.uploadStatus === 'error' ? (
+                                                                                <span className="inline-flex items-center gap-1 text-[10px] text-rose-600 font-medium bg-rose-50 px-2 py-1 rounded-md">
+                                                                                    <Icon name="AlertCircle" size={10} /> Failed
+                                                                                </span>
+                                                                            ) : null}
+                                                                            {doc.uploadStatus !== 'uploading' && (
+                                                                                <label className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md cursor-pointer transition-all w-fit">
+                                                                                    <Icon name="Paperclip" size={10} />
+                                                                                    {doc.uploadStatus === 'done' ? 'Replace' : 'Attach'}
+                                                                                    <input
+                                                                                        type="file"
+                                                                                        className="hidden"
+                                                                                        accept={getAcceptForDocType(doc.docType)}
+                                                                                        onChange={(e) => {
+                                                                                            const f = e.target.files[0];
+                                                                                            if (f) uploadDocFile(inv.id, i, f, doc.docType);
+                                                                                            e.target.value = '';
+                                                                                        }}
+                                                                                    />
+                                                                                </label>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md truncate max-w-[140px] ${doc.fileName ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400'
+                                                                            }`} title={doc.fileName}>
+                                                                            {doc.fileName ? (<><Icon name="FileText" size={10} /> {doc.fileName}</>) : '—'}
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                {/* Description */}
+                                                                <td className="px-3 py-2">
+                                                                    {isPending ? (
+                                                                        <input
+                                                                            type="text"
+                                                                            value={doc.description}
+                                                                            onChange={(e) => updateDocRow(inv.id, i, 'description', e.target.value)}
+                                                                            placeholder="Enter description..."
+                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
+                                                                        />
+                                                                    ) : (
+                                                                        <span className="text-slate-700">{doc.description || '—'}</span>
+                                                                    )}
+                                                                </td>
+                                                                {isPending && (
+                                                                    <td className="px-2 py-2">
+                                                                        <button
+                                                                            onClick={() => removeDocRow(inv.id, i)}
+                                                                            className="w-6 h-6 rounded-md hover:bg-rose-50 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-all"
+                                                                            title="Remove row"
+                                                                        >
+                                                                            <Icon name="Trash2" size={12} />
+                                                                        </button>
+                                                                    </td>
+                                                                )}
+                                                            </tr>
+                                                        ))
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 {/* Action Bar */}
@@ -442,6 +767,14 @@ export default function PMApprovalQueuePage() {
                                                     Approve
                                                 </button>
                                                 <button
+                                                    onClick={() => setActionModal({ invoice: inv, type: 'recheck' })}
+                                                    disabled={processingId === inv.id}
+                                                    className="inline-flex items-center gap-1.5 h-8 px-4 rounded-lg bg-amber-50 border border-amber-300 text-amber-700 text-[11px] font-bold hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all disabled:opacity-50"
+                                                >
+                                                    <Icon name="RefreshCw" size={14} />
+                                                    Re-check
+                                                </button>
+                                                <button
                                                     onClick={() => setActionModal({ invoice: inv, type: 'reject' })}
                                                     disabled={processingId === inv.id}
                                                     className="inline-flex items-center gap-1.5 h-8 px-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all disabled:opacity-50"
@@ -453,10 +786,12 @@ export default function PMApprovalQueuePage() {
                                         ) : (
                                             <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg ${inv.pmApproval?.status === 'APPROVED'
                                                 ? 'bg-emerald-50 text-emerald-600'
-                                                : 'bg-rose-50 text-rose-600'
+                                                : inv.pmApproval?.status === 'INFO_REQUESTED'
+                                                    ? 'bg-amber-50 text-amber-600'
+                                                    : 'bg-rose-50 text-rose-600'
                                                 }`}>
-                                                <Icon name={inv.pmApproval?.status === 'APPROVED' ? 'CheckCircle2' : 'XCircle'} size={12} />
-                                                {inv.pmApproval?.status === 'APPROVED' ? 'Approved by you' : 'Rejected by you'}
+                                                <Icon name={inv.pmApproval?.status === 'APPROVED' ? 'CheckCircle2' : inv.pmApproval?.status === 'INFO_REQUESTED' ? 'RefreshCw' : 'XCircle'} size={12} />
+                                                {inv.pmApproval?.status === 'APPROVED' ? 'Approved by you' : inv.pmApproval?.status === 'INFO_REQUESTED' ? 'Re-check sent to vendor' : 'Rejected by you'}
                                             </span>
                                         )}
                                     </div>
@@ -627,6 +962,98 @@ export default function PMApprovalQueuePage() {
                                         <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
                                     ) : (
                                         <><Icon name="XCircle" size={16} /> Reject Invoice</>
+                                    )}
+                                </button>
+                            </div>
+                        </motion.div>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* ── Re-check Modal ── */}
+            <AnimatePresence>
+                {actionModal?.type === 'recheck' && (
+                    <motion.div
+                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+                        onClick={() => { setActionModal(null); setNotes(''); setError(null); }}
+                    >
+                        <motion.div
+                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            onClick={(e) => e.stopPropagation()}
+                            className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden"
+                        >
+                            {/* Header */}
+                            <div className="p-5 border-b border-slate-100 bg-amber-50/50">
+                                <div className="flex items-center gap-3">
+                                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
+                                        <Icon name="RefreshCw" size={20} />
+                                    </div>
+                                    <div>
+                                        <h2 className="font-bold text-slate-800 text-lg">Re-check Invoice</h2>
+                                        <p className="text-xs text-slate-400">Send back to vendor for document re-verification</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="p-5 space-y-4">
+                                {/* Invoice Summary */}
+                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-bold text-slate-800 text-sm">{actionModal.invoice.invoiceNumber || actionModal.invoice.id?.slice(0, 8)}</p>
+                                            <p className="text-xs text-slate-400">{actionModal.invoice.vendorName}{actionModal.invoice.vendorCode ? ` · ${actionModal.invoice.vendorCode}` : ''}</p>
+                                        </div>
+                                        <p className="text-lg font-black text-slate-800">₹{Number(actionModal.invoice.amount || 0).toLocaleString('en-IN')}</p>
+                                    </div>
+                                </div>
+
+                                {/* Who gets notified */}
+                                <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
+                                    <p className="text-[11px] font-bold text-amber-700 flex items-center gap-1.5">
+                                        <Icon name="Bell" size={12} />
+                                        Notification will be sent to:
+                                    </p>
+                                    <div className="flex items-center gap-3 mt-2">
+                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-md">
+                                            <Icon name="Building" size={10} /> Vendor
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Message to vendor */}
+                                <div>
+                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
+                                        Message to Vendor <span className="text-slate-300 font-normal normal-case tracking-normal">(optional)</span>
+                                    </label>
+                                    <textarea
+                                        value={notes}
+                                        onChange={(e) => setNotes(e.target.value)}
+                                        rows={3}
+                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-400 transition-all resize-none"
+                                        placeholder="e.g. Please re-upload the timesheet with correct dates..."
+                                    />
+                                    <p className="text-[10px] text-slate-400 mt-1">Vendor will see this message and can re-submit the documents.</p>
+                                </div>
+                            </div>
+
+                            {/* Actions */}
+                            <div className="px-5 pb-5 flex gap-3">
+                                <button
+                                    onClick={() => { setActionModal(null); setNotes(''); setError(null); }}
+                                    className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    onClick={() => handleRecheck(actionModal.invoice.id)}
+                                    disabled={processingId}
+                                    className="flex-1 px-4 py-3 bg-amber-500 text-white text-sm font-bold rounded-xl hover:bg-amber-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {processingId ? (
+                                        <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</>
+                                    ) : (
+                                        <><Icon name="RefreshCw" size={16} /> Send Re-check</>
                                     )}
                                 </button>
                             </div>

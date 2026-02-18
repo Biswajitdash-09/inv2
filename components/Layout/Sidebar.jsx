@@ -29,6 +29,7 @@ const menuItems = [
   { name: "Audit Logs", icon: "FileText", path: "/audit" },
   { name: "Rate Cards", icon: "Layers", path: "/admin/ratecards" },
   { name: "Hierarchy", icon: "GitBranch", path: "/admin/hierarchy" },
+  { name: "Re-check Requests", icon: "AlertCircle", path: "/vendors/rechecks" },
 ];
 
 const Sidebar = ({ mobileOpen, setMobileOpen }) => {
@@ -36,6 +37,8 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
   const router = useRouter();
   const { user, logout } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const [recheckUnreadCount, setRecheckUnreadCount] = useState(0);
 
   useEffect(() => {
     try {
@@ -43,6 +46,50 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
       if (stored !== null) setCollapsed(JSON.parse(stored));
     } catch (_) { }
   }, []);
+
+  // Fetch unread messages count
+  useEffect(() => {
+    if (!user) return;
+
+    const fetchUnread = async () => {
+      try {
+        const res = await fetch('/api/pm/messages?type=inbox', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          setUnreadCount(data.unreadCount || 0);
+        }
+      } catch (err) {
+        console.error('Failed to fetch unread count in sidebar', err);
+      }
+    };
+
+    fetchUnread();
+    const interval = setInterval(fetchUnread, 15000); // 15 seconds
+    return () => clearInterval(interval);
+  }, [user]);
+
+  // Fetch re-check unread count for vendor users
+  useEffect(() => {
+    if (!user) return;
+    const role = getNormalizedRole(user);
+    if (role !== ROLES.VENDOR) return;
+
+    const fetchRecheckUnread = async () => {
+      try {
+        const res = await fetch('/api/vendor/rechecks', { cache: 'no-store' });
+        if (res.ok) {
+          const data = await res.json();
+          setRecheckUnreadCount(data.unreadCount || 0);
+        }
+      } catch (err) {
+        console.error('Failed to fetch recheck unread count in sidebar', err);
+      }
+    };
+
+    fetchRecheckUnread();
+    const interval = setInterval(fetchRecheckUnread, 15000);
+    return () => clearInterval(interval);
+  }, [user]);
 
   const toggleSidebar = () => {
     setCollapsed((prev) => {
@@ -195,6 +242,16 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
                         </motion.span>
                       )}
                     </AnimatePresence>
+                    {!collapsed && item.name === 'Messages' && unreadCount > 0 && (
+                      <span className="px-1.5 py-0.5 bg-error text-white text-[9px] font-black rounded-lg ml-auto">
+                        {unreadCount}
+                      </span>
+                    )}
+                    {!collapsed && item.name === 'Re-check Requests' && recheckUnreadCount > 0 && (
+                      <span className="px-1.5 py-0.5 bg-amber-500 text-white text-[9px] font-black rounded-lg ml-auto animate-pulse">
+                        {recheckUnreadCount}
+                      </span>
+                    )}
                     {!collapsed && isActive && (
                       <motion.div
                         initial={{ scale: 0 }}

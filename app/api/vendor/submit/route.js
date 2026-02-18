@@ -30,19 +30,19 @@ export async function POST(request) {
         const body = Object.fromEntries(formData);
         const invoiceFile = formData.get('invoice');
         const lineItems = formData.get('lineItems') ? JSON.parse(formData.get('lineItems')) : [];
-        
+
         // Calculate total amount from line items if present, otherwise use provided amount
         // But for this phase, we trust the Vendor's provided Amount for the header, 
         // and Validate the Line Items total = Header Amount.
-        
+
         let calculatedTotal = 0;
         if (lineItems.length > 0) {
-             calculatedTotal = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+            calculatedTotal = lineItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
         }
 
         // Validate: Header Amount should match Line Items Total (approx)
         if (lineItems.length > 0 && Math.abs(calculatedTotal - Number(body.amount)) > 1.0) {
-             return NextResponse.json(
+            return NextResponse.json(
                 { error: `Invoice Amount (${body.amount}) does not match Line Items Total (${calculatedTotal})` },
                 { status: 400 }
             );
@@ -67,7 +67,7 @@ export async function POST(request) {
                 { status: 400 }
             );
         }
-        
+
         // Validate Line Items against Rate Card
         if (lineItems.length > 0) {
             // Find applicable rate cards
@@ -80,25 +80,25 @@ export async function POST(request) {
                     { effectiveTo: { $gte: new Date() } }
                 ]
             };
-            
+
             if (project) {
-                 rateQuery.$or.push({ projectId: project });
-                 rateQuery.$or.push({ projectId: null });
+                rateQuery.$or.push({ projectId: project });
+                rateQuery.$or.push({ projectId: null });
             } else {
-                 rateQuery.projectId = null;
+                rateQuery.projectId = null;
             }
 
             const rateCards = await RateCard.find(rateQuery).sort({ projectId: -1, effectiveFrom: -1 }); // Project specific first
-            
+
             // Flatten rates for easier lookup
             const availableRates = [];
             rateCards.forEach(card => {
                 if (card.rates) {
                     card.rates.forEach(r => {
-                         // Add only if not already present (respecting priority)
-                         if (!availableRates.find(ar => ar.role === r.role && ar.experienceRange === r.experienceRange)) {
-                             availableRates.push(r);
-                         }
+                        // Add only if not already present (respecting priority)
+                        if (!availableRates.find(ar => ar.role === r.role && ar.experienceRange === r.experienceRange)) {
+                            availableRates.push(r);
+                        }
                     });
                 }
             });
@@ -121,14 +121,92 @@ export async function POST(request) {
             });
         }
 
-        // Vercel Fix: Store as Base64 Data URI instead of writing to filesystem
         const invoiceBuffer = Buffer.from(await invoiceFile.arrayBuffer());
         const invoiceBase64 = invoiceBuffer.toString('base64');
         const invoiceMimeType = invoiceFile.type || 'application/pdf';
         const invoiceFileUrl = `data:${invoiceMimeType};base64,${invoiceBase64}`;
         const invoiceId = uuidv4();
 
-        // Create invoice record
+        // --- OCR Extraction: Parse PDF to extract invoice fields ---
+        let ocrData = {};
+        if (invoiceMimeType === 'application/pdf' || invoiceFile.name?.toLowerCase().endsWith('.pdf')) {
+            try {
+                await import('pdf-parse/worker');
+                const { PDFParse } = await import('pdf-parse');
+                const parser = new PDFParse({ data: invoiceBuffer });
+                const pdfData = await parser.getText();
+                await parser.destroy();
+                const fullText = pdfData.text || '';
+
+                if (fullText.trim()) {
+                    // Extract Invoice Number
+                    const invNumPatterns = [
+                        /(?:invoice\s*(?:no|number|#|num|id)[\s.:/-]*)\s*([A-Z0-9][\w\-\/]{1,25})/i,
+                        /(?:inv[\s.:/-]*(?:no|num|#)?[\s.:/-]*)\s*([A-Z0-9][\w\-\/]{1,25})/i,
+                    ];
+                    for (const pat of invNumPatterns) {
+                        const m = fullText.match(pat);
+                        if (m?.[1]) { ocrData.invoiceNumber = m[1].trim(); break; }
+                    }
+
+                    // Extract Invoice Date
+                    const datePatterns = [
+                        /(?:invoice\s*date|inv\.?\s*date|date\s*of\s*invoice|billing\s*date|bill\s*date)[\s.:/-]*\s*(\d{1,2}[\s./-]\d{1,2}[\s./-]\d{2,4})/i,
+                        /(?:invoice\s*date|inv\.?\s*date|date\s*of\s*invoice|billing\s*date|bill\s*date)[\s.:/-]*\s*(\d{1,2}\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s.,]*\d{2,4})/i,
+                        /(?:date)[\s.:/-]*\s*(\d{1,2}[\s./-]\d{1,2}[\s./-]\d{2,4})/i,
+                        /(?:date)[\s.:/-]*\s*(\d{1,2}\s*(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)[a-z]*[\s.,]*\d{2,4})/i,
+                    ];
+                    for (const pat of datePatterns) {
+                        const m = fullText.match(pat);
+                        if (m?.[1]) {
+                            ocrData.invoiceDate = normalizeOcrDate(m[1].trim());
+                            break;
+                        }
+                    }
+
+                    // Extract Basic Amount
+                    const basicPatterns = [
+                        /(?:sub\s*total|basic\s*amount|taxable\s*(?:value|amount)|net\s*amount|amount\s*before\s*tax)[\s.:₹$Rs]*\s*([0-9,]+\.?\d{0,2})/i,
+                        /(?:subtotal)[\s.:₹$Rs]*\s*([0-9,]+\.?\d{0,2})/i,
+                    ];
+                    for (const pat of basicPatterns) {
+                        const m = fullText.match(pat);
+                        if (m?.[1]) { ocrData.basicAmount = parseFloat(m[1].replace(/,/g, '')); break; }
+                    }
+
+                    // Extract Total Amount (fallback for amount)
+                    const totalPatterns = [
+                        /(?:grand\s*total|total\s*amount|amount\s*payable|net\s*payable|total\s*(?:due|inv(?:oice)?))[\s.:₹$Rs]*\s*([0-9,]+\.?\d{0,2})/i,
+                        /(?:total)[\s.:₹$Rs]*\s*([0-9,]+\.\d{2})/i,
+                    ];
+                    for (const pat of totalPatterns) {
+                        const m = fullText.match(pat);
+                        if (m?.[1]) { ocrData.totalAmount = parseFloat(m[1].replace(/,/g, '')); break; }
+                    }
+
+                    // Extract Tax Type
+                    if (/igst/i.test(fullText)) {
+                        ocrData.taxType = 'IGST';
+                    } else if (/cgst|sgst/i.test(fullText)) {
+                        ocrData.taxType = 'CGST_SGST';
+                    } else if (/gst/i.test(fullText)) {
+                        ocrData.taxType = 'CGST_SGST';
+                    }
+
+                    // Extract HSN Code
+                    const hsnMatch = fullText.match(/(?:hsn|sac)[\s\/:.-]*(?:code)?[\s\/:.-]*(\d{4,8})/i);
+                    if (hsnMatch?.[1]) {
+                        ocrData.hsnCode = hsnMatch[1];
+                    }
+
+                    console.log('[Vendor Submit] OCR extracted fields:', ocrData);
+                }
+            } catch (ocrErr) {
+                console.error('[Vendor Submit] OCR extraction failed, continuing without:', ocrErr.message);
+            }
+        }
+
+        // Create invoice record — manual input takes priority over OCR
         const invoice = await Invoice.create({
             id: invoiceId,
             vendorName: session.user.name || session.user.email,
@@ -136,9 +214,14 @@ export async function POST(request) {
             vendorId: session.user.vendorId || null,
             originalName: invoiceFile.name,
             receivedAt: new Date(),
-            invoiceNumber: invoiceNumber || null,
-            date: invoiceDate || null,
-            amount: amount ? parseFloat(amount) : null,
+            invoiceNumber: invoiceNumber || ocrData.invoiceNumber || null,
+            date: invoiceDate || ocrData.invoiceDate || null,
+            invoiceDate: invoiceDate || ocrData.invoiceDate || null,
+            amount: amount ? parseFloat(amount) : (ocrData.totalAmount || null),
+            basicAmount: ocrData.basicAmount || (amount ? parseFloat(amount) : null),
+            taxType: ocrData.taxType || null,
+            hsnCode: ocrData.hsnCode || null,
+            category: invoiceFile.name?.replace(/\.[^.]+$/, '') || null,
             status: 'Pending',
             fileUrl: invoiceFileUrl,
             project: project || null,
@@ -147,7 +230,7 @@ export async function POST(request) {
             pmApproval: { status: 'PENDING' },
             financeApproval: { status: 'PENDING' },
             hilReview: { status: 'PENDING' },
-            lineItems: lineItems, // Store validated line items
+            lineItems: lineItems,
             documents: []
         });
 
@@ -288,4 +371,39 @@ export async function POST(request) {
         console.error('Error submitting invoice:', error);
         return NextResponse.json({ error: 'Failed to submit invoice' }, { status: 500 });
     }
+}
+
+/**
+ * Normalize various date formats to YYYY-MM-DD for HTML date input.
+ */
+function normalizeOcrDate(dateStr) {
+    if (!dateStr) return null;
+    try {
+        // DD/MM/YYYY or DD-MM-YYYY or DD.MM.YYYY
+        let m = dateStr.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+        if (m) {
+            const day = m[1].padStart(2, '0');
+            const month = m[2].padStart(2, '0');
+            return `${m[3]}-${month}-${day}`;
+        }
+        // DD/MM/YY
+        m = dateStr.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{2})$/);
+        if (m) {
+            const year = parseInt(m[3]) > 50 ? `19${m[3]}` : `20${m[3]}`;
+            const day = m[1].padStart(2, '0');
+            const month = m[2].padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        // DD Mon YYYY (e.g. 07 Feb 2026)
+        const months = { jan: '01', feb: '02', mar: '03', apr: '04', may: '05', jun: '06', jul: '07', aug: '08', sep: '09', oct: '10', nov: '11', dec: '12' };
+        m = dateStr.match(/^(\d{1,2})\s*([a-z]{3})[a-z]*[\s.,]*(\d{4})$/i);
+        if (m) {
+            const mon = months[m[2].toLowerCase().substring(0, 3)];
+            if (mon) return `${m[3]}-${mon}-${m[1].padStart(2, '0')}`;
+        }
+        // Fallback: JS Date parser
+        const d = new Date(dateStr);
+        if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
+    } catch { /* ignore */ }
+    return null;
 }

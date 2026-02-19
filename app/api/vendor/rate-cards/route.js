@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { ROLES } from '@/constants/roles';
+import { ROLES, getNormalizedRole } from '@/constants/roles';
 import RateCard from '@/models/RateCard';
 import connectToDatabase from '@/lib/mongodb';
+
+export const dynamic = 'force-dynamic';
 
 /**
  * GET /api/vendor/rate-cards
@@ -13,14 +15,20 @@ import connectToDatabase from '@/lib/mongodb';
 export async function GET(request) {
     try {
         const session = await getSession();
-        if (!session?.user || session.user.role !== ROLES.VENDOR) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+        if (!session?.user) {
+            return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+        }
+
+        // Use normalized role check for robustness
+        const normalizedRole = getNormalizedRole(session.user);
+        if (normalizedRole !== ROLES.VENDOR) {
+            return NextResponse.json({ error: 'Unauthorized — vendor role required' }, { status: 403 });
         }
 
         const { searchParams } = new URL(request.url);
         const projectId = searchParams.get('projectId');
         const vendorId = session.user.vendorId;
-        
+
         if (!vendorId) {
             return NextResponse.json({
                 rateCards: [],
@@ -30,26 +38,37 @@ export async function GET(request) {
 
         await connectToDatabase();
 
-        // Find applicable rate cards
-        // 1. Vendor-specific (global) or Project-specific
-        // Priority: Project-specific > Global
-        
-        const query = {
-            vendorId: vendorId,
-            status: 'ACTIVE',
-            $or: [
-                { effectiveTo: { $exists: false } },
-                { effectiveTo: { $gte: new Date() } }
-            ]
-        };
+        // Build query:
+        // - Must match this vendor
+        // - Must be ACTIVE status
+        // - Must not be expired (effectiveTo is null, missing, or in the future)
+        // - Optionally filter by projectId (with fallback to global cards)
 
+        const conditions = [
+            { vendorId: vendorId },
+            { status: 'ACTIVE' },
+            // Handle effectiveTo: null (field exists with null value), missing field, or future date
+            {
+                $or: [
+                    { effectiveTo: null },
+                    { effectiveTo: { $exists: false } },
+                    { effectiveTo: { $gte: new Date() } }
+                ]
+            }
+        ];
+
+        // If projectId is specified, return both project-specific and global cards
         if (projectId) {
-            query.$or.push({ projectId: projectId });
-            query.$or.push({ projectId: null }); // Fallback to global
+            conditions.push({
+                $or: [
+                    { projectId: projectId },
+                    { projectId: null },
+                    { projectId: { $exists: false } }
+                ]
+            });
         }
-        // If no projectId, we don't restrict by projectId, returning all active rates for this vendor
 
-        const rateCards = await RateCard.find(query).sort({ projectId: -1, effectiveFrom: -1 });
+        const rateCards = await RateCard.find({ $and: conditions }).sort({ projectId: -1, effectiveFrom: -1 });
 
         return NextResponse.json({ rateCards });
     } catch (error) {

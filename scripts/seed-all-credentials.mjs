@@ -82,7 +82,7 @@ const VALID_EMAILS = [
     'pm.marketing@company.com',
     'pm.operations@company.com',
     'vendor@technovasolutions.com',
-    'vendor@bluepeakent.com',
+    'vendor@blupeakent.com',
     'vendor@meridianglobal.com',
     'vendor@apexdigitalworks.com',
     'vendor@stellarsupplies.com',
@@ -106,7 +106,7 @@ const users = [
 
     // ── Vendors (managed by PMs) ──
     { id: IDS.vTechNova, name: 'TechNova Solutions', email: 'vendor@technovasolutions.com', password: 'Vendor@TN2025', role: 'Vendor', managedBy: IDS.pmSales, vendorId: 'v-technova', vendorCode: 'VEN-TN' },
-    { id: IDS.vBluePeak, name: 'BluePeak Enterprises', email: 'vendor@bluepeakent.com', password: 'Vendor@BP2025', role: 'Vendor', managedBy: IDS.pmSales, vendorId: 'v-bluepeak', vendorCode: 'VEN-BP' },
+    { id: IDS.vBluePeak, name: 'BluePeak Enterprises', email: 'vendor@blupeakent.com', password: 'Vendor@BP2025', role: 'Vendor', managedBy: IDS.pmSales, vendorId: 'v-bluepeak', vendorCode: 'VEN-BP' },
     { id: IDS.vMeridian, name: 'Meridian Global Corp', email: 'vendor@meridianglobal.com', password: 'Vendor@MG2025', role: 'Vendor', managedBy: IDS.pmSales, vendorId: 'v-meridian', vendorCode: 'VEN-MG' },
     { id: IDS.vApex, name: 'Apex Digital Works', email: 'vendor@apexdigitalworks.com', password: 'Vendor@AD2025', role: 'Vendor', managedBy: IDS.pmMarketing, vendorId: 'v-apex', vendorCode: 'VEN-AD' },
     { id: IDS.vStellar, name: 'Stellar Supplies Co.', email: 'vendor@stellarsupplies.com', password: 'Vendor@SS2025', role: 'Vendor', managedBy: IDS.pmMarketing, vendorId: 'v-stellar', vendorCode: 'VEN-SS' },

@@ -3,7 +3,7 @@ import { db } from '@/lib/db';
 import { processInvoice } from '@/lib/processor';
 import { getCurrentUser } from '@/lib/server-auth';
 import { sendStatusNotification } from '@/lib/notifications';
-import { ROLES } from '@/constants/roles';
+import { ROLES, getNormalizedRole } from '@/constants/roles';
 import { v4 as uuidv4 } from 'uuid';
 import connectToDatabase from '@/lib/mongodb';
 import DocumentUpload from '@/models/DocumentUpload';
@@ -60,7 +60,7 @@ export async function POST(request) {
 
         const invoiceId = `INV-${uuidv4().slice(0, 8).toUpperCase()}`;
         const receivedAt = new Date().toISOString();
-        
+
         // Use constants for initial status
         const { INVOICE_STATUS } = await import('@/lib/invoice-workflow');
         const userRole = getNormalizedRole(user);
@@ -165,8 +165,8 @@ export async function POST(request) {
         if (result.success) {
             // Determine final status based on validation result
             // Advanced automatically to Pending PM Approval if valid, otherwise stays in Submitted or flagged
-            const finalStatus = (result.validation.isValid && result.matching?.isMatched) 
-                ? INVOICE_STATUS.PENDING_PM_APPROVAL 
+            const finalStatus = (result.validation.isValid && result.matching?.isMatched)
+                ? INVOICE_STATUS.PENDING_PM_APPROVAL
                 : INVOICE_STATUS.SUBMITTED;
 
             await db.saveInvoice(invoiceId, {

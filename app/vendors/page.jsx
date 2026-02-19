@@ -74,7 +74,7 @@ function VendorPortalContent() {
     // Upload indicator state
     const [rfpFileName, setRfpFileName] = useState('');
     const [commercialFileName, setCommercialFileName] = useState('');
-    
+
     // Disclaimer checkbox state
     const [disclaimerChecked, setDisclaimerChecked] = useState(false);
 
@@ -251,6 +251,24 @@ function VendorPortalContent() {
         }
     };
 
+    const getStepStyle = (cfg) => {
+        if (cfg.color === 'emerald') return 'bg-emerald-50 text-emerald-600 border-emerald-100';
+        if (cfg.color === 'rose') return 'bg-rose-50 text-rose-600 border-rose-100';
+        return 'bg-amber-50 text-amber-600 border-amber-100';
+    };
+
+    const getStatusDisplay = (approval) => {
+        const status = approval?.status;
+        if (status === 'APPROVED') {
+            return { label: 'Approved', color: 'emerald', icon: 'CheckCircle2' };
+        } else if (status === 'REJECTED') {
+            return { label: 'Rejected', color: 'rose', icon: 'XCircle' };
+        } else if (status === 'INFO_REQUESTED' || status === INVOICE_STATUS.MORE_INFO_NEEDED) {
+            return { label: 'Re-check', color: 'amber', icon: 'AlertCircle' };
+        }
+        return { label: 'Waiting', color: 'orange', icon: 'Clock' }; // Default for PENDING or other states
+    };
+
     const [viewerInvoiceId, setViewerInvoiceId] = useState(null);
     const [viewerDocUrl, setViewerDocUrl] = useState(null);
     const [viewerDocName, setViewerDocName] = useState(null);
@@ -311,7 +329,7 @@ function VendorPortalContent() {
             // Trigger the view document handler
             handleViewDocument({ stopPropagation: () => { } }, invoiceId);
         }
-    }, [searchParams, allSubmissions, handleViewDocument]);
+    }, [searchParams, allSubmissions]); // Removed handleViewDocument from deps to avoid unnecessary triggers
 
     const handleDownloadCSV = () => {
         if (allSubmissions.length === 0) {
@@ -396,31 +414,31 @@ function VendorPortalContent() {
             />
 
             {/* Dashboard Stats - Top Row full-width */}
-            <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
                 {[
                     { label: "Total Invoices", value: stats.total, icon: "FileText", color: "teal", sub: "Lifetime Submissions" },
                     { label: "Paid & Cleared", value: stats.paid, icon: "CheckCircle", color: "emerald", sub: "Successfully Processed" },
                     { label: "Processing", value: stats.pending, icon: "Clock", color: "amber", sub: "Awaiting Verification" },
                     { label: "Total Volume", value: new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(stats.amount), icon: "DollarSign", color: "blue", sub: "Cumulative Billing", isPrice: true }
                 ].map((stat, i) => (
-                    <div key={i} className="bg-white p-5 sm:p-6 rounded-2xl sm:rounded-[2rem] border border-slate-200/60 shadow-sm hover:shadow-md transition-all group">
-                        <div className="flex items-center gap-3 mb-3">
+                    <div key={i} className="bg-white/80 p-5 sm:p-6 rounded-2xl sm:rounded-[2.5rem] border border-slate-200/60 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all group backdrop-blur-sm">
+                        <div className="flex items-center gap-3 mb-3 sm:mb-4">
                             <div className={clsx(
-                                "w-10 h-10 sm:w-11 sm:h-11 rounded-xl sm:rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform",
+                                "w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-sm",
                                 stat.color === 'teal' ? 'bg-teal-50 text-teal-600' :
                                     stat.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
                                         stat.color === 'amber' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
                             )}>
-                                <Icon name={stat.icon} size={20} />
+                                <Icon name={stat.icon} size={22} />
                             </div>
                             <span className="text-[10px] sm:text-[11px] font-black text-slate-400 uppercase tracking-widest leading-tight">{stat.label}</span>
                         </div>
                         <p className={clsx("font-black text-slate-800 tracking-tight", stat.isPrice ? "text-2xl sm:text-3xl" : "text-3xl sm:text-4xl")}>{stat.value}</p>
                         <div className={clsx(
-                            "mt-3 flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bold w-fit px-2.5 py-1 rounded-full",
-                            stat.color === 'teal' ? 'bg-teal-50 text-teal-600' :
-                                stat.color === 'emerald' ? 'bg-emerald-50 text-emerald-600' :
-                                    stat.color === 'amber' ? 'bg-amber-50 text-amber-600' : 'bg-blue-50 text-blue-600'
+                            "mt-4 flex items-center gap-1.5 text-[9px] sm:text-[10px] font-bold w-fit px-3 py-1.5 rounded-full border shadow-sm",
+                            stat.color === 'teal' ? 'bg-teal-50/50 text-teal-600 border-teal-100' :
+                                stat.color === 'emerald' ? 'bg-emerald-50/50 text-emerald-600 border-emerald-100' :
+                                    stat.color === 'amber' ? 'bg-amber-50/50 text-amber-600 border-amber-100' : 'bg-blue-50/50 text-blue-600 border-blue-100'
                         )}>
                             {stat.sub}
                         </div>
@@ -458,269 +476,241 @@ function VendorPortalContent() {
                 )}
             </AnimatePresence>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-                <div className="lg:col-span-2 space-y-10">
+            <div className="flex flex-col gap-10">
+                <div className="space-y-10">
                     <div className="bg-white rounded-2xl sm:rounded-[3rem] shadow-2xl shadow-slate-200/40 border border-slate-100 overflow-hidden flex flex-col min-h-[500px]">
-                    <div className="p-6 sm:p-10 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-end justify-between bg-white/50 backdrop-blur-xl gap-4">
-                        <div>
-                            <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3 sm:gap-4">
-                                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[1.25rem] bg-slate-50 text-slate-400 flex items-center justify-center shadow-inner">
-                                    <Icon name="History" size={22} />
-                                </div>
-                                Submission History
-                            </h2>
-                            <p className="text-[10px] sm:text-xs text-slate-400 mt-2 sm:mt-3 font-bold uppercase tracking-[0.2em] flex items-center gap-2">
-                                <span className="hidden xs:block w-8 h-px bg-slate-200" />
-                                Monitoring {allSubmissions.length} Ledger Records
-                            </p>
+                        <div className="p-6 sm:p-10 border-b border-slate-100 flex flex-col sm:flex-row items-start sm:items-end justify-between bg-white/50 backdrop-blur-xl gap-4">
+                            <div>
+                                <h2 className="text-2xl sm:text-3xl font-black text-slate-800 tracking-tight flex items-center gap-3 sm:gap-4">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-[1.25rem] bg-slate-50 text-slate-400 flex items-center justify-center shadow-inner">
+                                        <Icon name="History" size={22} />
+                                    </div>
+                                    Submission History
+                                </h2>
+                                <p className="text-[10px] sm:text-xs text-slate-400 mt-2 sm:mt-3 font-bold uppercase tracking-[0.2em] flex items-center gap-2">
+                                    <span className="hidden xs:block w-8 h-px bg-slate-200" />
+                                    Monitoring {allSubmissions.length} Ledger Records
+                                </p>
+                            </div>
+                            <div className="flex items-center gap-3 bg-emerald-50 px-4 py-2 sm:px-5 sm:py-2.5 rounded-xl sm:rounded-2xl border border-emerald-100 shadow-sm">
+                                <div className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse ring-4 ring-emerald-500/20" />
+                                <span className="text-[10px] sm:text-xs font-black uppercase tracking-widest text-emerald-700">Live Transmission Active</span>
+                            </div>
                         </div>
-                        <div className="flex items-center gap-3 bg-slate-50 px-4 py-2 rounded-xl sm:rounded-2xl border border-slate-200/60">
-                            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">Live Transmission Active</span>
-                        </div>
-                    </div>
 
-                    <div className="overflow-x-auto">
-                        {/* Desktop Table View */}
-                        <table className="hidden md:table w-full text-left border-collapse">
-                            <thead>
-                                <tr className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] border-b border-slate-100 bg-slate-50/30">
-                                    <th className="px-10 py-6">Invoice Reference</th>
-                                    <th className="px-6 py-6">Approval Status</th>
-                                    <th className="px-6 py-6">Financial Value</th>
-                                    <th className="px-10 py-6 text-right">Vault Access</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-100">
-                                {allSubmissions.length === 0 ? (
-                                    <tr>
-                                        <td colSpan={4} className="px-10 py-32 text-center">
-                                            <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
-                                                <Icon name="Inbox" size={48} className="text-slate-200" />
-                                            </div>
-                                            <p className="text-xl font-black text-slate-300 uppercase tracking-widest">Digital Vault Empty</p>
-                                            <p className="text-sm font-medium text-slate-400 mt-3">Ready for your first submission</p>
-                                        </td>
+                        <div className="overflow-x-auto">
+                            {/* Desktop Table View */}
+                            <table className="hidden md:table w-full text-left border-collapse">
+                                <thead>
+                                    <tr className="text-[11px] font-black text-slate-400 uppercase tracking-[0.25em] border-b border-slate-100 bg-slate-50/30">
+                                        <th className="px-10 py-6">Invoice Reference</th>
+                                        <th className="px-6 py-6">Approval Status</th>
+                                        <th className="px-6 py-6">Financial Value</th>
+                                        <th className="px-10 py-6 text-right">Vault Access</th>
                                     </tr>
-                                ) : (
-                                    allSubmissions.slice(0, 30).map((inv, idx) => {
-                                        // Approval logic: Vendor -> PM -> Finance (CORRECT ORDER)
-                                        const financeStatus = inv.financeApproval?.status;
-                                        const pmStatus = inv.pmApproval?.status;
+                                </thead>
+                                <tbody className="divide-y divide-slate-100">
+                                    {allSubmissions.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={4} className="px-10 py-32 text-center">
+                                                <div className="w-24 h-24 bg-slate-50 rounded-[2.5rem] flex items-center justify-center mx-auto mb-8 shadow-inner">
+                                                    <Icon name="Inbox" size={48} className="text-slate-200" />
+                                                </div>
+                                                <p className="text-xl font-black text-slate-300 uppercase tracking-widest">Digital Vault Empty</p>
+                                                <p className="text-sm font-medium text-slate-400 mt-3">Ready for your first submission</p>
+                                            </td>
+                                        </tr>
+                                    ) : (
+                                        allSubmissions.slice(0, 30).map((inv, idx) => {
+                                            // Approval logic: Vendor -> PM -> Finance (CORRECT ORDER)
+                                            const financeStatus = inv.financeApproval?.status;
+                                            const pmStatus = inv.pmApproval?.status;
 
-                                        let pmDisplay = { label: 'Waiting', color: 'orange', icon: 'Clock' };
-                                        let financeDisplay = { label: 'Waiting', color: 'orange', icon: 'Clock' };
+                                            let pmDisplay = { label: 'Waiting', color: 'orange', icon: 'Clock' };
+                                            let financeDisplay = { label: 'Waiting', color: 'orange', icon: 'Clock' };
 
-                                        // PM Step Logic (FIRST approval - comes before Finance)
-                                        if (pmStatus === 'APPROVED') {
-                                            pmDisplay = { label: 'Approved', color: 'emerald', icon: 'CheckCircle2' };
-                                        } else if (pmStatus === 'REJECTED') {
-                                            pmDisplay = { label: 'Rejected', color: 'rose', icon: 'XCircle' };
-                                        } else if (pmStatus === 'INFO_REQUESTED' || inv.status === INVOICE_STATUS.MORE_INFO_NEEDED) {
-                                            pmDisplay = { label: 'Re-check', color: 'amber', icon: 'AlertCircle' };
-                                        }
+                                            // PM Step Logic (FIRST approval - comes before Finance)
+                                            if (pmStatus === 'APPROVED') {
+                                                pmDisplay = { label: 'Approved', color: 'emerald', icon: 'CheckCircle2' };
+                                            } else if (pmStatus === 'REJECTED') {
+                                                pmDisplay = { label: 'Rejected', color: 'rose', icon: 'XCircle' };
+                                            } else if (pmStatus === 'INFO_REQUESTED' || inv.status === INVOICE_STATUS.MORE_INFO_NEEDED) {
+                                                pmDisplay = { label: 'Re-check', color: 'amber', icon: 'AlertCircle' };
+                                            }
 
-                                        // Finance Step Logic (SECOND approval - only after PM approves)
-                                        if (financeStatus === 'APPROVED') {
-                                            financeDisplay = { label: 'Approved', color: 'emerald', icon: 'CheckCircle2' };
-                                        } else if (financeStatus === 'REJECTED') {
-                                            financeDisplay = { label: 'Rejected', color: 'rose', icon: 'XCircle' };
-                                        }
+                                            // Finance Step Logic (SECOND approval - only after PM approves)
+                                            if (financeStatus === 'APPROVED') {
+                                                financeDisplay = { label: 'Approved', color: 'emerald', icon: 'CheckCircle2' };
+                                            } else if (financeStatus === 'REJECTED') {
+                                                financeDisplay = { label: 'Rejected', color: 'rose', icon: 'XCircle' };
+                                            }
 
-                                        const getStepStyle = (cfg) => {
-                                            if (cfg.color === 'emerald') return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-                                            if (cfg.color === 'rose') return 'bg-rose-50 text-rose-600 border-rose-100';
-                                            return 'bg-amber-50 text-amber-600 border-amber-100';
-                                        };
 
-                                        return (
-                                            <motion.tr
-                                                key={inv.id}
-                                                initial={{ opacity: 0, x: -10 }}
-                                                animate={{ opacity: 1, x: 0 }}
-                                                transition={{ delay: idx * 0.03 }}
-                                                className="group hover:bg-slate-50/50 transition-all duration-300 cursor-pointer"
-                                                onClick={(e) => handleViewDocument(e, inv.id)}
-                                            >
-                                                <td className="px-10 py-6">
-                                                    <div className="flex items-center gap-5">
-                                                        <div className="w-14 h-14 rounded-[1.25rem] bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-sm border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white group-hover:rotate-6 transition-all duration-500">
-                                                            <Icon name="FileText" size={24} />
-                                                        </div>
-                                                        <div className="min-w-0">
-                                                            <p className="font-black text-slate-800 text-base truncate max-w-[300px]" title={inv.originalName}>
-                                                                {inv.originalName || "DOCUMENT_ID_" + inv.id.slice(-6)}
-                                                            </p>
-                                                            <div className="flex items-center gap-3 mt-1.5">
-                                                                <span className="text-[10px] text-indigo-600 font-mono font-black bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50">{inv.invoiceNumber || inv.id.slice(0, 8)}</span>
-                                                                <span className="text-slate-300 text-[10px] font-black opacity-30">//</span>
-                                                                <span className="text-[10px] text-slate-400 font-black uppercase tracking-widest">{inv.date || new Date(inv.receivedAt).toLocaleDateString()}</span>
+                                            return (
+                                                <motion.tr
+                                                    key={inv.id}
+                                                    initial={{ opacity: 0, x: -10 }}
+                                                    whileInView={{ opacity: 1, x: 0 }}
+                                                    viewport={{ once: true }}
+                                                    transition={{ delay: Math.min(idx * 0.05, 0.5) }}
+                                                    className="group hover:bg-slate-50/80 transition-all duration-300 cursor-pointer"
+                                                    onClick={(e) => handleViewDocument(e, inv.id)}
+                                                >
+                                                    <td className="px-8 py-7 sm:px-10">
+                                                        <div className="flex items-center gap-5 sm:gap-6">
+                                                            <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 shadow-sm border border-indigo-100 group-hover:bg-indigo-600 group-hover:text-white group-hover:rotate-6 transition-all duration-500">
+                                                                <Icon name="FileText" size={26} />
                                                             </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-6">
-                                                    <div className="flex flex-col gap-2">
-                                                        {/* PM Step (FIRST approval) */}
-                                                        <div className={clsx(
-                                                            "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider w-fit transition-all",
-                                                            getStepStyle(pmDisplay)
-                                                        )}>
-                                                            <Icon name={pmDisplay.icon} size={14} className={pmDisplay.label === 'Waiting' ? 'animate-pulse' : ''} />
-                                                            Project Mgr: {pmDisplay.label}
-                                                        </div>
-                                                        {/* Show PM Recheck Message Tooltip */}
-                                                        {pmDisplay.label === 'Re-check' && inv.pmApproval?.notes && (
-                                                            <div className="group/tooltip relative inline-block ml-1">
-                                                                <Icon name="MessageSquare" size={14} className="text-amber-500 cursor-help" />
-                                                                <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-48 p-3 bg-slate-800 text-white text-[10px] rounded-xl shadow-xl z-50 opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none">
-                                                                    <div className="font-bold mb-1 text-amber-400">PM Request:</div>
-                                                                    {inv.pmApproval.notes}
-                                                                    <div className="absolute top-full left-1/2 -translate-x-1/2 -mt-1 border-4 border-transparent border-t-slate-800"></div>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className="font-black text-slate-800 text-base sm:text-lg truncate max-w-[200px] lg:max-w-[300px]" title={inv.originalName}>
+                                                                    {inv.originalName || "DOCUMENT_ID_" + inv.id.slice(-6)}
+                                                                </p>
+                                                                <div className="flex items-center gap-3 mt-2">
+                                                                    <span className="text-[10px] sm:text-xs text-indigo-600 font-mono font-black bg-indigo-50/50 px-2 py-0.5 rounded-md border border-indigo-100/50">{inv.invoiceNumber || inv.id.slice(0, 8)}</span>
+                                                                    <span className="text-slate-300 text-[10px] font-black opacity-30">//</span>
+                                                                    <span className="text-[10px] sm:text-xs text-slate-400 font-black uppercase tracking-widest">{inv.date || new Date(inv.receivedAt).toLocaleDateString()}</span>
                                                                 </div>
                                                             </div>
-                                                        )}
-                                                        {/* Finance Step (SECOND approval) */}
-                                                        <div className={clsx(
-                                                            "inline-flex items-center gap-2 px-3 py-1.5 rounded-xl border text-[10px] font-black uppercase tracking-wider w-fit transition-all",
-                                                            getStepStyle(financeDisplay)
-                                                        )}>
-                                                            <Icon name={financeDisplay.icon} size={14} className={financeDisplay.label === 'Waiting' && pmDisplay.label === 'Approved' ? 'animate-pulse' : ''} />
-                                                            Finance: {financeDisplay.label}
                                                         </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-6 py-6">
-                                                    <div className="space-y-1">
-                                                        <p className="text-lg font-black text-slate-800 tracking-tight">
-                                                            {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(inv.amount || 0)}
-                                                        </p>
-                                                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest opacity-60">Gross Valuation</p>
-                                                    </div>
-                                                </td>
-                                                <td className="px-10 py-6 text-right">
-                                                    <div className="flex items-center justify-end gap-2">
-                                                        <button
-                                                            onClick={(e) => handleViewDocument(e, inv.id)}
-                                                            className="w-10 h-10 inline-flex items-center justify-center text-teal-600 bg-teal-50 border border-teal-200 hover:bg-teal-100 rounded-xl shadow-sm transition-all duration-300 hover:scale-110 active:scale-90 text-[8px] font-black uppercase tracking-wider"
-                                                            title={`View Invoice: ${inv.originalName}`}
-                                                        >
-                                                            INV
-                                                        </button>
-                                                        {inv.additionalDocs?.map((doc) => {
-                                                            const isRfp = doc.type === 'ANNEX';
-                                                            const label = isRfp ? 'RFP' : 'COM';
-                                                            const btnStyle = isRfp
-                                                                ? 'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-100'
-                                                                : 'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-100';
-                                                            return (
-                                                                <button
-                                                                    key={doc.documentId}
-                                                                    onClick={(e) => handleViewAdditionalDoc(e, doc)}
-                                                                    className={`w-10 h-10 inline-flex items-center justify-center border rounded-xl shadow-sm transition-all duration-300 hover:scale-110 active:scale-90 text-[8px] font-black uppercase tracking-wider ${btnStyle}`}
-                                                                    title={`View ${isRfp ? 'RFP' : 'Commercial'}: ${doc.fileName}`}
-                                                                >
-                                                                    {label}
-                                                                </button>
-                                                            );
-                                                        })}
-                                                    </div>
-                                                </td>
-                                            </motion.tr>
-                                        );
-                                    })
-                                )}
-                            </tbody>
-                        </table>
+                                                    </td>
+                                                    <td className="px-6 py-7">
+                                                        <div className="flex flex-col gap-2.5">
+                                                            {/* PM Step (FIRST approval) */}
+                                                            <div className={clsx(
+                                                                "inline-flex items-center gap-2.5 px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider w-fit transition-all shadow-sm",
+                                                                getStepStyle(pmDisplay)
+                                                            )}>
+                                                                <Icon name={pmDisplay.icon} size={15} className={pmDisplay.label === 'Waiting' ? 'animate-pulse' : ''} />
+                                                                PM: {pmDisplay.label}
+                                                            </div>
+                                                            {/* Finance Step (SECOND approval) */}
+                                                            <div className={clsx(
+                                                                "inline-flex items-center gap-2.5 px-4 py-2 rounded-xl border text-[10px] font-black uppercase tracking-wider w-fit transition-all shadow-sm",
+                                                                getStepStyle(financeDisplay)
+                                                            )}>
+                                                                <Icon name={financeDisplay.icon} size={15} className={financeDisplay.label === 'Waiting' && pmDisplay.label === 'Approved' ? 'animate-pulse' : ''} />
+                                                                Finance: {financeDisplay.label}
+                                                            </div>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-7">
+                                                        <div className="space-y-1.5">
+                                                            <p className="text-xl font-black text-slate-800 tracking-tight">
+                                                                {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(inv.amount || 0)}
+                                                            </p>
+                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest opacity-60">Value In Ledger</p>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-8 py-7 sm:px-10 text-right">
+                                                        <div className="flex items-center justify-end gap-2.5">
+                                                            <button
+                                                                onClick={(e) => handleViewDocument(e, inv.id)}
+                                                                className="w-11 h-11 inline-flex items-center justify-center text-teal-600 bg-teal-50 border border-teal-200 hover:bg-teal-600 hover:text-white rounded-xl shadow-sm transition-all duration-300 hover:scale-110 active:scale-95 text-[9px] font-black uppercase tracking-wider"
+                                                                title={`View Invoice: ${inv.originalName}`}
+                                                            >
+                                                                INV
+                                                            </button>
+                                                            {inv.additionalDocs?.map((doc) => {
+                                                                const isRfp = doc.type === 'ANNEX';
+                                                                const label = isRfp ? 'RFP' : 'COM';
+                                                                const btnStyle = isRfp
+                                                                    ? 'text-indigo-600 bg-indigo-50 border-indigo-200 hover:bg-indigo-600 hover:text-white'
+                                                                    : 'text-amber-600 bg-amber-50 border-amber-200 hover:bg-amber-600 hover:text-white';
+                                                                return (
+                                                                    <button
+                                                                        key={doc.documentId}
+                                                                        onClick={(e) => handleViewAdditionalDoc(e, doc)}
+                                                                        className={`w-11 h-11 inline-flex items-center justify-center border rounded-xl shadow-sm transition-all duration-300 hover:scale-110 active:scale-95 text-[9px] font-black uppercase tracking-wider ${btnStyle}`}
+                                                                        title={`View ${isRfp ? 'RFP' : 'Commercial'}: ${doc.fileName}`}
+                                                                    >
+                                                                        {label}
+                                                                    </button>
+                                                                );
+                                                            })}
+                                                        </div>
+                                                    </td>
+                                                </motion.tr>
+                                            );
+                                        })
+                                    )}
+                                </tbody>
+                            </table>
 
-                        {/* Mobile Card View */}
-                        <div className="md:hidden divide-y divide-slate-50">
-                            {allSubmissions.length === 0 ? (
-                                <div className="px-8 py-20 text-center">
-                                    <div className="w-20 h-20 bg-slate-50 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-inner">
-                                        <Icon name="Inbox" size={36} className="text-slate-200" />
-                                    </div>
-                                    <p className="text-lg font-black text-slate-300 uppercase tracking-widest">Vault Empty</p>
-                                </div>
-                            ) : (
-                                allSubmissions.slice(0, 30).map((inv, idx) => {
-                                    // Same logic for mobile - Correct workflow: Vendor -> PM -> Finance
-                                    const financeStatus = inv.financeApproval?.status;
-                                    const pmStatus = inv.pmApproval?.status;
-
-                                    let pmDisplay = { label: 'Waiting', color: 'orange', icon: 'Clock' };
-                                    let financeDisplay = { label: 'Waiting', color: 'orange', icon: 'Clock' };
-
-                                    // PM Step Logic (FIRST approval - comes before Finance)
-                                    if (pmStatus === 'APPROVED') {
-                                        pmDisplay = { label: 'Approved', color: 'emerald', icon: 'CheckCircle2' };
-                                    } else if (pmStatus === 'REJECTED') {
-                                        pmDisplay = { label: 'Rejected', color: 'rose', icon: 'XCircle' };
-                                    } else if (pmStatus === 'INFO_REQUESTED' || inv.status === INVOICE_STATUS.MORE_INFO_NEEDED) {
-                                        pmDisplay = { label: 'Re-check', color: 'amber', icon: 'AlertCircle' };
-                                    }
-
-                                    // Finance Step Logic (SECOND approval - only after PM approves)
-                                    if (financeStatus === 'APPROVED') {
-                                        financeDisplay = { label: 'Approved', color: 'emerald', icon: 'CheckCircle2' };
-                                    } else if (financeStatus === 'REJECTED') {
-                                        financeDisplay = { label: 'Rejected', color: 'rose', icon: 'XCircle' };
-                                    }
-
-                                    const getStepStyle = (cfg) => {
-                                        if (cfg.color === 'emerald') return 'bg-emerald-50 text-emerald-600 border-emerald-100';
-                                        if (cfg.color === 'rose') return 'bg-rose-50 text-rose-600 border-rose-100';
-                                        return 'bg-amber-50 text-amber-600 border-amber-100';
-                                    };
+                            {/* Mobile Card View */}
+                            <div className="md:hidden space-y-4 px-2">
+                                {allSubmissions.map((inv, idx) => {
+                                    const pmDisplay = getStatusDisplay(inv.pmApproval || { status: 'PENDING' });
+                                    const financeDisplay = getStatusDisplay(inv.financeApproval || { status: 'PENDING' });
 
                                     return (
                                         <motion.div
                                             key={inv.id}
                                             initial={{ opacity: 0, y: 10 }}
-                                            animate={{ opacity: 1, y: 0 }}
+                                            whileInView={{ opacity: 1, y: 0 }}
+                                            viewport={{ once: true }}
                                             transition={{ delay: idx * 0.05 }}
-                                            className="p-6 active:bg-slate-50 transition-colors cursor-pointer"
+                                            className="bg-white/90 backdrop-blur-sm rounded-[2rem] p-6 border border-slate-200/60 shadow-sm active:scale-95 transition-all"
                                             onClick={(e) => handleViewDocument(e, inv.id)}
                                         >
-                                            <div className="flex items-start justify-between gap-4">
+                                            <div className="flex items-start justify-between mb-6">
                                                 <div className="flex items-center gap-4">
-                                                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0 border border-indigo-100">
+                                                    <div className="w-12 h-12 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm border border-indigo-100">
                                                         <Icon name="FileText" size={20} />
                                                     </div>
-                                                    <div className="min-w-0">
-                                                        <p className="font-black text-slate-800 text-sm truncate max-w-[180px]">
-                                                            {inv.originalName || "INV_" + inv.id.slice(-6)}
-                                                        </p>
-                                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">
-                                                            {inv.invoiceNumber || inv.id.slice(0, 8)} • {inv.date || new Date(inv.receivedAt).toLocaleDateString()}
-                                                        </p>
+                                                    <div>
+                                                        <h4 className="font-black text-slate-800 text-sm truncate max-w-[150px]">{inv.originalName || "INV_" + inv.id.slice(-6)}</h4>
+                                                        <p className="text-[10px] text-slate-400 font-black uppercase tracking-widest mt-0.5">{inv.date || new Date(inv.receivedAt).toLocaleDateString()}</p>
                                                     </div>
                                                 </div>
-                                                <div className="flex items-center gap-1.5 shrink-0">
-                                                    <button
-                                                        onClick={(e) => handleViewDocument(e, inv.id)}
-                                                        className="w-10 h-10 rounded-xl bg-teal-50 text-teal-600 border border-teal-200 flex items-center justify-center text-[8px] font-black uppercase"
-                                                        title="View Invoice"
-                                                    >
-                                                        INV
-                                                    </button>
-                                                    {inv.additionalDocs?.map((doc) => {
-                                                        const isRfp = doc.type === 'ANNEX';
-                                                        const label = isRfp ? 'RFP' : 'COM';
-                                                        const btnStyle = isRfp
-                                                            ? 'text-indigo-600 bg-indigo-50 border-indigo-200'
-                                                            : 'text-amber-600 bg-amber-50 border-amber-200';
-                                                        return (
-                                                            <button
-                                                                key={doc.documentId}
-                                                                onClick={(e) => handleViewAdditionalDoc(e, doc)}
-                                                                className={`w-10 h-10 rounded-xl border flex items-center justify-center text-[8px] font-black uppercase ${btnStyle}`}
-                                                                title={`View ${isRfp ? 'RFP' : 'Commercial'}`}
-                                                            >
-                                                                {label}
-                                                            </button>
-                                                        );
-                                                    })}
+                                                <p className="text-lg font-black text-slate-800 tracking-tight">
+                                                    {new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR', maximumFractionDigits: 0 }).format(inv.amount || 0)}
+                                                </p>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 gap-3 mb-6">
+                                                <div className={clsx(
+                                                    "flex flex-col gap-1 px-4 py-3 rounded-2xl border text-[9px] font-black uppercase tracking-wider",
+                                                    getStepStyle(pmDisplay)
+                                                )}>
+                                                    <span className="opacity-60 text-[8px]">Project Manager</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Icon name={pmDisplay.icon} size={12} />
+                                                        {pmDisplay.label}
+                                                    </div>
+                                                </div>
+                                                <div className={clsx(
+                                                    "flex flex-col gap-1 px-4 py-3 rounded-2xl border text-[9px] font-black uppercase tracking-wider",
+                                                    getStepStyle(financeDisplay)
+                                                )}>
+                                                    <span className="opacity-60 text-[8px]">Finance Dept</span>
+                                                    <div className="flex items-center gap-1.5">
+                                                        <Icon name={financeDisplay.icon} size={12} />
+                                                        {financeDisplay.label}
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2">
+                                                <button
+                                                    onClick={(e) => handleViewDocument(e, inv.id)}
+                                                    className="flex-1 h-12 bg-teal-50 text-teal-700 rounded-2xl font-black text-[10px] uppercase tracking-widest border border-teal-100 flex items-center justify-center gap-2"
+                                                >
+                                                    View Invoice
+                                                </button>
+                                                <div className="flex gap-2">
+                                                    {inv.additionalDocs?.map((doc) => (
+                                                        <button
+                                                            key={doc.documentId}
+                                                            onClick={(e) => handleViewAdditionalDoc(e, doc)}
+                                                            className={clsx(
+                                                                "w-12 h-12 rounded-2xl flex items-center justify-center font-black text-[10px] border shadow-sm",
+                                                                doc.type === 'ANNEX' ? 'bg-indigo-50 text-indigo-600 border-indigo-100' : 'bg-amber-50 text-amber-600 border-amber-100'
+                                                            )}
+                                                            title={`View ${doc.type === 'ANNEX' ? 'RFP' : 'Commercial'}`}
+                                                        >
+                                                            {doc.type === 'ANNEX' ? 'RFP' : 'COM'}
+                                                        </button>
+                                                    ))}
                                                 </div>
                                             </div>
 
@@ -765,27 +755,26 @@ function VendorPortalContent() {
                                             </div>
                                         </motion.div>
                                     );
-                                })
-                            )}
+                                })}
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div className="space-y-10">
+                <div className="space-y-10">
                     <ActiveRates rateCards={rateCards} loading={loading} />
-                    
+
                     {/* Quick Guide card if needed */}
                     <div className="bg-slate-900 rounded-4xl p-8 text-white relative overflow-hidden shadow-xl">
-                         <div className="absolute top-0 right-0 p-6 opacity-10">
-                             <Icon name="LifeBuoy" size={100} />
-                         </div>
-                         <h3 className="text-xl font-black mb-4">Submission Guide</h3>
-                         <ul className="space-y-3 text-sm text-slate-400 font-medium">
-                             <li className="flex gap-3"><Icon name="CheckCircle" size={16} className="text-teal-500 shrink-0" /> Ensure PDF format</li>
-                             <li className="flex gap-3"><Icon name="CheckCircle" size={16} className="text-teal-500 shrink-0" /> Upload RFP Commercial</li>
-                             <li className="flex gap-3"><Icon name="CheckCircle" size={16} className="text-teal-500 shrink-0" /> Verify Basic Amount</li>
-                         </ul>
+                        <div className="absolute top-0 right-0 p-6 opacity-10">
+                            <Icon name="LifeBuoy" size={100} />
+                        </div>
+                        <h3 className="text-xl font-black mb-4">Submission Guide</h3>
+                        <ul className="space-y-3 text-sm text-slate-400 font-medium">
+                            <li className="flex gap-3"><Icon name="CheckCircle" size={16} className="text-teal-500 shrink-0" /> Ensure PDF format</li>
+                            <li className="flex gap-3"><Icon name="CheckCircle" size={16} className="text-teal-500 shrink-0" /> Upload RFP Commercial</li>
+                            <li className="flex gap-3"><Icon name="CheckCircle" size={16} className="text-teal-500 shrink-0" /> Verify Basic Amount</li>
+                        </ul>
                     </div>
                 </div>
             </div>

@@ -62,7 +62,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     };
 
     fetchUnread();
-    const interval = setInterval(fetchUnread, 15000); // 15 seconds
+    const interval = setInterval(fetchUnread, 8000); // Sync with dashboard (8s)
     return () => clearInterval(interval);
   }, [user]);
 
@@ -85,7 +85,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     };
 
     fetchRecheckUnread();
-    const interval = setInterval(fetchRecheckUnread, 15000);
+    const interval = setInterval(fetchRecheckUnread, 8000); // Sync with dashboard (8s)
     return () => clearInterval(interval);
   }, [user]);
 
@@ -151,10 +151,10 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
         className={clsx(
           "flex-col h-screen sticky top-0 z-50 pt-6 pb-6 transition-[width,transform] duration-300 ease-in-out",
           // Desktop styles
-          "hidden lg:flex pl-6",
-          !mobileOpen && (collapsed ? "w-[5rem]" : "w-72"),
+          "hidden lg:flex pl-6 pr-0", // Adjusted padding for better glass effect
+          !mobileOpen && (collapsed ? "w-[5.5rem]" : "w-72"), // Slightly more space for icons when collapsed
           // Mobile Styles (Drawer mode)
-          mobileOpen ? "!flex fixed inset-y-0 left-0 w-[280px] sx:w-80 p-4 lg:p-6 bg-slate-50/50 backdrop-blur-md" : "-translate-x-full lg:translate-x-0"
+          mobileOpen ? "!flex fixed inset-y-0 left-0 w-[280px] sx:w-80 p-4 lg:p-6 bg-slate-50/10 backdrop-blur-xl" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <div className="glass-panel h-full rounded-3xl flex flex-col justify-between overflow-hidden p-3 relative border border-white/20 shadow-xl bg-white/80">

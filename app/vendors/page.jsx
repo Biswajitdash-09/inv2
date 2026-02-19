@@ -770,8 +770,9 @@ function VendorPortalContent() {
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div className="space-y-10">
+            <div className="space-y-10">
                     <ActiveRates rateCards={rateCards} loading={loading} />
                     
                     {/* Quick Guide card if needed */}

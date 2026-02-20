@@ -447,6 +447,7 @@ export default function FinanceApprovalQueuePage() {
                         })
                     )}
                 </div>
+            )}
 
             {/* ══════════════════════════════════════════════
                 REVIEW DRAWER – slides in from the right

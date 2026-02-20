@@ -3,7 +3,7 @@ import { getCurrentUser } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { ROLES } from '@/constants/roles';
 import connectToDatabase from '@/lib/mongodb';
-import connectToDatabase from '@/lib/mongodb';
+
 import DocumentUpload from '@/models/DocumentUpload';
 import RateCard from '@/models/RateCard';
 

@@ -1,0 +1,375 @@
+================================================================================
+  AUTOMATED INVOICE TRACKING AND PROCESSING SYSTEM
+  PROJECT WORKFLOW UPDATE DOCUMENT
+  Generated: 2026-02-20
+  Version: 1.0.75
+================================================================================
+
+--------------------------------------------------------------------------------
+1. PROJECT OVERVIEW
+--------------------------------------------------------------------------------
+Name      : Automated Invoice Tracking and Processing System
+Framework : Next.js 15 (App Router) + React 19
+Database  : MongoDB (via Mongoose)
+Auth      : JWT (via jose) + bcryptjs
+Hosting   : Vercel (vercel.json present)
+OCR       : Tesseract.js, Mindee SDK
+Charts    : Recharts
+UI        : TailwindCSS v4 + DaisyUI v5 + Framer Motion
+Testing   : Jest + React Testing Library
+
+--------------------------------------------------------------------------------
+2. PROJECT DIRECTORY STRUCTURE
+--------------------------------------------------------------------------------
+
+ROOT/
+├── app/                        # Next.js App Router (pages + API routes)
+│   ├── api/                    # All backend REST API routes
+│   │   ├── admin/              # Admin-specific endpoints (11 routes)
+│   │   ├── audit/              # Audit trail endpoints
+│   │   ├── auth/               # Authentication (login, signup, OTP, etc.) — 7 routes
+│   │   ├── config/             # System config endpoints
+│   │   ├── debug/              # Debug/diagnostic endpoints (3 routes)
+│   │   ├── documents/          # Document upload/fetch (2 routes)
+│   │   ├── finance/            # Finance team endpoints (5 routes)
+│   │   ├── finance-users/      # Finance user management
+│   │   ├── health/             # Health check endpoint
+│   │   ├── ingest/             # Invoice ingestion endpoint
+│   │   ├── integrations/       # External ERP/IDP integration endpoint
+│   │   ├── invoices/           # Invoice CRUD and lifecycle (6 routes)
+│   │   ├── metrics/            # Metrics/analytics endpoint
+│   │   ├── notifications/      # Notification system (2 routes)
+│   │   ├── ocr/                # OCR processing endpoint
+│   │   ├── pm/                 # Project Manager endpoints (8 routes)
+│   │   ├── pms/                # PM listing endpoint
+│   │   ├── projects/           # Project management endpoint
+│   │   ├── users/              # User management (3 routes)
+│   │   ├── vendor/             # Vendor-facing endpoints (6 routes)
+│   │   ├── vendors/            # Vendor listing (2 routes)
+│   │   └── version/            # App version endpoint
+│   │
+│   ├── admin/                  # Admin dashboard pages (6 sub-pages)
+│   ├── analytics/              # Analytics page
+│   ├── approvals/              # Approval workflow pages (2 sub-pages)
+│   ├── audit/                  # Audit trail page
+│   ├── config/                 # Config page
+│   ├── dashboard/              # Main dashboard page
+│   ├── digitization/           # OCR/Digitization pages (2 sub-pages)
+│   ├── finance/                # Finance pages (6 sub-pages)
+│   ├── forgot-password/        # Password recovery page
+│   ├── login/                  # Login page
+│   ├── pm/                     # Project Manager pages (6 sub-pages)
+│   ├── signup/                 # Signup page
+│   ├── users/                  # Users management page
+│   ├── vendor/                 # Vendor portal pages (2 sub-pages)
+│   ├── vendors/                # Vendors list pages (3 sub-pages)
+│   ├── globals.css             # Global styles
+│   ├── layout.jsx              # Root layout
+│   ├── page.jsx                # Landing/root page
+│   ├── providers.jsx           # React context providers wrapper
+│   └── not-found.jsx           # 404 page
+│
+├── components/                 # Reusable React components
+│   ├── Analytics/              # Analytics charts & widgets (1 component)
+│   ├── Approvals/              # Approval workflow UI (1 component)
+│   ├── Auth/                   # Auth forms/guards (2 components)
+│   ├── Dashboard/              # Dashboard widgets (7 components)
+│   ├── Digitization/           # OCR/Upload UI (3 components)
+│   ├── Integration/            # ERP/IDP integration UI (1 component)
+│   ├── Layout/                 # Navigation, Header, Sidebar (6 components)
+│   ├── Vendor/                 # Vendor-specific UI (2 components)
+│   ├── Workflow/               # Workflow status/steps UI (3 components)
+│   ├── ui/                     # Core reusable UI primitives (4 components)
+│   ├── ErrorBoundary.jsx       # Global error boundary
+│   └── Icon.jsx                # Icon wrapper component
+│
+├── lib/                        # Backend utilities and services
+│   ├── db.js                   # Main database logic (SQLite-style helpers, 39KB)
+│   ├── mongodb.js              # MongoDB connection singleton
+│   ├── api.js                  # Client-side API helper functions (13KB)
+│   ├── auth.js                 # JWT sign/verify helpers
+│   ├── server-auth.js          # Server-side auth middleware
+│   ├── rbac.js                 # Role-Based Access Control (9KB)
+│   ├── invoice-workflow.js     # Invoice state machine & workflow engine (11KB)
+│   ├── notifications.js        # Notification sending logic (7KB)
+│   ├── integration.js          # ERP/IDP integration adapter (2KB)
+│   ├── processor.js            # Invoice processing pipeline
+│   ├── version.js              # Version tracking logic (5KB)
+│   ├── animations.js           # Framer Motion animation presets
+│   ├── axios.js                # Axios instance config
+│   ├── clsx.js                 # Class name utility
+│   ├── logger.js               # Logging utility
+│   ├── schema.sql              # SQL schema reference (used for documentation)
+│   └── services/               # Core service modules
+│       ├── ocr.js              # OCR processing service (Tesseract + Mindee, 11KB)
+│       ├── validation.js       # Invoice data validation service (6KB)
+│       ├── matching.js         # PO/Invoice matching service (4KB)
+│       ├── idp.js              # IDP (Intelligent Document Processing) service
+│       └── erp.js              # ERP connector service
+│
+├── models/                     # Mongoose data models
+│   ├── Invoice.js              # Invoice schema (core entity, 6KB)
+│   ├── User.js                 # User schema
+│   ├── Vendor.js               # Vendor schema
+│   ├── Project.js              # Project schema
+│   ├── PurchaseOrder.js        # PO schema
+│   ├── RateCard.js             # Rate card schema
+│   ├── DocumentUpload.js       # Uploaded document schema
+│   ├── AuditTrail.js           # Audit log schema
+│   ├── Notification.js         # Notification schema
+│   ├── Message.js              # Messaging schema
+│   ├── Otp.js                  # OTP schema
+│   ├── Delegation.js           # Delegation schema
+│   └── Annexure.js             # Annexure schema
+│
+├── context/                    # React global state contexts
+│   ├── AuthContext.js          # User auth state (login, logout, role) — 5KB
+│   └── ThemeContext.js         # Light/dark theme state
+│
+├── constants/                  # Shared constants
+│   └── (1 file)
+│
+├── utils/                      # General utility helpers
+│   └── (1 file)
+│
+├── scripts/                    # Standalone dev/ops scripts (33 files)
+│   ├── seed-users.mjs          # Seed default users
+│   ├── seed-all-credentials.mjs# Seed all credential sets (9KB)
+│   ├── seed-production-users.mjs# Seed production users (6KB)
+│   ├── setup-initial-users.mjs # Initial setup script (8KB)
+│   ├── scale-seeder.mjs        # Bulk data seeder
+│   ├── verify_dashboard_apis.js# API verification script (30KB)
+│   ├── bump_version.js         # Auto-bump version on build
+│   ├── clean-db.mjs            # Database cleanup
+│   ├── fix-roles.mjs           # Fix user roles
+│   ├── fix-missing-po.mjs      # Fix missing PO references
+│   ├── debug-*.mjs             # Various debug utilities
+│   └── simulate-*.mjs          # API & ingest simulation scripts
+│
+├── __tests__/                  # Jest test suites (2 test files)
+│
+├── public/                     # Static assets (2 files)
+│
+├── middleware.js               # Next.js middleware (route auth guard, 5KB)
+├── next.config.mjs             # Next.js configuration (3KB)
+├── vercel.json                 # Vercel deployment config
+├── jsconfig.json               # JS path aliases
+├── package.json                # Dependencies & npm scripts
+├── .env                        # Environment variables (local)
+├── .gitignore                  # Git ignore rules
+├── deploy.bat                  # Windows deploy script
+├── deploy.sh                   # Linux/Mac deploy script
+├── README.md                   # Project documentation (14KB)
+├── CREDENTIALS.md              # Default test credentials
+├── problemStatement.md         # Project problem statement
+└── PM-Portal-RateCard-Feature-Analysis.md  # Feature analysis doc
+
+--------------------------------------------------------------------------------
+3. USER ROLES & ACCESS CONTROL (RBAC)
+--------------------------------------------------------------------------------
+Roles defined in lib/rbac.js:
+
+  - VENDOR       : Submit invoices, upload documents, view own status
+  - PM           : Approve/reject invoices, manage projects, rate cards
+  - FINANCE      : Process payments, validate financials, export reports
+  - ADMIN        : Full system access, user management, config, audit logs
+
+Role enforcement via:
+  - middleware.js        → protects frontend routes by role
+  - lib/server-auth.js  → protects API routes server-side
+  - lib/rbac.js         → permission matrix for all operations
+
+--------------------------------------------------------------------------------
+4. INVOICE LIFECYCLE WORKFLOW
+--------------------------------------------------------------------------------
+Managed by: lib/invoice-workflow.js
+
+States (ordered):
+  SUBMITTED → UNDER_REVIEW → PM_APPROVED → FINANCE_REVIEW
+            → FINANCE_APPROVED → PAYMENT_PROCESSED → CLOSED
+
+Also handles:
+  REJECTED   (by PM or Finance, with reason)
+  ON_HOLD    (flagged for review)
+  RECHECK    (requests additional information from vendor)
+
+Key Workflow Operations:
+  1. Vendor submits invoice (with RFP + Commercial docs)
+  2. OCR extracts data via Tesseract.js / Mindee
+  3. Validation service checks amounts, PO matching, rate cards
+  4. PM reviews → approves or rejects / requests recheck
+  5. Finance reviews → approves payment or holds
+  6. Payment processed → invoice closed
+  7. Full audit trail recorded at each step
+
+--------------------------------------------------------------------------------
+5. KEY API ROUTES SUMMARY
+--------------------------------------------------------------------------------
+
+  AUTH
+    POST /api/auth/login          - User login (returns JWT)
+    POST /api/auth/signup         - New user registration
+    POST /api/auth/logout         - Logout / clear session
+    POST /api/auth/otp            - OTP verification
+
+  INVOICES
+    GET  /api/invoices            - List invoices (role-filtered)
+    POST /api/invoices            - Submit new invoice
+    GET  /api/invoices/[id]       - Get invoice detail
+    PUT  /api/invoices/[id]       - Update invoice status
+    POST /api/ingest              - Batch ingest / OCR pipeline
+
+  VENDOR
+    GET  /api/vendor/dashboard    - Vendor dashboard data
+    GET  /api/vendor/rate-cards   - Vendor's rate cards
+    POST /api/vendor/rechecks     - Submit recheck responses
+
+  PM
+    GET  /api/pm/dashboard        - PM dashboard stats
+    GET  /api/pm/approvals        - Pending approvals list
+    POST /api/pm/approve          - Approve invoice
+    POST /api/pm/reject           - Reject invoice
+
+  FINANCE
+    GET  /api/finance/dashboard   - Finance dashboard
+    POST /api/finance/process     - Process payment
+
+  ADMIN
+    GET  /api/admin/users         - List all users
+    POST /api/admin/users         - Create user
+    GET  /api/audit               - Audit trail
+
+  SYSTEM
+    GET  /api/health              - Health check
+    GET  /api/version             - Current version
+    GET  /api/metrics             - System metrics
+
+--------------------------------------------------------------------------------
+6. DATA MODELS SUMMARY
+--------------------------------------------------------------------------------
+
+  Invoice          : Core entity. Tracks status, amounts, documents, PO ref,
+                     vendor, PM, finance user, audit history, recheck notes.
+  User             : Auth details, role, assigned projects/vendors.
+  Vendor           : Vendor info, linked users, rate cards.
+  Project          : Project metadata, assigned PM, budget.
+  PurchaseOrder    : PO number, line items, amounts, linked project.
+  RateCard         : Vendor rate card versions with line items and approvals.
+  DocumentUpload   : Uploaded file metadata (S3/local path, type, linked invoice).
+  AuditTrail       : Immutable log of every state change with timestamps.
+  Notification     : In-app notifications by user and event type.
+  Message          : Invoice-level messaging thread between roles.
+  Delegation       : PM delegation rules for approval authority.
+  Otp              : Temporary OTP records with expiry.
+  Annexure         : Invoice annexure/supporting documents.
+
+--------------------------------------------------------------------------------
+7. NPM SCRIPTS (DEVELOPMENT WORKFLOW)
+--------------------------------------------------------------------------------
+
+  npm run dev           - Start local Next.js dev server (port 3000)
+  npm run dev:clean     - Clear .next cache then start dev server
+  npm run build         - Production build (auto-bumps version via prebuild)
+  npm run start         - Start production server
+  npm run lint          - Run ESLint
+  npm run test          - Run Jest test suite
+  npm run bump          - Manually bump version number
+  npm run seed:users    - Seed database with default users
+  npm run seed          - Alias for seed:users
+
+--------------------------------------------------------------------------------
+8. DATABASE SEEDING & SETUP WORKFLOW
+--------------------------------------------------------------------------------
+
+  Step 1: Ensure .env is configured (MONGODB_URI, JWT_SECRET, etc.)
+  Step 2: node scripts/setup-initial-users.mjs    → Create initial users
+  Step 3: node scripts/seed-all-credentials.mjs   → Seed all role credentials
+  Step 4: node scripts/seed-projects-standalone.mjs → Seed sample projects
+  Step 5: node scripts/scale-seeder.mjs           → (Optional) bulk test data
+
+  Useful maintenance scripts:
+    node scripts/clean-db.mjs         → Wipe and reset DB
+    node scripts/fix-roles.mjs        → Repair corrupted user roles
+    node scripts/fix-missing-po.mjs   → Repair invoices with missing POs
+    node scripts/verify_dashboard_apis.js → Run API verification suite
+    node scripts/simulate-api.mjs     → Simulate API calls for testing
+
+--------------------------------------------------------------------------------
+9. DEPLOYMENT WORKFLOW
+--------------------------------------------------------------------------------
+
+  LOCAL DEV:
+    1. Clone repository
+    2. npm install
+    3. Copy .env.example → .env and fill values
+    4. Run seeding scripts (see Section 8)
+    5. npm run dev
+
+  VERCEL (PRODUCTION):
+    1. Push to GitHub (main branch)
+    2. Vercel auto-deploys from connected repo
+    3. Set environment variables in Vercel dashboard:
+         MONGODB_URI
+         JWT_SECRET
+         NEXTAUTH_SECRET (if applicable)
+         MINDEE_API_KEY
+         Any ERP/IDP integration keys
+    4. Alternatively run: deploy.bat (Windows) / deploy.sh (Linux)
+
+  BUILD VERIFICATION:
+    npm run build   → Verifies no build errors (auto-bumps version)
+    npm run start   → Test production bundle locally
+
+--------------------------------------------------------------------------------
+10. TESTING WORKFLOW
+--------------------------------------------------------------------------------
+
+  Unit Tests:
+    npm run test
+    → Runs Jest on files in __tests__/ directory
+    → Uses jest-environment-node for API tests
+    → Uses @testing-library/react for component tests
+
+  API Verification:
+    node scripts/verify_dashboard_apis.js
+    → Comprehensive API route verification (30KB script)
+    → Tests all dashboard endpoints for all roles
+
+  Manual Testing:
+    → See CREDENTIALS.md for default login credentials per role
+    → Login as each role and verify dashboard/workflow functionality
+
+--------------------------------------------------------------------------------
+11. KEY ENVIRONMENT VARIABLES (.env)
+--------------------------------------------------------------------------------
+
+  MONGODB_URI          - MongoDB Atlas or local connection string
+  JWT_SECRET           - Secret key for JWT token signing
+  NEXT_PUBLIC_APP_URL  - Public base URL for the app
+  MINDEE_API_KEY       - API key for Mindee OCR service (optional)
+  NODE_ENV             - "development" | "production"
+
+--------------------------------------------------------------------------------
+12. CURRENT STATUS & KNOWN ISSUES
+--------------------------------------------------------------------------------
+
+  Current Version : 1.0.75
+  Active Branch   : (check .git for current branch)
+  Dev Server      : Running (npm run dev active)
+
+  Recent Work Completed:
+    - Restored vendor rate card and recheck API routes
+    - Implemented ActiveRates component for vendor sidebar
+    - Re-applied lost changes: upload status indicators, document viewer
+    - Added INV/RFP/COM view buttons on invoice tables (desktop + mobile)
+    - Fixed hidden submission date field and renamed submit button
+    - Fixed RBAC routing via middleware.js
+
+  Notes:
+    - debug-ingest.log and user-fix-log.json in root may be stale — review
+    - api-sim-log.json is generated by simulate-api.mjs for testing
+    - schema.sql in lib/ is for reference only; active DB is MongoDB
+
+================================================================================
+END OF WORKFLOW UPDATE DOCUMENT
+================================================================================

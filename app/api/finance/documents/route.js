@@ -29,6 +29,7 @@ export async function GET(request) {
         const userRole = getNormalizedRole(session.user);
         const { searchParams } = new URL(request.url);
         const projectId = searchParams.get('projectId');
+        const invoiceId = searchParams.get('invoiceId');
         const type = searchParams.get('type');
         const status = searchParams.get('status');
 
@@ -38,6 +39,7 @@ export async function GET(request) {
         // Unlike PMs who are restricted to their assigned projects
 
         if (projectId) query.projectId = projectId;
+        if (invoiceId) query.invoiceId = invoiceId; // Filter by specific invoice
         if (type) query.type = type;
         if (status) query.status = status;
 
@@ -73,6 +75,7 @@ export async function POST(request) {
         file = formData.get('file');
         type = formData.get('type');
         projectId = formData.get('projectId');
+        const invoiceId = formData.get('invoiceId') || null; // Link to a specific invoice
         const billingMonth = formData.get('billingMonth');
         const ringiNumber = formData.get('ringiNumber');
         const projectName = formData.get('projectName');
@@ -89,7 +92,7 @@ export async function POST(request) {
         }
 
         // Validate document type
-        const validTypes = ['RINGI', 'ANNEX', 'TIMESHEET'];
+        const validTypes = ['RINGI', 'ANNEX', 'TIMESHEET', 'RATE_CARD', 'INVOICE', 'RFP_COMMERCIAL', 'OTHER'];
         if (!validTypes.includes(type)) {
             return NextResponse.json(
                 { error: `Invalid type. Must be one of: ${validTypes.join(', ')}` },
@@ -153,6 +156,7 @@ export async function POST(request) {
         const document = await DocumentUpload.create({
             id: fileId,
             projectId: projectId || null,
+            invoiceId: invoiceId || null, // Link to invoice if provided
             type,
             fileName: file.name,
             fileUrl: fileUrl,

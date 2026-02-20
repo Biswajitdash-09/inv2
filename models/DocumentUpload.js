@@ -6,7 +6,7 @@ const DocumentUploadSchema = new mongoose.Schema({
     invoiceId: { type: String },        // Optional link to invoice
     type: {
         type: String,
-        enum: ['RINGI', 'ANNEX', 'TIMESHEET', 'RATE_CARD', 'INVOICE', 'RFP_COMMERCIAL'],
+        enum: ['RINGI', 'ANNEX', 'TIMESHEET', 'RATE_CARD', 'INVOICE', 'RFP_COMMERCIAL', 'OTHER'],
         required: true
     },
     fileName: { type: String, required: true },

@@ -97,7 +97,7 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">Awaiting Action</p>
                             </div>
                         </div>
-                        <Link href="/pm/approvals" className="p-2 hover:bg-white rounded-xl transition-colors group">
+                        <Link href="/pm/approval-queue" className="p-2 hover:bg-white rounded-xl transition-colors group">
                             <Icon name="ArrowRight" size={18} className="text-slate-400 group-hover:text-amber-600 transition-colors" />
                         </Link>
                     </div>
@@ -122,7 +122,7 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                                     </div>
                                     <div className="text-right">
                                         <p className="font-bold text-sm text-gray-900">{formatCurrency(inv.amount)}</p>
-                                        <Link href={`/pm/approvals?invoiceId=${inv.id}`}>
+                                        <Link href={`/pm/approval-queue`}>
                                             <button className="text-xs font-medium text-amber-600 hover:text-amber-700 mt-1">Review</button>
                                         </Link>
                                     </div>
@@ -168,7 +168,7 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                                     </div>
                                     <div className="text-right">
                                         <p className="font-black text-sm text-slate-900">{formatCurrency(inv.amount)}</p>
-                                        <Link href={`/pm/approvals?invoiceId=${inv.id}`}>
+                                        <Link href={`/pm/approval-queue`}>
                                             <span className="text-[9px] font-black uppercase tracking-widest text-rose-600 bg-rose-100 px-2 py-0.5 rounded-lg">Resolve</span>
                                         </Link>
                                     </div>
@@ -193,7 +193,7 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                             <p className="text-amber-100 text-sm mt-3 font-medium max-w-xs leading-relaxed">Review pending invoices, approve, reject, or request more information.</p>
                         </div>
                         <Link
-                            href="/pm/approvals"
+                            href="/pm/approval-queue"
                             className="w-full sm:w-fit px-8 py-4 bg-white text-amber-700 rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-amber-900/10 hover:shadow-amber-900/20 transition-all flex items-center justify-center gap-2 group/btn"
                         >
                             Open Approvals <Icon name="ArrowRight" size={14} className="group-hover/btn:translate-x-1 transition-transform" />
@@ -304,7 +304,7 @@ export default function ProjectManagerDashboard({ user, invoices = [], filteredI
                                             </td>
                                             <td className="px-6 py-4 text-right">
                                                 <Link
-                                                    href={`/pm/approvals?invoiceId=${inv.id}`}
+                                                    href="/pm/approval-queue"
                                                     className="inline-flex items-center gap-2 h-8 px-4 bg-white border border-slate-200 rounded-lg text-[10px] font-black uppercase tracking-widest text-slate-600 hover:border-indigo-600 hover:text-indigo-600 transition-all shadow-sm active:scale-95"
                                                 >
                                                     View <Icon name="ExternalLink" size={10} />

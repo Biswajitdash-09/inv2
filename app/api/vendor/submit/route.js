@@ -4,7 +4,7 @@ import Invoice from '@/models/Invoice';
 import DocumentUpload from '@/models/DocumentUpload';
 import RateCard from '@/models/RateCard';
 import { getSession } from '@/lib/auth';
-import { requireRole } from '@/lib/rbac';
+import { requireRole, getNormalizedRole } from '@/lib/rbac';
 import { ROLES } from '@/constants/roles';
 import { db } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
@@ -57,8 +57,22 @@ export async function POST(request) {
         const hsnCode = formData.get('hsnCode');
         const invoiceNumber = formData.get('invoiceNumber');
         const invoiceDate = formData.get('invoiceDate');
-        const assignedFinanceUser = formData.get('assignedFinanceUser');
         const notes = formData.get('notes');
+
+        // Auto-resolve Finance User from the PM's hierarchy (managedBy field).
+        // The vendor no longer picks the FU manually — it is derived from the admin hierarchy.
+        let assignedFinanceUser = null;
+        if (assignedPM) {
+            const pmUser = await db.getUserById(assignedPM);
+            if (pmUser?.managedBy) {
+                const manager = await db.getUserById(pmUser.managedBy);
+                // Only assign if the manager is a Finance User (use shared getNormalizedRole)
+                if (manager && getNormalizedRole(manager) === ROLES.FINANCE_USER) {
+                    assignedFinanceUser = manager.id;
+                    console.log(`[Vendor Submit] Auto-assigned Finance User ${manager.name} (${manager.id}) from PM hierarchy`);
+                }
+            }
+        }
 
         // Additional document files
         const timesheetFile = formData.get('timesheet');
@@ -76,14 +90,14 @@ export async function POST(request) {
             // Find applicable rate cards
             // Priority: Project-specific > Global
             const vendorEntityId = session.user.vendorId;
-            
+
             if (!vendorEntityId) {
                 return NextResponse.json(
                     { error: 'No vendor entity linked to this account. Rate validation cannot be performed.' },
                     { status: 400 }
                 );
             }
-            
+
             const rateQuery = {
                 vendorId: vendorEntityId,
                 status: 'ACTIVE',

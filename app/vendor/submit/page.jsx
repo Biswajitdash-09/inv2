@@ -6,7 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 export default function VendorSubmitPage() {
     const [projects, setProjects] = useState([]);
     const [pms, setPMs] = useState([]);
-    const [financeUsers, setFinanceUsers] = useState([]);
+
     const [availableRates, setAvailableRates] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
@@ -29,7 +29,6 @@ export default function VendorSubmitPage() {
         billingMonth: '',
         project: '',
         assignedPM: '',
-        assignedFinanceUser: '',
         notes: ''
     });
 
@@ -43,7 +42,6 @@ export default function VendorSubmitPage() {
     useEffect(() => {
         fetchProjects();
         fetchPMs();
-        fetchFinanceUsers();
         fetchRateCards();
     }, []);
 
@@ -72,15 +70,7 @@ export default function VendorSubmitPage() {
         }
     };
 
-    const fetchFinanceUsers = async () => {
-        try {
-            const res = await fetch('/api/finance-users', { cache: 'no-store' });
-            const data = await res.json();
-            if (res.ok) setFinanceUsers(data.financeUsers || []);
-        } catch (err) {
-            console.error('Error fetching Finance Users:', err);
-        }
-    };
+
 
     const fetchRateCards = async (projectId = null) => {
         try {
@@ -129,7 +119,7 @@ export default function VendorSubmitPage() {
         if (field === 'role' || field === 'experienceRange') {
             const role = field === 'role' ? value : newItems[index].role;
             const exp = field === 'experienceRange' ? value : newItems[index].experienceRange;
-            
+
             if (role && exp) {
                 const match = availableRates.find(r => r.role === role && r.experienceRange === exp);
                 if (match) {
@@ -183,10 +173,9 @@ export default function VendorSubmitPage() {
             submitData.append('billingMonth', formData.billingMonth);
             submitData.append('project', formData.project);
             submitData.append('assignedPM', formData.assignedPM);
-            submitData.append('assignedFinanceUser', formData.assignedFinanceUser);
             submitData.append('notes', formData.notes);
             submitData.append('disclaimer', disclaimerChecked ? 'true' : 'false');
-            
+
             // Append Line Items
             submitData.append('lineItems', JSON.stringify(lineItems));
 
@@ -213,7 +202,6 @@ export default function VendorSubmitPage() {
                 billingMonth: '',
                 project: '',
                 assignedPM: '',
-                assignedFinanceUser: '',
                 notes: ''
             });
             setDisclaimerChecked(false);
@@ -278,7 +266,7 @@ export default function VendorSubmitPage() {
                     className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/10"
                 >
                     <form onSubmit={handleSubmit} className="space-y-6">
-                        
+
                         {/* File Upload Section */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                             <div className="md:col-span-1 bg-purple-500/10 rounded-xl p-4 border-2 border-dashed border-purple-500/30">
@@ -292,7 +280,7 @@ export default function VendorSubmitPage() {
                                 />
                                 {formData.invoiceFile && <p className="mt-1 text-xs text-green-400">✓ {formData.invoiceFile.name}</p>}
                             </div>
-                             <div className="md:col-span-1 bg-white/5 rounded-xl p-4 border border-white/10">
+                            <div className="md:col-span-1 bg-white/5 rounded-xl p-4 border border-white/10">
                                 <label className="block text-sm font-bold text-slate-300 mb-2">Timesheet (Optional)</label>
                                 <input
                                     ref={timesheetRef}
@@ -407,7 +395,7 @@ export default function VendorSubmitPage() {
                                     + Add Item
                                 </button>
                             </div>
-                            
+
                             <div className="space-y-3">
                                 {lineItems.map((item, index) => (
                                     <div key={index} className="grid grid-cols-12 gap-2 items-end bg-white/5 p-3 rounded-lg">
@@ -465,7 +453,7 @@ export default function VendorSubmitPage() {
                                     </div>
                                 ))}
                             </div>
-                            
+
                             <div className="flex justify-end mt-4 pt-3 border-t border-white/10">
                                 <div className="text-right">
                                     <p className="text-xs text-slate-400">Total Amount</p>
@@ -487,17 +475,11 @@ export default function VendorSubmitPage() {
                                     {pms.map(pm => <option key={pm.id} value={pm.id}>{pm.name}</option>)}
                                 </select>
                             </div>
-                            <div>
-                                <label className="block text-xs font-medium text-gray-300 mb-1">Assign to Finance User <span className="text-red-400">*</span></label>
-                                <select
-                                    value={formData.assignedFinanceUser}
-                                    onChange={(e) => setFormData({ ...formData, assignedFinanceUser: e.target.value })}
-                                    required
-                                    className="w-full px-3 py-2 bg-white/5 border border-white/20 rounded-lg text-white text-sm focus:outline-none focus:ring-1 focus:ring-purple-500"
-                                >
-                                    <option value="">Select Finance User</option>
-                                    {financeUsers.map(fu => <option key={fu.id} value={fu.id}>{fu.name}</option>)}
-                                </select>
+                            <div className="flex items-center">
+                                <div className="bg-blue-500/10 border border-blue-500/30 rounded-lg px-4 py-3 w-full">
+                                    <p className="text-xs font-medium text-blue-300 mb-1">🔗 Finance User</p>
+                                    <p className="text-xs text-blue-200/70">Automatically assigned based on your selected PM's hierarchy. No manual selection needed.</p>
+                                </div>
                             </div>
                         </div>
 
@@ -522,8 +504,8 @@ export default function VendorSubmitPage() {
                                     className="mt-1 w-4 h-4 accent-purple-500 rounded"
                                 />
                                 <span className="text-xs text-amber-200/80 leading-relaxed">
-                                    I have verified all the information as per agreed terms with Maruti Suzuki India Limited. 
-                                    The Invoice, RFP Proposal/Timesheet is strictly as per agreement. I understand that any 
+                                    I have verified all the information as per agreed terms with Maruti Suzuki India Limited.
+                                    The Invoice, RFP Proposal/Timesheet is strictly as per agreement. I understand that any
                                     discrepancy may lead to rejection of the invoice.
                                 </span>
                             </label>

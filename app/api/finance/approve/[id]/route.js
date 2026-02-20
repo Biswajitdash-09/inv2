@@ -50,14 +50,26 @@ export async function POST(request, { params }) {
         const previousStatus = invoice.status;
 
         // Validate workflow state using state machine
-        // Finance can transition from multiple valid finance-ready statuses
+        // Finance can review invoices in any of these statuses
+        const FINANCE_ACTION = {
+            'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
+            'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
+            'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
+        };
+
         const VALID_FINANCE_STATUSES = [
             INVOICE_STATUS.PENDING_FINANCE_REVIEW,
+            'Pending Finance Review',
             'PM Approved',
+            'PM_APPROVED',
             'APPROVED',
             'VERIFIED',
-            'RECEIVED'
+            'RECEIVED',
+            // Invoices submitted directly without a full PM-workflow pass
+            'Submitted',
+            'SUBMITTED',
         ];
+
         if (!VALID_FINANCE_STATUSES.includes(invoice.status)) {
             return NextResponse.json(
                 { error: `Invalid workflow state: Invoice status '${invoice.status}' is not pending Finance review. Finance can only review invoices in statuses: ${VALID_FINANCE_STATUSES.join(', ')}` },
@@ -65,45 +77,11 @@ export async function POST(request, { params }) {
             );
         }
 
-        // Check that PM has actually approved this invoice (only for standard workflow)
-        // Manual entries or legacy invoices might bypass PM approval
-        if (invoice.status === INVOICE_STATUS.PENDING_FINANCE_REVIEW) {
-            if (!invoice.pmApproval || invoice.pmApproval.status !== 'APPROVED') {
-                return NextResponse.json(
-                    { error: 'PM approval required before Finance review' },
-                    { status: 400 }
-                );
-            }
+        // Build dynamic transition map — every valid status maps to the same 3 outcomes
+        const statusTransitions = {};
+        for (const s of VALID_FINANCE_STATUSES) {
+            statusTransitions[s] = { ...FINANCE_ACTION };
         }
-
-        // Define status transitions for Finance actions for all valid statuses
-        const statusTransitions = {
-            [INVOICE_STATUS.PENDING_FINANCE_REVIEW]: {
-                'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
-                'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
-                'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
-            },
-            'PM Approved': {
-                'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
-                'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
-                'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
-            },
-            'APPROVED': {
-                'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
-                'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
-                'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
-            },
-            'VERIFIED': {
-                'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
-                'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
-                'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
-            },
-            'RECEIVED': {
-                'APPROVE': INVOICE_STATUS.FINANCE_APPROVED,
-                'REJECT': INVOICE_STATUS.FINANCE_REJECTED,
-                'REQUEST_INFO': INVOICE_STATUS.MORE_INFO_NEEDED
-            }
-        };
 
         // Determine new status based on action
         const newStatus = statusTransitions[invoice.status]?.[action];

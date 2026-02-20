@@ -1,11 +1,15 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import Icon from '@/components/Icon';
 import { useAuth } from '@/context/AuthContext';
-import DocumentViewer from '@/components/ui/DocumentViewer';
 import { INVOICE_STATUS } from '@/lib/invoice-workflow';
+import DocumentViewer from '@/components/ui/DocumentViewer';
+
+/* ─── helpers ─────────────────────────────────────────────── */
+const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
 
 const STATUS_STYLES = {
     [INVOICE_STATUS.PENDING_PM_APPROVAL]: { bg: 'bg-indigo-50', text: 'text-indigo-700', dot: 'bg-indigo-500', label: 'Pending Your Review' },
@@ -15,161 +19,94 @@ const STATUS_STYLES = {
     [INVOICE_STATUS.FINANCE_REJECTED]: { bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Finance Rejected' },
     [INVOICE_STATUS.MORE_INFO_NEEDED]: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'More Info Requested' },
     APPROVED: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Approved' },
-    Approved: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Approved' },
     REJECTED: { bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Rejected' },
-    Rejected: { bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Rejected' },
+    Submitted: { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400', label: 'Submitted' },
     PAID: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Paid' },
-    MATCH_DISCREPANCY: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Discrepancy' },
 };
 const getStatus = (s) => STATUS_STYLES[s] || { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400', label: s?.replace(/_/g, ' ') || '—' };
 
+const PM_DOC_TYPES = ['Invoice', 'Ringi', 'Annexure', 'Timesheet', 'Rate Card', 'Other'];
+const mapDocTypeToApi = (t) => ({ Invoice: 'INVOICE', Ringi: 'RINGI', Annexure: 'ANNEX', Timesheet: 'TIMESHEET', 'Rate Card': 'RATE_CARD', Other: 'OTHER' }[t] || 'ANNEX');
+
+/* ─── Section wrapper ─────────────────────────────────────── */
+function Section({ title, icon, children, accent = 'indigo' }) {
+    const colors = { indigo: 'text-indigo-600 bg-indigo-50', emerald: 'text-emerald-600 bg-emerald-50', violet: 'text-violet-600 bg-violet-50', amber: 'text-amber-600 bg-amber-50', sky: 'text-sky-600 bg-sky-50' };
+    return (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+            <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2.5 bg-slate-50/60">
+                <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${colors[accent]}`}>
+                    <Icon name={icon} size={14} />
+                </div>
+                <h3 className="font-bold text-slate-700 text-sm">{title}</h3>
+            </div>
+            <div className="p-5">{children}</div>
+        </div>
+    );
+}
+
+function KV({ label, value, mono = false }) {
+    return (
+        <div>
+            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
+            <p className={`text-sm font-semibold text-slate-800 ${mono ? 'font-mono' : ''}`}>{value || '—'}</p>
+        </div>
+    );
+}
+
+/* ─── Main Component ──────────────────────────────────────── */
 export default function PMApprovalQueuePage() {
     const { user } = useAuth();
     const [allInvoices, setAllInvoices] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [successMsg, setSuccessMsg] = useState(null);
-
-    // Action states
-    const [processingId, setProcessingId] = useState(null);
-    const [actionModal, setActionModal] = useState(null); // { invoice, type: 'approve'|'reject' }
-    const [notes, setNotes] = useState('');
-
-    // Invoice details table state per invoice
-    const [invoiceDocs, setInvoiceDocs] = useState({});
-
-    // Accepted file types per document type
-    const getAcceptForDocType = (docType) => {
-        switch (docType) {
-            case 'Ringi': return '.pdf';
-            case 'Annexure': return '.pdf,.doc,.docx,.xls,.xlsx';
-            case 'Timesheet': return '.xls,.xlsx,.pdf';
-            case 'Rate Card': return '.xls,.xlsx,.pdf';
-            case 'Invoice': return '.pdf';
-            default: return '.pdf,.doc,.docx,.xls,.xlsx';
-        }
-    };
-
-    // Map frontend doc type to API type enum
-    const mapDocTypeToApi = (docType) => {
-        switch (docType) {
-            case 'Ringi': return 'RINGI';
-            case 'Annexure': return 'ANNEX';
-            case 'Timesheet': return 'TIMESHEET';
-            case 'Rate Card': return 'RATE_CARD';
-            case 'Invoice': return 'INVOICE';
-            default: return 'ANNEX';
-        }
-    };
-
-    const addDocRow = (invoiceId, invoice) => {
-        setInvoiceDocs(prev => {
-            const existing = prev[invoiceId] || [];
-            const mapTax = (t) => {
-                if (t === 'CGST_SGST') return 'CGST+SGST';
-                if (t === 'IGST') return 'IGST';
-                return '';
-            };
-            const newRow = existing.length === 0 ? {
-                invoiceNo: invoice?.invoiceNumber || '',
-                invoiceDate: invoice?.invoiceDate || invoice?.date || '',
-                basicAmount: invoice?.basicAmount || invoice?.amount || '',
-                taxType: mapTax(invoice?.taxType) || '',
-                hsnCode: invoice?.hsnCode || '',
-                docType: 'Invoice',
-                description: invoice?.category || '',
-                file: null, fileName: '', uploadedDocId: '', uploadStatus: ''
-            } : {
-                invoiceNo: '', invoiceDate: '', basicAmount: '', taxType: '', hsnCode: '',
-                docType: '', description: '',
-                file: null, fileName: '', uploadedDocId: '', uploadStatus: ''
-            };
-            return { ...prev, [invoiceId]: [...existing, newRow] };
-        });
-    };
-
-    const updateDocRow = (invoiceId, rowIndex, field, value) => {
-        setInvoiceDocs(prev => {
-            const rows = [...(prev[invoiceId] || [])];
-            rows[rowIndex] = { ...rows[rowIndex], [field]: value };
-            return { ...prev, [invoiceId]: rows };
-        });
-    };
-
-    const removeDocRow = (invoiceId, rowIndex) => {
-        setInvoiceDocs(prev => {
-            const rows = [...(prev[invoiceId] || [])];
-            rows.splice(rowIndex, 1);
-            return { ...prev, [invoiceId]: rows };
-        });
-    };
-
-    // Upload a document file for a specific row
-    const uploadDocFile = async (invoiceId, rowIndex, file, docType) => {
-        if (!file || !docType) return;
-        updateDocRow(invoiceId, rowIndex, 'uploadStatus', 'uploading');
-        updateDocRow(invoiceId, rowIndex, 'fileName', file.name);
-        try {
-            const fd = new FormData();
-            fd.append('file', file);
-            fd.append('type', mapDocTypeToApi(docType));
-            fd.append('invoiceId', invoiceId);
-            const res = await fetch('/api/pm/documents', { method: 'POST', body: fd });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error || 'Upload failed');
-            updateDocRow(invoiceId, rowIndex, 'uploadedDocId', data.document?.id || '');
-            updateDocRow(invoiceId, rowIndex, 'uploadStatus', 'done');
-        } catch (err) {
-            console.error('Doc upload error:', err);
-            updateDocRow(invoiceId, rowIndex, 'uploadStatus', 'error');
-        }
-    };
-
-    // Document viewer
-    const [viewerInvoice, setViewerInvoice] = useState(null);
-    const [spreadsheetData, setSpreadsheetData] = useState(null);
-
-    // Filter
     const [activeTab, setActiveTab] = useState('pending');
+
+    // Review drawer
+    const [reviewInvoice, setReviewInvoice] = useState(null);
+    const [reviewLoading, setReviewLoading] = useState(false);
+    const [drawerOpen, setDrawerOpen] = useState(false);
+
+    // Actions
+    const [actionType, setActionType] = useState(null); // 'approve' | 'reject' | 'recheck'
+    const [actionNotes, setActionNotes] = useState('');
+    const [processingId, setProcessingId] = useState(null);
+
+    // PM document upload table
+    const [pmDocs, setPmDocs] = useState([]);
+    const [uploadingIdx, setUploadingIdx] = useState(null);
+
+    // Inline document viewer
+    const [docViewer, setDocViewer] = useState(null);
+    const [spreadsheetData, setSpreadsheetData] = useState(null);
 
     useEffect(() => { fetchInvoices(); }, []);
 
-    // Load CSV/XLS/XLSX preview data for viewer
+    // Esc key closes viewer first, then drawer
     useEffect(() => {
-        if (!viewerInvoice) {
-            setSpreadsheetData(null);
-            return;
-        }
+        const handler = (e) => {
+            if (e.key === 'Escape') { if (docViewer) setDocViewer(null); else closeDrawer(); }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    }, [docViewer]);
 
-        const fileName = (viewerInvoice.originalName || '').toLowerCase();
-        const isSpreadsheet =
-            fileName.endsWith('.xls') ||
-            fileName.endsWith('.xlsx') ||
-            fileName.endsWith('.csv');
-
-        if (!isSpreadsheet) {
-            setSpreadsheetData(null);
-            return;
-        }
-
+    // Spreadsheet preview
+    useEffect(() => {
+        if (!docViewer) { setSpreadsheetData(null); return; }
+        const ext = (docViewer.fileName || '').toLowerCase();
+        const isSheet = ext.endsWith('.xls') || ext.endsWith('.xlsx') || ext.endsWith('.csv');
+        if (!isSheet) { setSpreadsheetData(null); return; }
         let cancelled = false;
-
         (async () => {
             try {
-                const res = await fetch(`/api/invoices/${viewerInvoice.id}/preview`, { cache: 'no-store' });
-                const data = await res.json();
-                if (!cancelled && Array.isArray(data?.data)) {
-                    setSpreadsheetData(data.data);
-                }
-            } catch (err) {
-                console.error('Failed to fetch spreadsheet preview for PM viewer:', err);
-            }
+                const r = await fetch(`/api/invoices/${docViewer.invoiceId}/preview`, { cache: 'no-store' });
+                const d = await r.json();
+                if (!cancelled && Array.isArray(d?.data)) setSpreadsheetData(d.data);
+            } catch { }
         })();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [viewerInvoice]);
+        return () => { cancelled = true; };
+    }, [docViewer]);
 
     const fetchInvoices = async () => {
         try {
@@ -178,14 +115,10 @@ export default function PMApprovalQueuePage() {
             const data = await res.json();
             if (!res.ok) throw new Error(data.error);
             setAllInvoices(Array.isArray(data) ? data : (data.invoices || []));
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
+        } catch (err) { setError(err.message); }
+        finally { setLoading(false); }
     };
 
-    // Filter invoices assigned to this PM (submitted by vendors)
     const myInvoices = useMemo(() => {
         if (!user) return [];
         return allInvoices.filter(inv =>
@@ -199,910 +132,758 @@ export default function PMApprovalQueuePage() {
         );
     }, [allInvoices, user]);
 
-    // Auto-populate invoice details for each invoice on load
-    useEffect(() => {
-        if (myInvoices.length === 0) return;
-        const mapTax = (t) => {
-            if (t === 'CGST_SGST') return 'CGST+SGST';
-            if (t === 'IGST') return 'IGST';
-            return '';
-        };
-        setInvoiceDocs(prev => {
-            const next = { ...prev };
-            myInvoices.forEach(inv => {
-                if (!next[inv.id] || next[inv.id].length === 0) {
-                    next[inv.id] = [{
-                        invoiceNo: inv.invoiceNumber || '',
-                        invoiceDate: inv.invoiceDate || inv.date || '',
-                        basicAmount: inv.basicAmount || inv.amount || '',
-                        taxType: mapTax(inv.taxType) || '',
-                        hsnCode: inv.hsnCode || '',
-                        docType: 'Invoice',
-                        description: inv.category || '',
-                        file: null, fileName: inv.originalName || '', uploadedDocId: '', uploadStatus: inv.originalName ? 'done' : ''
-                    }];
-                }
+    const openReview = async (inv) => {
+        setDrawerOpen(true);
+        setReviewInvoice(inv);
+        setReviewLoading(true);
+        setActionType(null);
+        setActionNotes('');
+        setPmDocs([{ docType: 'Invoice', description: '', file: null, fileName: inv.originalName || '', uploadedDocId: '', uploadStatus: inv.originalName ? 'done' : '' }]);
+        try {
+            const r = await fetch(`/api/invoices/${inv.id}`, { cache: 'no-store' });
+            const d = await r.json();
+            if (r.ok) setReviewInvoice(d);
+        } catch { }
+        finally { setReviewLoading(false); }
+    };
+
+    const closeDrawer = () => {
+        setDrawerOpen(false);
+        setTimeout(() => { setReviewInvoice(null); setActionType(null); setActionNotes(''); setPmDocs([]); }, 300);
+    };
+
+    /* ── PM Doc Table helpers ── */
+    const addDocRow = () => setPmDocs(p => [...p, { docType: '', description: '', file: null, fileName: '', uploadedDocId: '', uploadStatus: '' }]);
+    const removeDocRow = (i) => setPmDocs(p => p.filter((_, idx) => idx !== i));
+    const updateDocRow = (i, field, value) => setPmDocs(p => p.map((row, idx) => idx === i ? { ...row, [field]: value } : row));
+
+    const uploadDocFile = async (rowIdx, file, docType) => {
+        if (!file || !reviewInvoice) return;
+        setUploadingIdx(rowIdx);
+        updateDocRow(rowIdx, 'fileName', file.name);
+        updateDocRow(rowIdx, 'uploadStatus', 'uploading');
+        try {
+            const fd = new FormData();
+            fd.append('file', file);
+            fd.append('type', mapDocTypeToApi(docType));
+            fd.append('invoiceId', reviewInvoice.id);
+            const res = await fetch('/api/pm/documents', { method: 'POST', body: fd });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Upload failed');
+            updateDocRow(rowIdx, 'uploadedDocId', data.document?.id || '');
+            updateDocRow(rowIdx, 'uploadStatus', 'done');
+        } catch (err) {
+            updateDocRow(rowIdx, 'uploadStatus', 'error');
+            setError(err.message);
+        } finally { setUploadingIdx(null); }
+    };
+
+    /* ── PM Actions ── */
+    const handleApprove = async () => {
+        if (!reviewInvoice) return;
+        try {
+            setProcessingId(reviewInvoice.id);
+            const res = await fetch(`/api/pm/approve/${reviewInvoice.id}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'APPROVE', notes: actionNotes })
             });
-            return next;
-        });
-    }, [myInvoices]);
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setSuccessMsg('Invoice approved! Forwarded to Finance.');
+            setTimeout(() => setSuccessMsg(null), 4000);
+            closeDrawer(); fetchInvoices();
+        } catch (err) { setError(err.message); }
+        finally { setProcessingId(null); }
+    };
 
-    // Tab counts
-    const pendingCount = myInvoices.filter(inv =>
-        !inv.pmApproval?.status || inv.pmApproval?.status === 'PENDING'
-    ).length;
-    const recheckCount = myInvoices.filter(inv =>
-        inv.pmApproval?.status === 'INFO_REQUESTED'
-    ).length;
-    const approvedCount = myInvoices.filter(inv =>
-        inv.pmApproval?.status === 'APPROVED'
-    ).length;
-    const rejectedCount = myInvoices.filter(inv =>
-        inv.pmApproval?.status === 'REJECTED'
-    ).length;
+    const handleReject = async () => {
+        if (!actionNotes.trim()) { setError('Please provide a rejection reason.'); return; }
+        try {
+            setProcessingId(reviewInvoice.id);
+            const res = await fetch(`/api/pm/approve/${reviewInvoice.id}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'REJECT', notes: actionNotes })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setSuccessMsg('Invoice rejected. Vendor has been notified.');
+            setTimeout(() => setSuccessMsg(null), 4000);
+            closeDrawer(); fetchInvoices();
+        } catch (err) { setError(err.message); }
+        finally { setProcessingId(null); }
+    };
 
-    // Filtered by tab
+    const handleRecheck = async () => {
+        try {
+            setProcessingId(reviewInvoice.id);
+            const res = await fetch(`/api/pm/approve/${reviewInvoice.id}`, {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action: 'REQUEST_INFO', notes: actionNotes || 'Please re-check and re-submit.' })
+            });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error);
+            setSuccessMsg('Re-check request sent to vendor!');
+            setTimeout(() => setSuccessMsg(null), 4000);
+            closeDrawer(); fetchInvoices();
+        } catch (err) { setError(err.message); }
+        finally { setProcessingId(null); }
+    };
+
+    /* ── Tabs ── */
+    const pendingCount = myInvoices.filter(i => !i.pmApproval?.status || i.pmApproval?.status === 'PENDING').length;
+    const recheckCount = myInvoices.filter(i => i.pmApproval?.status === 'INFO_REQUESTED').length;
+    const approvedCount = myInvoices.filter(i => i.pmApproval?.status === 'APPROVED').length;
+    const rejectedCount = myInvoices.filter(i => i.pmApproval?.status === 'REJECTED').length;
+
     const filteredInvoices = useMemo(() => {
         switch (activeTab) {
-            case 'pending':
-                return myInvoices.filter(inv =>
-                    !inv.pmApproval?.status || inv.pmApproval?.status === 'PENDING'
-                );
-            case 'recheck':
-                return myInvoices.filter(inv => inv.pmApproval?.status === 'INFO_REQUESTED');
-            case 'approved':
-                return myInvoices.filter(inv => inv.pmApproval?.status === 'APPROVED');
-            case 'rejected':
-                return myInvoices.filter(inv => inv.pmApproval?.status === 'REJECTED');
-            default:
-                return myInvoices;
+            case 'pending': return myInvoices.filter(i => !i.pmApproval?.status || i.pmApproval?.status === 'PENDING');
+            case 'recheck': return myInvoices.filter(i => i.pmApproval?.status === 'INFO_REQUESTED');
+            case 'approved': return myInvoices.filter(i => i.pmApproval?.status === 'APPROVED');
+            case 'rejected': return myInvoices.filter(i => i.pmApproval?.status === 'REJECTED');
+            case 'status': return myInvoices;
+            default: return myInvoices;
         }
     }, [myInvoices, activeTab]);
 
-    const handleApprove = async (invoiceId) => {
-        try {
-            setProcessingId(invoiceId);
-            const res = await fetch(`/api/pm/approve/${invoiceId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'APPROVE', notes })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            setActionModal(null);
-            setNotes('');
-            setSuccessMsg('Invoice approved successfully!');
-            setTimeout(() => setSuccessMsg(null), 4000);
-            fetchInvoices();
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setProcessingId(null);
-        }
-    };
-
-    const handleReject = async (invoiceId) => {
-        if (!notes.trim()) {
-            setError('Please provide a reason for rejecting this invoice.');
-            return;
-        }
-        try {
-            setProcessingId(invoiceId);
-            const res = await fetch(`/api/pm/approve/${invoiceId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'REJECT', notes })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            setActionModal(null);
-            setNotes('');
-            setSuccessMsg('Invoice rejected. Vendor has been notified.');
-            setTimeout(() => setSuccessMsg(null), 4000);
-            fetchInvoices();
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setProcessingId(null);
-        }
-    };
-
-    const handleRecheck = async (invoiceId) => {
-        try {
-            setProcessingId(invoiceId);
-            const res = await fetch(`/api/pm/approve/${invoiceId}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ action: 'REQUEST_INFO', notes: notes || 'Please re-check the submitted documents and re-submit.' })
-            });
-            const data = await res.json();
-            if (!res.ok) throw new Error(data.error);
-            setActionModal(null);
-            setNotes('');
-            setSuccessMsg('Re-check request sent to vendor!');
-            setTimeout(() => setSuccessMsg(null), 4000);
-            fetchInvoices();
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setProcessingId(null);
-        }
-    };
-
-    const TAB_COLORS = {
-        pending: { active: 'bg-indigo-50 text-indigo-700 border-indigo-200', badge: 'bg-indigo-100 text-indigo-700' },
-        recheck: { active: 'bg-amber-50 text-amber-700 border-amber-200', badge: 'bg-amber-100 text-amber-700' },
-        approved: { active: 'bg-emerald-50 text-emerald-700 border-emerald-200', badge: 'bg-emerald-100 text-emerald-700' },
-        rejected: { active: 'bg-rose-50 text-rose-700 border-rose-200', badge: 'bg-rose-100 text-rose-700' },
-        all: { active: 'bg-slate-100 text-slate-700 border-slate-200', badge: 'bg-slate-200 text-slate-700' },
-    };
-
     const tabs = [
-        { key: 'pending', label: 'Pending Review', count: pendingCount, icon: 'Clock' },
-        { key: 'recheck', label: 'Re-check Sent', count: recheckCount, icon: 'RefreshCw' },
-        { key: 'approved', label: 'Approved', count: approvedCount, icon: 'CheckCircle2' },
-        { key: 'rejected', label: 'Rejected', count: rejectedCount, icon: 'XCircle' },
-        { key: 'all', label: 'All', count: myInvoices.length, icon: 'LayoutList' },
+        { key: 'pending', label: 'Pending Review', count: pendingCount, icon: 'Clock', active: 'bg-indigo-50 text-indigo-700 border-indigo-200', badge: 'bg-indigo-100 text-indigo-700' },
+        { key: 'recheck', label: 'Re-check Sent', count: recheckCount, icon: 'RefreshCw', active: 'bg-amber-50 text-amber-700 border-amber-200', badge: 'bg-amber-100 text-amber-700' },
+        { key: 'approved', label: 'Approved', count: approvedCount, icon: 'CheckCircle2', active: 'bg-emerald-50 text-emerald-700 border-emerald-200', badge: 'bg-emerald-100 text-emerald-700' },
+        { key: 'rejected', label: 'Rejected', count: rejectedCount, icon: 'XCircle', active: 'bg-rose-50 text-rose-700 border-rose-200', badge: 'bg-rose-100 text-rose-700' },
+        { key: 'all', label: 'All', count: myInvoices.length, icon: 'LayoutList', active: 'bg-slate-100 text-slate-700 border-slate-200', badge: 'bg-slate-200 text-slate-700' },
+        { key: 'status', label: 'Status', count: myInvoices.length, icon: 'Activity', active: 'bg-sky-50 text-sky-700 border-sky-200', badge: 'bg-sky-100 text-sky-700' },
     ];
 
-    return (
-        <div className="space-y-6 pb-10">
-            {/* Page Header */}
-            <div>
-                <h1 className="text-2xl font-black text-slate-800 tracking-tight">PM Approval Queue</h1>
-                <p className="text-sm text-slate-400 mt-1">Review and approve invoices submitted by Vendors</p>
-            </div>
+    const isPending = (inv) => !inv?.pmApproval?.status || inv?.pmApproval?.status === 'PENDING' || inv?.pmApproval?.status === 'INFO_REQUESTED';
 
+    /* ── Action colour map ── */
+    const ACTION_COLOR = {
+        approve: { bg: 'bg-emerald-600', hover: 'hover:bg-emerald-700', ring: 'focus:ring-emerald-300', label: 'Confirm Approval', icon: 'CheckCircle2', strip: 'bg-emerald-50 border-emerald-200 text-emerald-700', msg: 'Approving invoice — will forward to Finance' },
+        reject: { bg: 'bg-rose-600', hover: 'hover:bg-rose-700', ring: 'focus:ring-rose-300', label: 'Confirm Rejection', icon: 'XCircle', strip: 'bg-rose-50 border-rose-200 text-rose-700', msg: 'Rejecting this invoice — vendor will be notified' },
+        recheck: { bg: 'bg-amber-500', hover: 'hover:bg-amber-600', ring: 'focus:ring-amber-300', label: 'Send Re-check', icon: 'RefreshCw', strip: 'bg-amber-50 border-amber-200 text-amber-700', msg: 'Requesting additional information from vendor' },
+    };
+
+    return (
+        <div className="space-y-5 pb-10">
             {/* Alerts */}
             <AnimatePresence>
                 {error && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        className="flex items-center gap-3 p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-sm font-medium"
-                    >
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className="flex items-center gap-3 p-4 rounded-xl bg-rose-50 border border-rose-100 text-rose-700 text-sm font-medium">
                         <Icon name="AlertCircle" size={18} />
                         <span className="flex-1">{error}</span>
-                        <button onClick={() => setError(null)} className="w-6 h-6 rounded-lg hover:bg-rose-100 flex items-center justify-center">
-                            <Icon name="X" size={14} />
-                        </button>
+                        <button onClick={() => setError(null)} className="w-6 h-6 rounded-lg hover:bg-rose-100 flex items-center justify-center"><Icon name="X" size={14} /></button>
                     </motion.div>
                 )}
                 {successMsg && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                        className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-medium"
-                    >
+                    <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+                        className="flex items-center gap-3 p-4 rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-medium">
                         <Icon name="CheckCircle2" size={18} />
-                        <span className="flex-1">{successMsg}</span>
+                        <span>{successMsg}</span>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            {/* Tab Navigation */}
+            {/* Tabs */}
             <div className="flex items-center gap-2 overflow-x-auto pb-1">
-                {tabs.map((tab) => {
-                    const colors = TAB_COLORS[tab.key];
-                    return (
-                        <button
-                            key={tab.key}
-                            onClick={() => setActiveTab(tab.key)}
-                            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap border ${activeTab === tab.key
-                                ? `${colors.active} shadow-sm`
-                                : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 border-transparent'
-                                }`}
-                        >
-                            <Icon name={tab.icon} size={16} />
-                            {tab.label}
-                            <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === tab.key ? colors.badge : 'bg-slate-100 text-slate-400'
-                                }`}>{tab.count}</span>
-                        </button>
-                    );
-                })}
+                {tabs.map(tab => (
+                    <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                        className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-bold transition-all whitespace-nowrap border ${activeTab === tab.key ? `${tab.active} shadow-sm` : 'text-slate-400 hover:text-slate-600 hover:bg-slate-50 border-transparent'}`}>
+                        <Icon name={tab.icon} size={16} />
+                        {tab.label}
+                        <span className={`text-[10px] font-black px-1.5 py-0.5 rounded-full ${activeTab === tab.key ? tab.badge : 'bg-slate-100 text-slate-400'}`}>{tab.count}</span>
+                    </button>
+                ))}
             </div>
 
-            {/* Invoice Cards */}
-            <div className="space-y-3">
-                {loading ? (
-                    <div className="rounded-2xl border border-slate-100 bg-white p-16 text-center">
-                        <div className="w-10 h-10 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4" />
-                        <p className="text-sm text-slate-400 font-medium">Loading your approval queue...</p>
-                    </div>
-                ) : filteredInvoices.length === 0 ? (
-                    <div className="rounded-2xl border border-slate-100 bg-white p-16 text-center">
-                        <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
-                            <Icon name={activeTab === 'pending' ? 'CheckCircle' : 'Inbox'} size={28} className="text-slate-300" />
+            {/* ── Status Table Tab ── */}
+            {activeTab === 'status' && (
+                <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+                    <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2.5 bg-slate-50/60">
+                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-sky-600 bg-sky-50">
+                            <Icon name="Activity" size={14} />
                         </div>
-                        <p className="text-base font-bold text-slate-400">
-                            {activeTab === 'pending' ? 'All caught up!' : 'No invoices here'}
-                        </p>
-                        <p className="text-xs text-slate-300 mt-1">
-                            {activeTab === 'pending'
-                                ? 'No invoices pending your review right now.'
-                                : `No ${activeTab === 'all' ? '' : activeTab} invoices found.`}
-                        </p>
+                        <h3 className="font-bold text-slate-700 text-sm">All Invoice Statuses</h3>
+                        <span className="ml-auto text-[10px] font-bold text-slate-400">{myInvoices.length} invoice{myInvoices.length !== 1 ? 's' : ''}</span>
                     </div>
-                ) : (
-                    filteredInvoices.map((inv, idx) => {
-                        const sc = getStatus(inv.status);
-                        const isPending = !inv.pmApproval?.status || inv.pmApproval?.status === 'PENDING' || inv.pmApproval?.status === 'INFO_REQUESTED';
-                        return (
-                            <motion.div
-                                key={inv.id}
-                                initial={{ opacity: 0, y: 8 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: idx * 0.03 }}
-                                className="rounded-2xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all overflow-hidden"
-                            >
-                                {/* Card Content */}
-                                <div className="p-4 sm:p-5">
-                                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                                        {/* Left: Invoice Info */}
-                                        <div className="flex items-center gap-3 min-w-0">
-                                            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100/50 flex items-center justify-center font-bold text-violet-600 text-xs shrink-0">
-                                                {inv.vendorName?.substring(0, 2).toUpperCase() || 'NA'}
-                                            </div>
-                                            <div className="min-w-0">
-                                                <div className="flex items-center gap-2 flex-wrap">
-                                                    <p className="font-bold text-slate-800 text-sm">{inv.invoiceNumber || inv.id?.slice(0, 8)}</p>
-                                                    <span className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md ${sc.bg} ${sc.text}`}>
-                                                        <span className={`w-1 h-1 rounded-full ${sc.dot}`} />
-                                                        {sc.label}
+                    {loading ? (
+                        <div className="p-10 text-center">
+                            <div className="w-8 h-8 border-2 border-sky-200 border-t-sky-600 rounded-full animate-spin mx-auto" />
+                        </div>
+                    ) : myInvoices.length === 0 ? (
+                        <div className="p-10 text-center">
+                            <p className="text-sm text-slate-400">No invoices assigned to you yet.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-xs min-w-[640px]">
+                                <thead>
+                                    <tr className="bg-slate-50 text-[10px] text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                                        <th className="py-3 pl-5 text-left font-bold">Invoice</th>
+                                        <th className="py-3 text-left font-bold">Vendor</th>
+                                        <th className="py-3 text-left font-bold">Amount</th>
+                                        <th className="py-3 text-center font-bold">PM Status</th>
+                                        <th className="py-3 pr-5 text-center font-bold">Finance Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {myInvoices.map((inv, i) => {
+                                        const pmSt = inv.pmApproval?.status;
+                                        const fuSt = inv.financeApproval?.status ||
+                                            (inv.status === INVOICE_STATUS.FINANCE_APPROVED ? 'APPROVED' :
+                                                inv.status === INVOICE_STATUS.PENDING_FINANCE_REVIEW ? 'PENDING' : null);
+
+                                        const pmBadge = pmSt === 'APPROVED' ? 'bg-emerald-50 text-emerald-700'
+                                            : pmSt === 'REJECTED' ? 'bg-rose-50 text-rose-700'
+                                                : pmSt === 'INFO_REQUESTED' ? 'bg-amber-50 text-amber-700'
+                                                    : 'bg-slate-100 text-slate-500';
+                                        const pmIcon = pmSt === 'APPROVED' ? 'CheckCircle2'
+                                            : pmSt === 'REJECTED' ? 'XCircle'
+                                                : pmSt === 'INFO_REQUESTED' ? 'RefreshCw' : 'Clock';
+                                        const pmLabel = pmSt === 'APPROVED' ? 'Approved'
+                                            : pmSt === 'REJECTED' ? 'Rejected'
+                                                : pmSt === 'INFO_REQUESTED' ? 'Re-check Sent' : 'Pending';
+
+                                        const fuBadge = fuSt === 'APPROVED' ? 'bg-emerald-50 text-emerald-700'
+                                            : fuSt === 'REJECTED' ? 'bg-rose-50 text-rose-700'
+                                                : fuSt === 'PENDING' ? 'bg-sky-50 text-sky-700'
+                                                    : 'bg-slate-100 text-slate-400';
+                                        const fuIcon = fuSt === 'APPROVED' ? 'CheckCircle2' : fuSt === 'REJECTED' ? 'XCircle' : 'Clock';
+                                        const fuLabel = fuSt === 'APPROVED' ? 'Approved'
+                                            : fuSt === 'REJECTED' ? 'Rejected'
+                                                : fuSt === 'PENDING' ? 'Pending'
+                                                    : pmSt === 'APPROVED' ? 'Pending' : 'Awaiting PM';
+
+                                        return (
+                                            <tr key={inv.id} className={`border-t border-slate-50 hover:bg-slate-50/60 transition-colors ${i % 2 === 0 ? '' : 'bg-slate-50/30'}`}>
+                                                <td className="py-3 pl-5">
+                                                    <p className="font-bold text-slate-800">{inv.invoiceNumber || inv.id?.slice(0, 10)}</p>
+                                                    <p className="text-[10px] text-slate-400">{inv.date || '—'}</p>
+                                                </td>
+                                                <td className="py-3">
+                                                    <p className="font-semibold text-slate-700">{inv.vendorName || '—'}</p>
+                                                    {inv.vendorCode && <p className="text-[10px] font-mono text-violet-500">{inv.vendorCode}</p>}
+                                                </td>
+                                                <td className="py-3 font-black text-slate-800">{fmt(inv.amount)}</td>
+                                                <td className="py-3 text-center">
+                                                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg ${pmBadge}`}>
+                                                        <Icon name={pmIcon} size={10} /> {pmLabel}
                                                     </span>
+                                                </td>
+                                                <td className="py-3 pr-5 text-center">
+                                                    <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg ${fuBadge}`}>
+                                                        <Icon name={fuIcon} size={10} /> {fuLabel}
+                                                    </span>
+                                                </td>
+                                            </tr>
+                                        );
+                                    })}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Cards */}
+            {activeTab !== 'status' && (
+                <div className="space-y-3">
+                    {loading ? (
+                        <div className="rounded-2xl border border-slate-100 bg-white p-16 text-center">
+                            <div className="w-10 h-10 border-3 border-indigo-200 border-t-indigo-600 rounded-full animate-spin mx-auto mb-4" />
+                            <p className="text-sm text-slate-400 font-medium">Loading your approval queue...</p>
+                        </div>
+                    ) : filteredInvoices.length === 0 ? (
+                        <div className="rounded-2xl border border-slate-100 bg-white p-16 text-center">
+                            <div className="w-16 h-16 rounded-2xl bg-slate-50 flex items-center justify-center mx-auto mb-4">
+                                <Icon name={activeTab === 'pending' ? 'CheckCircle' : 'Inbox'} size={28} className="text-slate-300" />
+                            </div>
+                            <p className="text-base font-bold text-slate-400">{activeTab === 'pending' ? 'All caught up!' : 'No invoices here'}</p>
+                            <p className="text-xs text-slate-300 mt-1">{activeTab === 'pending' ? 'No invoices pending your review.' : `No ${activeTab} invoices found.`}</p>
+                        </div>
+                    ) : (
+                        filteredInvoices.map((inv, idx) => {
+                            const sc = getStatus(inv.status);
+                            const pending = isPending(inv);
+                            const pmSt = inv.pmApproval?.status;
+                            return (
+                                <motion.div key={inv.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: idx * 0.03 }}
+                                    className="rounded-2xl border border-slate-100 bg-white shadow-sm hover:shadow-md transition-all overflow-hidden">
+                                    <div className="p-4 sm:p-5">
+                                        <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+                                            <div className="flex items-start gap-3 min-w-0 flex-1">
+                                                <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-violet-50 to-indigo-50 border border-violet-100/50 flex items-center justify-center font-bold text-violet-600 text-xs shrink-0">
+                                                    {inv.vendorName?.substring(0, 2).toUpperCase() || 'NA'}
                                                 </div>
-                                                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-400 mt-0.5">
-                                                    <span className="font-medium text-slate-500">{inv.vendorName || 'Unknown Vendor'}</span>
-                                                    {inv.vendorCode && (
-                                                        <>
-                                                            <span>·</span>
-                                                            <span className="font-mono text-violet-500 font-semibold">{inv.vendorCode}</span>
-                                                        </>
-                                                    )}
-                                                    {inv.date && (
-                                                        <>
-                                                            <span>·</span>
-                                                            <span>{inv.date}</span>
-                                                        </>
-                                                    )}
+                                                <div className="min-w-0 flex-1">
+                                                    <div className="flex items-center gap-2 flex-wrap">
+                                                        <p className="font-bold text-slate-800 text-sm">{inv.invoiceNumber || inv.id?.slice(0, 10)}</p>
+                                                        <span className={`inline-flex items-center gap-1 text-[9px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md ${sc.bg} ${sc.text}`}>
+                                                            <span className={`w-1 h-1 rounded-full ${sc.dot}`} />{sc.label}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-400 mt-0.5">
+                                                        <span className="font-semibold text-slate-600">{inv.vendorName || 'Unknown Vendor'}</span>
+                                                        {inv.vendorCode && <><span>·</span><span className="font-mono text-violet-500 font-semibold">{inv.vendorCode}</span></>}
+                                                        {inv.date && <><span>·</span><span>{inv.date}</span></>}
+                                                    </div>
+                                                    <div className="flex items-center gap-2 mt-2 flex-wrap">
+                                                        {inv.billingMonth && (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                                                                <Icon name="Calendar" size={10} /> {inv.billingMonth}
+                                                            </span>
+                                                        )}
+                                                        {inv.project && (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg border border-slate-100">
+                                                                <Icon name="FolderOpen" size={10} /> {inv.project}
+                                                            </span>
+                                                        )}
+                                                        {pmSt === 'INFO_REQUESTED' && (
+                                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                                                                <Icon name="RefreshCw" size={10} /> Re-check sent
+                                                            </span>
+                                                        )}
+                                                    </div>
                                                 </div>
+                                            </div>
+                                            <div className="text-right shrink-0 pl-14 sm:pl-0">
+                                                <p className="text-xl font-black text-slate-800">{fmt(inv.amount)}</p>
+                                                {inv.basicAmount && <p className="text-[10px] text-slate-400">Basic: {fmt(inv.basicAmount)}</p>}
                                             </div>
                                         </div>
-
-                                        {/* Right: Amount */}
-                                        <p className="text-lg sm:text-xl font-black text-slate-800 shrink-0 pl-13 sm:pl-0">
-                                            ₹{Number(inv.amount || 0).toLocaleString('en-IN')}
-                                        </p>
                                     </div>
-
-                                    {/* Info Tags */}
-                                    <div className="flex flex-wrap items-center gap-2 mt-3 pl-13 sm:pl-14">
-                                        {inv.pmApproval?.status === 'APPROVED' && (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg">
-                                                <Icon name="CheckCircle2" size={10} /> PM Approved
-                                            </span>
-                                        )}
-                                        {(inv.status === INVOICE_STATUS.PENDING_FINANCE_REVIEW || inv.status === INVOICE_STATUS.FINANCE_APPROVED) && (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-500 bg-emerald-50 px-2 py-1 rounded-lg">
-                                                <Icon name="ShieldCheck" size={10} /> {inv.status}
-                                            </span>
-                                        )}
-                                        {inv.pmApproval?.notes && (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-500 bg-slate-50 px-2 py-1 rounded-lg max-w-xs truncate" title={inv.pmApproval.notes}>
-                                                <Icon name="MessageSquare" size={10} /> {inv.pmApproval.notes}
-                                            </span>
-                                        )}
-                                        {inv.originalName && (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">
-                                                <Icon name="FileText" size={10} /> {inv.originalName}
-                                            </span>
-                                        )}
-                                        {inv.poNumber && (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">
-                                                <Icon name="Hash" size={10} /> PO: {inv.poNumber}
-                                            </span>
-                                        )}
-                                        {inv.project && (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-slate-400 bg-slate-50 px-2 py-1 rounded-lg">
-                                                <Icon name="FolderOpen" size={10} /> {inv.project}
-                                            </span>
-                                        )}
-                                        {inv.pmApproval?.status === 'REJECTED' && inv.pmApproval?.notes && (
-                                            <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-500 bg-rose-50 px-2 py-1 rounded-lg max-w-xs truncate">
-                                                <Icon name="MessageSquare" size={10} /> {inv.pmApproval.notes}
-                                            </span>
-                                        )}
-                                    </div>
-
-                                    {/* Invoice Details Table */}
-                                    <div className="mt-4 pl-13 sm:pl-14 border-t border-slate-100 pt-3">
-                                        <div className="flex items-center justify-between mb-2">
-                                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Invoice Details</p>
-                                            {isPending && (
-                                                <button
-                                                    onClick={() => addDocRow(inv.id, inv)}
-                                                    className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-lg transition-all"
-                                                >
-                                                    <Icon name="Plus" size={12} />
-                                                    Add Row
-                                                </button>
+                                    <div className="px-4 sm:px-5 py-3 bg-slate-50/70 border-t border-slate-100 flex items-center justify-between gap-2">
+                                        <div className="flex items-center gap-1.5 text-[10px] text-slate-400">
+                                            {inv.originalName && (
+                                                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded-lg">
+                                                    <Icon name="FileText" size={10} /> {inv.originalName}
+                                                </span>
+                                            )}
+                                            {inv.documents?.length > 0 && (
+                                                <span className="inline-flex items-center gap-1 bg-white border border-slate-200 px-2 py-1 rounded-lg">
+                                                    <Icon name="Paperclip" size={10} /> {inv.documents.length} attached
+                                                </span>
                                             )}
                                         </div>
-                                        <div className="rounded-xl border border-slate-200 overflow-hidden overflow-x-auto">
-                                            <table className="w-full text-xs min-w-[1050px]">
-                                                <thead>
-                                                    <tr className="bg-slate-50 border-b border-slate-200">
-                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-10">S.No</th>
-                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-24">Invoice No</th>
-                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-24">Invoice Date</th>
-                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-24">Basic Amt</th>
-                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-28">Taxes</th>
-                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-20">HSN Code</th>
-                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-28">Type of Doc</th>
-                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px] w-36">Attachment</th>
-                                                        <th className="text-left px-3 py-2 font-bold text-slate-500 uppercase tracking-wider text-[10px]">Description</th>
-                                                        {isPending && <th className="w-8"></th>}
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {(invoiceDocs[inv.id] || []).length === 0 ? (
-                                                        <tr>
-                                                            <td colSpan={isPending ? 10 : 9} className="text-center py-6 text-slate-300 text-xs">
-                                                                <div className="flex flex-col items-center gap-1">
-                                                                    <Icon name="FileText" size={20} className="text-slate-200" />
-                                                                    <span>No invoice details added yet</span>
-                                                                </div>
-                                                            </td>
+                                        <button onClick={() => openReview(inv)}
+                                            className="inline-flex items-center gap-2 h-9 px-5 rounded-xl bg-violet-600 text-white text-[11px] font-bold hover:bg-violet-700 transition-all shadow-sm shadow-violet-200">
+                                            <Icon name="ClipboardList" size={14} />
+                                            Review
+                                        </button>
+                                    </div>
+                                </motion.div>
+                            );
+                        })
+                    )}
+                </div>
+            )}
+
+            {/* ══════════════════════════════════════════════
+                REVIEW DRAWER
+            ══════════════════════════════════════════════ */}
+            <AnimatePresence>
+                {drawerOpen && (
+                    <>
+                        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                            onClick={closeDrawer}
+                            className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40" />
+
+                        <motion.div
+                            initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+                            transition={{ type: 'spring', stiffness: 320, damping: 34 }}
+                            className="fixed top-0 right-0 h-full w-full max-w-2xl bg-slate-50 shadow-2xl z-50 flex flex-col overflow-hidden">
+
+                            {/* Header */}
+                            <div className="px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between shrink-0">
+                                <div>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">PM Review</p>
+                                    <h2 className="font-black text-slate-800 text-lg leading-tight">
+                                        {reviewInvoice?.invoiceNumber || reviewInvoice?.id?.slice(0, 12) || '…'}
+                                    </h2>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    {reviewInvoice && (
+                                        <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg ${getStatus(reviewInvoice?.status).bg} ${getStatus(reviewInvoice?.status).text}`}>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${getStatus(reviewInvoice?.status).dot}`} />
+                                            {getStatus(reviewInvoice?.status).label}
+                                        </span>
+                                    )}
+                                    <button onClick={closeDrawer}
+                                        className="w-9 h-9 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-all">
+                                        <Icon name="X" size={18} />
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Body */}
+                            <div className="flex-1 overflow-y-auto p-5 space-y-4">
+                                {reviewLoading ? (
+                                    <div className="flex flex-col items-center justify-center h-64 gap-3">
+                                        <div className="w-10 h-10 border-3 border-violet-200 border-t-violet-600 rounded-full animate-spin" />
+                                        <p className="text-sm text-slate-400 font-medium">Loading invoice details…</p>
+                                    </div>
+                                ) : reviewInvoice ? (
+                                    <>
+                                        {/* 0. Finance (FU) Status Strip */}
+                                        {(() => {
+                                            const fuSt = reviewInvoice.financeApproval?.status ||
+                                                (reviewInvoice.status === INVOICE_STATUS.FINANCE_APPROVED ? 'APPROVED' :
+                                                    reviewInvoice.status === INVOICE_STATUS.PENDING_FINANCE_REVIEW ? 'PENDING' : null);
+                                            if (!fuSt) return null;
+                                            const cfg = fuSt === 'APPROVED' ? { icon: 'CheckCircle2', color: 'text-emerald-700', bg: 'bg-emerald-50', border: 'border-emerald-200', label: 'Finance Approved' }
+                                                : fuSt === 'REJECTED' ? { icon: 'XCircle', color: 'text-rose-700', bg: 'bg-rose-50', border: 'border-rose-200', label: 'Finance Rejected' }
+                                                    : { icon: 'Clock', color: 'text-sky-700', bg: 'bg-sky-50', border: 'border-sky-200', label: 'Pending Finance Review' };
+                                            return (
+                                                <div className={`flex items-center gap-2 px-4 py-3 rounded-xl border ${cfg.bg} ${cfg.border}`}>
+                                                    <Icon name={cfg.icon} size={15} className={cfg.color} />
+                                                    <div>
+                                                        <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Finance (FU) Status</p>
+                                                        <p className={`text-sm font-black ${cfg.color}`}>{cfg.label}</p>
+                                                    </div>
+                                                    {reviewInvoice.financeApproval?.notes && (
+                                                        <p className={`ml-auto text-[10px] font-medium ${cfg.color} opacity-80 max-w-[180px] truncate text-right`} title={reviewInvoice.financeApproval.notes}>
+                                                            "{reviewInvoice.financeApproval.notes}"
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            );
+                                        })()}
+
+                                        {/* 1. Vendor Details */}
+
+                                        <Section title="Vendor Details" icon="Building2" accent="indigo">
+                                            <div className="grid grid-cols-2 gap-4">
+                                                <KV label="Vendor Name" value={reviewInvoice.vendorName} />
+                                                <KV label="Vendor Code" value={reviewInvoice.vendorCode} mono />
+                                                <KV label="Invoice No." value={reviewInvoice.invoiceNumber} mono />
+                                                <KV label="Invoice Date" value={reviewInvoice.invoiceDate || reviewInvoice.date} />
+                                                <KV label="Billing Month" value={reviewInvoice.billingMonth} />
+                                                <KV label="Project" value={reviewInvoice.project} />
+                                            </div>
+                                        </Section>
+
+                                        {/* 2. Invoice Financials */}
+                                        <Section title="Invoice Financials" icon="IndianRupee" accent="emerald">
+                                            <div className="grid grid-cols-2 gap-4 mb-4">
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">Total Amount</p>
+                                                    <p className="text-2xl font-black text-slate-800">{fmt(reviewInvoice.amount)}</p>
+                                                </div>
+                                                <KV label="Basic Amount (Pre-Tax)" value={fmt(reviewInvoice.basicAmount)} />
+                                                <KV label="Tax Type" value={reviewInvoice.taxType?.replace('_', ' + ')} />
+                                                <KV label="HSN Code" value={reviewInvoice.hsnCode} mono />
+                                                <KV label="Currency" value={reviewInvoice.currency || 'INR'} />
+                                                <KV label="PO Number" value={reviewInvoice.poNumber} mono />
+                                            </div>
+
+                                            {reviewInvoice.lineItems?.length > 0 && (
+                                                <div>
+                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Billing Line Items</p>
+                                                    <div className="rounded-xl border border-slate-100 overflow-hidden">
+                                                        <table className="w-full text-xs">
+                                                            <thead>
+                                                                <tr className="bg-slate-50 text-[10px] text-slate-400 uppercase tracking-widest">
+                                                                    <th className="py-2 pl-3 text-left font-bold">#</th>
+                                                                    <th className="py-2 text-left font-bold">Role</th>
+                                                                    <th className="py-2 text-left font-bold">Exp.</th>
+                                                                    <th className="py-2 text-left font-bold">Qty</th>
+                                                                    <th className="py-2 text-left font-bold">Rate</th>
+                                                                    <th className="py-2 pr-3 text-right font-bold">Amount</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {reviewInvoice.lineItems.map((li, i) => (
+                                                                    <tr key={i} className="border-t border-slate-50 hover:bg-slate-50/50">
+                                                                        <td className="py-2 pl-3 text-slate-400 font-mono">{i + 1}</td>
+                                                                        <td className="py-2 font-semibold text-slate-700">{li.role}</td>
+                                                                        <td className="py-2 text-slate-500">{li.experienceRange}</td>
+                                                                        <td className="py-2 text-slate-600">{li.quantity} {li.unit}</td>
+                                                                        <td className="py-2 text-slate-600">₹{Number(li.rate).toLocaleString()}</td>
+                                                                        <td className={`py-2 pr-3 text-right font-bold ${li.status === 'MISMATCH' ? 'text-rose-600' : 'text-emerald-700'}`}>
+                                                                            ₹{Number(li.amount).toLocaleString()}
+                                                                            {li.status === 'MISMATCH' && <span className="ml-1 text-[9px] bg-rose-100 text-rose-600 px-1 rounded">MISMATCH</span>}
+                                                                        </td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                            <tfoot>
+                                                                <tr className="border-t-2 border-slate-200 bg-slate-50/80">
+                                                                    <td colSpan={5} className="py-2 pl-3 text-[10px] font-bold text-slate-500 uppercase">Total</td>
+                                                                    <td className="py-2 pr-3 text-right font-black text-slate-800">{fmt(reviewInvoice.amount)}</td>
+                                                                </tr>
+                                                            </tfoot>
+                                                        </table>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </Section>
+
+                                        {/* 3. Vendor Documents */}
+                                        <Section title="Vendor Documents" icon="Paperclip" accent="amber">
+                                            <div className="space-y-2">
+                                                {reviewInvoice.fileUrl || reviewInvoice.originalName ? (
+                                                    <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                                                                <Icon name="FileText" size={14} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <p className="text-xs font-bold text-slate-700 truncate">{reviewInvoice.originalName || 'Invoice Document'}</p>
+                                                                <p className="text-[10px] text-slate-400">Primary Invoice</p>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                            <button
+                                                                onClick={() => setDocViewer({ invoiceId: reviewInvoice.id, fileName: reviewInvoice.originalName, title: reviewInvoice.originalName || 'Invoice Document' })}
+                                                                className="h-7 px-3 rounded-lg bg-white border border-slate-200 text-indigo-600 text-[10px] font-bold hover:bg-indigo-50 transition-all inline-flex items-center gap-1">
+                                                                <Icon name="Eye" size={11} /> View
+                                                            </button>
+                                                            <a href={`/api/invoices/${reviewInvoice.id}/file`} download={reviewInvoice.originalName || 'invoice'}
+                                                                className="h-7 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[10px] font-bold hover:bg-slate-50 transition-all inline-flex items-center gap-1">
+                                                                <Icon name="Download" size={11} /> Download
+                                                            </a>
+                                                        </div>
+                                                    </div>
+                                                ) : (
+                                                    <p className="text-xs text-slate-400 italic">No primary invoice file.</p>
+                                                )}
+
+                                                {reviewInvoice.documents?.length > 0 && reviewInvoice.documents.map((doc, i) => (
+                                                    <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                                                        <div className="flex items-center gap-2 min-w-0">
+                                                            <div className="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+                                                                <Icon name="File" size={14} />
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <p className="text-xs font-bold text-slate-700 truncate">{doc.fileName || doc.documentId || `Document ${i + 1}`}</p>
+                                                                <p className="text-[10px] text-slate-400">{doc.type}</p>
+                                                            </div>
+                                                        </div>
+                                                        <button
+                                                            onClick={() => setDocViewer({ invoiceId: doc.documentId, fileName: doc.fileName, title: doc.type, useDocApi: true })}
+                                                            className="h-7 px-3 rounded-lg bg-white border border-slate-200 text-violet-600 text-[10px] font-bold hover:bg-violet-50 transition-all inline-flex items-center gap-1 shrink-0">
+                                                            <Icon name="Eye" size={11} /> View
+                                                        </button>
+                                                    </div>
+                                                ))}
+
+                                                {!reviewInvoice.fileUrl && !reviewInvoice.originalName && (!reviewInvoice.documents || reviewInvoice.documents.length === 0) && (
+                                                    <p className="text-xs text-slate-400 italic text-center py-3">No documents attached by vendor.</p>
+                                                )}
+                                            </div>
+                                        </Section>
+
+                                        {/* 4. PM Document Upload Table */}
+                                        <Section title="PM Invoice Details & Documents" icon="ClipboardList" accent="violet">
+                                            {/* Table */}
+                                            <div className="rounded-xl border border-slate-100 overflow-hidden mb-3 overflow-x-auto">
+                                                <table className="w-full text-xs min-w-[560px]">
+                                                    <thead>
+                                                        <tr className="bg-slate-50 text-[10px] text-slate-400 uppercase tracking-widest">
+                                                            <th className="py-2 pl-3 text-left font-bold w-8">S.No</th>
+                                                            <th className="py-2 text-left font-bold">Type of Doc</th>
+                                                            <th className="py-2 text-left font-bold">Description</th>
+                                                            <th className="py-2 text-left font-bold">Attachment</th>
+                                                            {isPending(reviewInvoice) && <th className="py-2 pr-3 w-8"></th>}
                                                         </tr>
-                                                    ) : (
-                                                        (invoiceDocs[inv.id] || []).map((doc, i) => (
-                                                            <tr key={i} className="border-b border-slate-100 last:border-b-0 hover:bg-slate-50/50 transition-colors">
-                                                                <td className="px-3 py-2 text-slate-500 font-medium">{i + 1}</td>
-                                                                {/* Invoice No */}
-                                                                <td className="px-3 py-2">
-                                                                    {isPending ? (
-                                                                        <input
-                                                                            type="text"
-                                                                            value={doc.invoiceNo}
-                                                                            onChange={(e) => updateDocRow(inv.id, i, 'invoiceNo', e.target.value)}
-                                                                            placeholder="INV-001"
-                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
-                                                                        />
-                                                                    ) : (
-                                                                        <span className="text-slate-700 font-medium">{doc.invoiceNo || '—'}</span>
-                                                                    )}
+                                                    </thead>
+                                                    <tbody>
+                                                        {pmDocs.length === 0 ? (
+                                                            <tr>
+                                                                <td colSpan={5} className="text-center py-6 text-slate-300 text-xs">
+                                                                    <div className="flex flex-col items-center gap-1">
+                                                                        <Icon name="FileText" size={20} className="text-slate-200" />
+                                                                        <span>No rows added yet</span>
+                                                                    </div>
                                                                 </td>
-                                                                {/* Invoice Date */}
-                                                                <td className="px-3 py-2">
-                                                                    {isPending ? (
-                                                                        <input
-                                                                            type="date"
-                                                                            value={doc.invoiceDate}
-                                                                            onChange={(e) => updateDocRow(inv.id, i, 'invoiceDate', e.target.value)}
-                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
-                                                                        />
-                                                                    ) : (
-                                                                        <span className="text-slate-700">{doc.invoiceDate || '—'}</span>
-                                                                    )}
-                                                                </td>
-                                                                {/* Basic Amount (before taxes) */}
-                                                                <td className="px-3 py-2">
-                                                                    {isPending ? (
-                                                                        <div className="flex items-center gap-1">
-                                                                            <span className="text-slate-400 text-xs">₹</span>
-                                                                            <input
-                                                                                type="number"
-                                                                                value={doc.basicAmount}
-                                                                                onChange={(e) => updateDocRow(inv.id, i, 'basicAmount', e.target.value)}
-                                                                                placeholder="0.00"
-                                                                                className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
-                                                                            />
-                                                                        </div>
-                                                                    ) : (
-                                                                        <span className="text-slate-700 font-medium">₹{Number(doc.basicAmount || 0).toLocaleString('en-IN')}</span>
-                                                                    )}
-                                                                </td>
-                                                                {/* Taxes Dropdown */}
-                                                                <td className="px-3 py-2">
-                                                                    {isPending ? (
-                                                                        <select
-                                                                            value={doc.taxType}
-                                                                            onChange={(e) => updateDocRow(inv.id, i, 'taxType', e.target.value)}
-                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
-                                                                        >
-                                                                            <option value="">Select tax...</option>
-                                                                            <option value="CGST+SGST">CGST + SGST</option>
-                                                                            <option value="IGST">IGST</option>
+                                                            </tr>
+                                                        ) : pmDocs.map((doc, i) => (
+                                                            <tr key={i} className="border-t border-slate-50 hover:bg-slate-50/50">
+                                                                <td className="py-2 pl-3 text-slate-400 font-mono font-bold">{i + 1}</td>
+                                                                <td className="py-2">
+                                                                    {isPending(reviewInvoice) ? (
+                                                                        <select value={doc.docType} onChange={e => updateDocRow(i, 'docType', e.target.value)}
+                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-violet-200">
+                                                                            <option value="">Select…</option>
+                                                                            {PM_DOC_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                                                         </select>
                                                                     ) : (
-                                                                        <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md ${doc.taxType === 'CGST+SGST' ? 'bg-blue-50 text-blue-600' :
-                                                                            doc.taxType === 'IGST' ? 'bg-violet-50 text-violet-600' :
-                                                                                'text-slate-400'
-                                                                            }`}>{doc.taxType || '—'}</span>
+                                                                        <span className="inline-flex items-center text-[10px] font-bold bg-violet-50 text-violet-700 px-2 py-0.5 rounded-md">{doc.docType || '—'}</span>
                                                                     )}
                                                                 </td>
-                                                                {/* HSN Code */}
-                                                                <td className="px-3 py-2">
-                                                                    {isPending ? (
-                                                                        <input
-                                                                            type="text"
-                                                                            value={doc.hsnCode}
-                                                                            onChange={(e) => updateDocRow(inv.id, i, 'hsnCode', e.target.value)}
-                                                                            placeholder="e.g. 9983"
-                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
-                                                                        />
-                                                                    ) : (
-                                                                        <span className="text-slate-700 font-mono">{doc.hsnCode || '—'}</span>
-                                                                    )}
-                                                                </td>
-                                                                {/* Type of Doc */}
-                                                                <td className="px-3 py-2">
-                                                                    {isPending ? (
-                                                                        <select
-                                                                            value={doc.docType}
-                                                                            onChange={(e) => updateDocRow(inv.id, i, 'docType', e.target.value)}
-                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
-                                                                        >
-                                                                            <option value="">Select type...</option>
-                                                                            <option value="Invoice">Invoice</option>
-                                                                            <option value="Ringi">Ringi</option>
-                                                                            <option value="Annexure">Annexure</option>
-                                                                            <option value="Timesheet">Timesheet</option>
-                                                                            <option value="Rate Card">Rate Card</option>
-                                                                        </select>
-                                                                    ) : (
-                                                                        <span className={`inline-flex items-center text-[10px] font-bold px-2 py-0.5 rounded-md ${doc.docType === 'Invoice' ? 'bg-indigo-50 text-indigo-600' :
-                                                                            doc.docType === 'Ringi' ? 'bg-amber-50 text-amber-600' :
-                                                                                doc.docType === 'Annexure' ? 'bg-teal-50 text-teal-600' :
-                                                                                    doc.docType === 'Timesheet' ? 'bg-sky-50 text-sky-600' :
-                                                                                        doc.docType === 'Rate Card' ? 'bg-purple-50 text-purple-600' :
-                                                                                            'text-slate-400'
-                                                                            }`}>{doc.docType || '—'}</span>
-                                                                    )}
-                                                                </td>
-                                                                {/* Attachment */}
-                                                                <td className="px-3 py-2">
-                                                                    {isPending ? (
-                                                                        <div className="flex flex-col gap-1">
-                                                                            {doc.uploadStatus === 'done' ? (
-                                                                                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-md truncate max-w-[140px]" title={doc.fileName}>
-                                                                                    <Icon name="CheckCircle" size={10} /> {doc.fileName?.length > 16 ? doc.fileName.slice(0, 14) + '...' : doc.fileName}
-                                                                                </span>
-                                                                            ) : doc.uploadStatus === 'uploading' ? (
-                                                                                <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 font-medium bg-amber-50 px-2 py-1 rounded-md">
-                                                                                    <span className="animate-spin">⏳</span> Uploading...
-                                                                                </span>
-                                                                            ) : doc.uploadStatus === 'error' ? (
-                                                                                <span className="inline-flex items-center gap-1 text-[10px] text-rose-600 font-medium bg-rose-50 px-2 py-1 rounded-md">
-                                                                                    <Icon name="AlertCircle" size={10} /> Failed
-                                                                                </span>
-                                                                            ) : null}
-                                                                            {doc.uploadStatus !== 'uploading' && (
-                                                                                <label className="inline-flex items-center gap-1 text-[10px] font-bold text-indigo-600 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded-md cursor-pointer transition-all w-fit">
-                                                                                    <Icon name="Paperclip" size={10} />
-                                                                                    {doc.uploadStatus === 'done' ? 'Replace' : 'Attach'}
-                                                                                    <input
-                                                                                        type="file"
-                                                                                        className="hidden"
-                                                                                        accept={getAcceptForDocType(doc.docType)}
-                                                                                        onChange={(e) => {
-                                                                                            const f = e.target.files[0];
-                                                                                            if (f) uploadDocFile(inv.id, i, f, doc.docType);
-                                                                                            e.target.value = '';
-                                                                                        }}
-                                                                                    />
-                                                                                </label>
-                                                                            )}
-                                                                        </div>
-                                                                    ) : (
-                                                                        <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md truncate max-w-[140px] ${doc.fileName ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400'
-                                                                            }`} title={doc.fileName}>
-                                                                            {doc.fileName ? (<><Icon name="FileText" size={10} /> {doc.fileName}</>) : '—'}
-                                                                        </span>
-                                                                    )}
-                                                                </td>
-                                                                {/* Description */}
-                                                                <td className="px-3 py-2">
-                                                                    {isPending ? (
-                                                                        <input
-                                                                            type="text"
-                                                                            value={doc.description}
-                                                                            onChange={(e) => updateDocRow(inv.id, i, 'description', e.target.value)}
-                                                                            placeholder="Enter description..."
-                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-indigo-200 focus:border-indigo-300 transition-all"
-                                                                        />
+                                                                <td className="py-2">
+                                                                    {isPending(reviewInvoice) ? (
+                                                                        <input type="text" value={doc.description} onChange={e => updateDocRow(i, 'description', e.target.value)}
+                                                                            placeholder="Enter description…"
+                                                                            className="w-full bg-white border border-slate-200 rounded-lg px-2 py-1.5 text-xs text-slate-700 focus:outline-none focus:ring-1 focus:ring-violet-200" />
                                                                     ) : (
                                                                         <span className="text-slate-700">{doc.description || '—'}</span>
                                                                     )}
                                                                 </td>
-                                                                {isPending && (
-                                                                    <td className="px-2 py-2">
-                                                                        <button
-                                                                            onClick={() => removeDocRow(inv.id, i)}
-                                                                            className="w-6 h-6 rounded-md hover:bg-rose-50 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-all"
-                                                                            title="Remove row"
-                                                                        >
+                                                                <td className="py-2">
+                                                                    {isPending(reviewInvoice) ? (
+                                                                        <div className="flex flex-col gap-1">
+                                                                            {doc.uploadStatus === 'done' && (
+                                                                                <span className="inline-flex items-center gap-1 text-[10px] text-emerald-600 font-medium bg-emerald-50 px-2 py-1 rounded-md truncate max-w-[140px]">
+                                                                                    <Icon name="CheckCircle" size={10} /> {doc.fileName?.length > 16 ? doc.fileName.slice(0, 14) + '…' : doc.fileName}
+                                                                                </span>
+                                                                            )}
+                                                                            {doc.uploadStatus === 'uploading' && (
+                                                                                <span className="inline-flex items-center gap-1 text-[10px] text-amber-600 bg-amber-50 px-2 py-1 rounded-md">
+                                                                                    <span className="w-3 h-3 border-2 border-amber-200 border-t-amber-600 rounded-full animate-spin" /> Uploading…
+                                                                                </span>
+                                                                            )}
+                                                                            {doc.uploadStatus === 'error' && (
+                                                                                <span className="inline-flex items-center gap-1 text-[10px] text-rose-600 bg-rose-50 px-2 py-1 rounded-md">
+                                                                                    <Icon name="AlertCircle" size={10} /> Failed
+                                                                                </span>
+                                                                            )}
+                                                                            {doc.uploadStatus !== 'uploading' && (
+                                                                                <label className="inline-flex items-center gap-1 text-[10px] font-bold text-violet-600 bg-violet-50 hover:bg-violet-100 px-2 py-1 rounded-md cursor-pointer transition-all w-fit">
+                                                                                    <Icon name="Paperclip" size={10} />
+                                                                                    {doc.uploadStatus === 'done' ? 'Replace' : 'Attach'}
+                                                                                    <input type="file" className="hidden"
+                                                                                        onChange={e => { const f = e.target.files[0]; if (f) uploadDocFile(i, f, doc.docType); e.target.value = ''; }} />
+                                                                                </label>
+                                                                            )}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <span className={`inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-md ${doc.fileName ? 'text-emerald-600 bg-emerald-50' : 'text-slate-400'}`}>
+                                                                            {doc.fileName ? <><Icon name="FileText" size={10} /> {doc.fileName}</> : '—'}
+                                                                        </span>
+                                                                    )}
+                                                                </td>
+                                                                {isPending(reviewInvoice) && (
+                                                                    <td className="py-2 pr-3">
+                                                                        <button onClick={() => removeDocRow(i)}
+                                                                            className="w-6 h-6 rounded-md hover:bg-rose-50 flex items-center justify-center text-slate-300 hover:text-rose-500 transition-all">
                                                                             <Icon name="Trash2" size={12} />
                                                                         </button>
                                                                     </td>
                                                                 )}
                                                             </tr>
-                                                        ))
-                                                    )}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
+                                                        ))}
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            {isPending(reviewInvoice) && (
+                                                <button onClick={addDocRow}
+                                                    className="inline-flex items-center gap-1.5 text-[11px] font-bold text-violet-600 hover:text-violet-700 bg-violet-50 hover:bg-violet-100 px-3 py-1.5 rounded-lg transition-all">
+                                                    <Icon name="Plus" size={13} /> Add Row
+                                                </button>
+                                            )}
+                                        </Section>
 
-                                {/* Action Bar */}
-                                <div className="px-4 sm:px-5 py-3 bg-slate-50/70 border-t border-slate-100 flex flex-wrap items-center justify-between gap-2">
-                                    {/* Left: Document Actions */}
-                                    <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={() => setViewerInvoice(inv)}
-                                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-indigo-50 hover:text-indigo-600 hover:border-indigo-200 transition-all"
-                                        >
-                                            <Icon name="Eye" size={14} />
-                                            View Doc
-                                        </button>
-                                        <a
-                                            href={`/api/invoices/${inv.id}/file`}
-                                            download={inv.originalName || `invoice-${inv.id}`}
-                                            className="inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 transition-all"
-                                        >
-                                            <Icon name="Download" size={14} />
-                                            Download
-                                        </a>
-                                    </div>
-
-                                    {/* Right: Approve/Reject or Status */}
-                                    <div className="flex items-center gap-2">
-                                        {isPending ? (
-                                            <>
-                                                <button
-                                                    onClick={() => setActionModal({ invoice: inv, type: 'approve' })}
-                                                    disabled={processingId === inv.id}
-                                                    className="inline-flex items-center gap-1.5 h-8 px-4 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold hover:bg-emerald-600 hover:text-white hover:border-emerald-600 transition-all disabled:opacity-50"
-                                                >
-                                                    <Icon name="CheckCircle2" size={14} />
-                                                    Approve
-                                                </button>
-                                                <button
-                                                    onClick={() => setActionModal({ invoice: inv, type: 'recheck' })}
-                                                    disabled={processingId === inv.id}
-                                                    className="inline-flex items-center gap-1.5 h-8 px-4 rounded-lg bg-amber-50 border border-amber-300 text-amber-700 text-[11px] font-bold hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all disabled:opacity-50"
-                                                >
-                                                    <Icon name="RefreshCw" size={14} />
-                                                    Re-check
-                                                </button>
-                                                <button
-                                                    onClick={() => setActionModal({ invoice: inv, type: 'reject' })}
-                                                    disabled={processingId === inv.id}
-                                                    className="inline-flex items-center gap-1.5 h-8 px-4 rounded-lg bg-rose-50 border border-rose-200 text-rose-700 text-[11px] font-bold hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all disabled:opacity-50"
-                                                >
-                                                    <Icon name="XCircle" size={14} />
-                                                    Reject
-                                                </button>
-                                            </>
-                                        ) : (
-                                            <span className={`inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wide px-3 py-1.5 rounded-lg ${inv.pmApproval?.status === 'APPROVED'
-                                                ? 'bg-emerald-50 text-emerald-600'
-                                                : inv.pmApproval?.status === 'INFO_REQUESTED'
-                                                    ? 'bg-amber-50 text-amber-600'
-                                                    : 'bg-rose-50 text-rose-600'
-                                                }`}>
-                                                <Icon name={inv.pmApproval?.status === 'APPROVED' ? 'CheckCircle2' : inv.pmApproval?.status === 'INFO_REQUESTED' ? 'RefreshCw' : 'XCircle'} size={12} />
-                                                {inv.pmApproval?.status === 'APPROVED' ? 'Approved by you' : inv.pmApproval?.status === 'INFO_REQUESTED' ? 'Re-check sent to vendor' : 'Rejected by you'}
-                                            </span>
+                                        {/* 5. Vendor Notes */}
+                                        {reviewInvoice.notes && (
+                                            <Section title="Vendor Notes" icon="MessageSquare" accent="amber">
+                                                <p className="text-sm text-slate-700 whitespace-pre-wrap">{reviewInvoice.notes}</p>
+                                            </Section>
                                         )}
-                                    </div>
-                                </div>
-                            </motion.div>
-                        );
-                    })
-                )}
-            </div>
-
-            {/* ── Approve Modal ── */}
-            <AnimatePresence>
-                {actionModal?.type === 'approve' && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                        onClick={() => { setActionModal(null); setNotes(''); setError(null); }}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden"
-                        >
-                            {/* Header */}
-                            <div className="p-5 border-b border-slate-100 bg-emerald-50/50">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-600 flex items-center justify-center">
-                                        <Icon name="CheckCircle2" size={20} />
-                                    </div>
-                                    <div>
-                                        <h2 className="font-bold text-slate-800 text-lg">Approve Invoice</h2>
-                                        <p className="text-xs text-slate-400">Approved invoice will be forwarded to Finance for final review</p>
-                                    </div>
-                                </div>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-slate-400 text-center py-20">No invoice selected.</p>
+                                )}
                             </div>
 
-                            <div className="p-5 space-y-4">
-                                {/* Invoice Summary */}
-                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="font-bold text-slate-800 text-sm">{actionModal.invoice.invoiceNumber || actionModal.invoice.id?.slice(0, 8)}</p>
-                                            <p className="text-xs text-slate-400">{actionModal.invoice.vendorName}{actionModal.invoice.vendorCode ? ` · ${actionModal.invoice.vendorCode}` : ''}</p>
+                            {/* Footer Actions */}
+                            {reviewInvoice && isPending(reviewInvoice) && (
+                                <div className="border-t border-slate-200 bg-white px-6 py-4 shrink-0">
+                                    {actionType === null ? (
+                                        <div className="flex gap-2">
+                                            <button onClick={() => setActionType('reject')}
+                                                className="flex-1 h-10 rounded-xl bg-rose-50 border border-rose-200 text-rose-700 text-xs font-bold hover:bg-rose-600 hover:text-white hover:border-rose-600 transition-all flex items-center justify-center gap-1.5">
+                                                <Icon name="XCircle" size={14} /> Reject
+                                            </button>
+                                            <button onClick={() => setActionType('recheck')}
+                                                className="flex-1 h-10 rounded-xl bg-amber-50 border border-amber-300 text-amber-700 text-xs font-bold hover:bg-amber-500 hover:text-white hover:border-amber-500 transition-all flex items-center justify-center gap-1.5">
+                                                <Icon name="RefreshCw" size={14} /> Re-check
+                                            </button>
+                                            <button onClick={() => setActionType('approve')}
+                                                className="flex-1 h-10 rounded-xl bg-emerald-600 text-white text-xs font-bold hover:bg-emerald-700 transition-all flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-200">
+                                                <Icon name="CheckCircle2" size={14} /> Approve
+                                            </button>
                                         </div>
-                                        <p className="text-lg font-black text-slate-800">₹{Number(actionModal.invoice.amount || 0).toLocaleString('en-IN')}</p>
-                                    </div>
-                                </div>
-
-                                {/* Notes */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">Notes for Vendor (optional)</label>
-                                    <textarea
-                                        value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
-                                        rows={2}
-                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-emerald-200 focus:border-emerald-400 transition-all resize-none"
-                                        placeholder="Add any approval notes..."
-                                    />
-                                </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="px-5 pb-5 flex gap-3">
-                                <button
-                                    onClick={() => { setActionModal(null); setNotes(''); setError(null); }}
-                                    className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-all"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={() => handleApprove(actionModal.invoice.id)}
-                                    disabled={processingId}
-                                    className="flex-1 px-4 py-3 bg-emerald-600 text-white text-sm font-bold rounded-xl hover:bg-emerald-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {processingId ? (
-                                        <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
                                     ) : (
-                                        <><Icon name="CheckCircle2" size={16} /> Approve Invoice</>
-                                    )}
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* ── Reject Modal ── */}
-            <AnimatePresence>
-                {actionModal?.type === 'reject' && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                        onClick={() => { setActionModal(null); setNotes(''); setError(null); }}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden"
-                        >
-                            {/* Header */}
-                            <div className="p-5 border-b border-slate-100 bg-rose-50/50">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center">
-                                        <Icon name="XCircle" size={20} />
-                                    </div>
-                                    <div>
-                                        <h2 className="font-bold text-slate-800 text-lg">Reject Invoice</h2>
-                                        <p className="text-xs text-slate-400">Vendor will be notified</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-5 space-y-4">
-                                {/* Invoice Summary */}
-                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="font-bold text-slate-800 text-sm">{actionModal.invoice.invoiceNumber || actionModal.invoice.id?.slice(0, 8)}</p>
-                                            <p className="text-xs text-slate-400">{actionModal.invoice.vendorName}{actionModal.invoice.vendorCode ? ` · ${actionModal.invoice.vendorCode}` : ''}</p>
+                                        <div className="space-y-3">
+                                            {(() => {
+                                                const ac = ACTION_COLOR[actionType];
+                                                return (
+                                                    <>
+                                                        <div className={`flex items-center gap-2 p-3 rounded-xl border ${ac.strip}`}>
+                                                            <Icon name={ac.icon} size={15} />
+                                                            <p className="text-sm font-bold">{ac.msg}</p>
+                                                        </div>
+                                                        <textarea value={actionNotes} onChange={e => setActionNotes(e.target.value)} rows={2}
+                                                            placeholder={actionType === 'approve' ? 'Add approval notes (optional)…' : actionType === 'recheck' ? 'Describe what needs re-checking…' : 'Reason for rejection (required)…'}
+                                                            className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-200 resize-none" />
+                                                        <div className="flex gap-2">
+                                                            <button onClick={() => { setActionType(null); setActionNotes(''); }}
+                                                                className="flex-1 h-10 rounded-xl border border-slate-200 text-slate-600 text-sm font-bold hover:bg-slate-50 transition-all">
+                                                                Cancel
+                                                            </button>
+                                                            <button
+                                                                onClick={actionType === 'approve' ? handleApprove : actionType === 'reject' ? handleReject : handleRecheck}
+                                                                disabled={!!processingId || (actionType === 'reject' && !actionNotes.trim())}
+                                                                className={`flex-1 h-10 rounded-xl text-white text-sm font-bold transition-all disabled:opacity-40 flex items-center justify-center gap-2 ${ac.bg} ${ac.hover}`}>
+                                                                {processingId ? <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> : <Icon name={ac.icon} size={15} />}
+                                                                {ac.label}
+                                                            </button>
+                                                        </div>
+                                                    </>
+                                                );
+                                            })()}
                                         </div>
-                                        <p className="text-lg font-black text-slate-800">₹{Number(actionModal.invoice.amount || 0).toLocaleString('en-IN')}</p>
-                                    </div>
+                                    )}
                                 </div>
+                            )}
 
-                                {/* Who gets notified */}
-                                <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
-                                    <p className="text-[11px] font-bold text-amber-700 flex items-center gap-1.5">
-                                        <Icon name="Bell" size={12} />
-                                        Notification will be sent to:
-                                    </p>
-                                    <div className="flex items-center gap-3 mt-2">
-                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-md">
-                                            <Icon name="Building" size={10} /> Vendor
+                            {/* Already decided badge */}
+                            {reviewInvoice && !isPending(reviewInvoice) && (
+                                <div className="border-t border-slate-200 bg-white px-6 py-4 shrink-0">
+                                    <div className={`flex items-center gap-2 p-3 rounded-xl ${reviewInvoice.pmApproval?.status === 'APPROVED' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
+                                        <Icon name={reviewInvoice.pmApproval?.status === 'APPROVED' ? 'CheckCircle2' : 'XCircle'} size={16} />
+                                        <span className="text-sm font-bold">
+                                            {reviewInvoice.pmApproval?.status === 'APPROVED' ? 'You approved this invoice — forwarded to Finance' : 'You rejected this invoice'}
                                         </span>
                                     </div>
                                 </div>
-
-                                {/* Rejection Reason */}
-                                <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
-                                        Reason for Rejection <span className="text-rose-500">*</span>
-                                    </label>
-                                    <textarea
-                                        value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
-                                        rows={3}
-                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-rose-200 focus:border-rose-400 transition-all resize-none"
-                                        placeholder="Explain why this invoice is being rejected..."
-                                    />
-                                    <p className="text-[10px] text-slate-400 mt-1">This message will be visible to the Vendor.</p>
-                                </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="px-5 pb-5 flex gap-3">
-                                <button
-                                    onClick={() => { setActionModal(null); setNotes(''); setError(null); }}
-                                    className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-all"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={() => handleReject(actionModal.invoice.id)}
-                                    disabled={processingId || !notes.trim()}
-                                    className="flex-1 px-4 py-3 bg-rose-600 text-white text-sm font-bold rounded-xl hover:bg-rose-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {processingId ? (
-                                        <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Processing...</>
-                                    ) : (
-                                        <><Icon name="XCircle" size={16} /> Reject Invoice</>
-                                    )}
-                                </button>
-                            </div>
+                            )}
                         </motion.div>
-                    </motion.div>
+                    </>
                 )}
             </AnimatePresence>
 
-            {/* ── Re-check Modal ── */}
+            {/* INLINE DOCUMENT VIEWER MODAL */}
             <AnimatePresence>
-                {actionModal?.type === 'recheck' && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                        onClick={() => { setActionModal(null); setNotes(''); setError(null); }}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-white rounded-2xl w-full max-w-md shadow-2xl border border-slate-100 overflow-hidden"
-                        >
-                            {/* Header */}
-                            <div className="p-5 border-b border-slate-100 bg-amber-50/50">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center">
-                                        <Icon name="RefreshCw" size={20} />
-                                    </div>
-                                    <div>
-                                        <h2 className="font-bold text-slate-800 text-lg">Re-check Invoice</h2>
-                                        <p className="text-xs text-slate-400">Send back to vendor for document re-verification</p>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="p-5 space-y-4">
-                                {/* Invoice Summary */}
-                                <div className="bg-slate-50 rounded-xl p-4 border border-slate-100">
-                                    <div className="flex items-center justify-between">
-                                        <div>
-                                            <p className="font-bold text-slate-800 text-sm">{actionModal.invoice.invoiceNumber || actionModal.invoice.id?.slice(0, 8)}</p>
-                                            <p className="text-xs text-slate-400">{actionModal.invoice.vendorName}{actionModal.invoice.vendorCode ? ` · ${actionModal.invoice.vendorCode}` : ''}</p>
-                                        </div>
-                                        <p className="text-lg font-black text-slate-800">₹{Number(actionModal.invoice.amount || 0).toLocaleString('en-IN')}</p>
-                                    </div>
-                                </div>
-
-                                {/* Who gets notified */}
-                                <div className="bg-amber-50 rounded-xl p-3 border border-amber-100">
-                                    <p className="text-[11px] font-bold text-amber-700 flex items-center gap-1.5">
-                                        <Icon name="Bell" size={12} />
-                                        Notification will be sent to:
-                                    </p>
-                                    <div className="flex items-center gap-3 mt-2">
-                                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-amber-600 bg-amber-100 px-2 py-1 rounded-md">
-                                            <Icon name="Building" size={10} /> Vendor
-                                        </span>
-                                    </div>
-                                </div>
-
-                                {/* Message to vendor */}
+                {docViewer && (
+                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+                        className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+                        onClick={() => setDocViewer(null)}>
+                        <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+                            onClick={e => e.stopPropagation()}
+                            className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+                            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
                                 <div>
-                                    <label className="block text-xs font-bold text-slate-500 uppercase tracking-widest mb-2">
-                                        Message to Vendor <span className="text-slate-300 font-normal normal-case tracking-normal">(optional)</span>
-                                    </label>
-                                    <textarea
-                                        value={notes}
-                                        onChange={(e) => setNotes(e.target.value)}
-                                        rows={3}
-                                        className="w-full px-4 py-3 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-200 focus:border-amber-400 transition-all resize-none"
-                                        placeholder="e.g. Please re-upload the timesheet with correct dates..."
-                                    />
-                                    <p className="text-[10px] text-slate-400 mt-1">Vendor will see this message and can re-submit the documents.</p>
-                                </div>
-                            </div>
-
-                            {/* Actions */}
-                            <div className="px-5 pb-5 flex gap-3">
-                                <button
-                                    onClick={() => { setActionModal(null); setNotes(''); setError(null); }}
-                                    className="flex-1 px-4 py-3 border border-slate-200 text-slate-600 text-sm font-bold rounded-xl hover:bg-slate-50 transition-all"
-                                >
-                                    Cancel
-                                </button>
-                                <button
-                                    onClick={() => handleRecheck(actionModal.invoice.id)}
-                                    disabled={processingId}
-                                    className="flex-1 px-4 py-3 bg-amber-500 text-white text-sm font-bold rounded-xl hover:bg-amber-600 transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                                >
-                                    {processingId ? (
-                                        <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Sending...</>
-                                    ) : (
-                                        <><Icon name="RefreshCw" size={16} /> Send Re-check</>
-                                    )}
-                                </button>
-                            </div>
-                        </motion.div>
-                    </motion.div>
-                )}
-            </AnimatePresence>
-
-            {/* ── Document Viewer Modal ── */}
-            <AnimatePresence>
-                {viewerInvoice && (
-                    <motion.div
-                        initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                        className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
-                        onClick={() => setViewerInvoice(null)}
-                    >
-                        <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-                            onClick={(e) => e.stopPropagation()}
-                            className="bg-white rounded-2xl w-full max-w-4xl max-h-[85vh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col"
-                        >
-                            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
-                                <div>
-                                    <h3 className="font-bold text-slate-800 text-sm">{viewerInvoice.originalName || viewerInvoice.invoiceNumber || 'Document'}</h3>
-                                    <p className="text-[10px] text-slate-400">{viewerInvoice.vendorName}</p>
+                                    <h3 className="font-bold text-slate-800 text-sm">{docViewer.title || 'Document'}</h3>
+                                    <p className="text-[10px] text-slate-400">{reviewInvoice?.vendorName}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <a
-                                        href={`/api/invoices/${viewerInvoice.id}/file`}
-                                        download={viewerInvoice.originalName || `invoice-${viewerInvoice.id}`}
-                                        className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-violet-50 hover:text-violet-600 hover:border-violet-200 transition-all inline-flex items-center gap-1.5"
-                                    >
-                                        <Icon name="Download" size={14} />
-                                        Download
-                                    </a>
-                                    <button
-                                        onClick={() => setViewerInvoice(null)}
-                                        className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-all"
-                                    >
+                                    {!docViewer.useDocApi && (
+                                        <a href={`/api/invoices/${docViewer.invoiceId}/file`} download={docViewer.fileName || 'document'}
+                                            className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-violet-50 hover:text-violet-600 transition-all inline-flex items-center gap-1.5">
+                                            <Icon name="Download" size={14} /> Download
+                                        </a>
+                                    )}
+                                    <button onClick={() => setDocViewer(null)}
+                                        className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-all">
                                         <Icon name="X" size={18} />
                                     </button>
                                 </div>
                             </div>
-                            <div className="flex-1 bg-slate-100 relative min-h-[60vh] max-h-[80vh] overflow-y-auto">
-                                <DocumentViewer
-                                    invoiceId={viewerInvoice.id}
-                                    fileName={viewerInvoice.originalName}
-                                    spreadsheetData={spreadsheetData}
-                                />
+                            <div className="flex-1 bg-slate-100 relative min-h-0 overflow-y-auto" style={{ minHeight: '60vh' }}>
+                                <DocumentViewer invoiceId={docViewer.invoiceId} fileName={docViewer.fileName} spreadsheetData={spreadsheetData} />
                             </div>
                         </motion.div>
                     </motion.div>

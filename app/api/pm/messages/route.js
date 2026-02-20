@@ -17,7 +17,7 @@ export async function GET(request) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
-        const roleCheck = requireRole([ROLES.ADMIN, ROLES.PROJECT_MANAGER, ROLES.VENDOR])(session.user);
+        const roleCheck = requireRole([ROLES.ADMIN, ROLES.PROJECT_MANAGER, ROLES.VENDOR, ROLES.FINANCE_USER])(session.user);
         if (!roleCheck.allowed) {
             return NextResponse.json({ error: roleCheck.reason }, { status: 403 });
         }
@@ -73,7 +73,7 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
-        const roleCheck = requireRole([ROLES.PROJECT_MANAGER, ROLES.VENDOR, ROLES.ADMIN])(session.user);
+        const roleCheck = requireRole([ROLES.PROJECT_MANAGER, ROLES.VENDOR, ROLES.ADMIN, ROLES.FINANCE_USER])(session.user);
         if (!roleCheck.allowed) {
             return NextResponse.json({ error: roleCheck.reason }, { status: 403 });
         }
@@ -97,27 +97,35 @@ export async function POST(request) {
         }
 
         // Security Check - Role-based messaging (cross-role only)
+        // Security Check - Role-based messaging flow enforcement
         const userRole = getNormalizedRole(session.user);
         const recipientRole = getNormalizedRole(recipient);
 
-        // Block same-role messaging
+        // 1. Block same-role messaging
         if (userRole === recipientRole) {
             return NextResponse.json({
                 error: 'Cannot send messages to users of the same role. Cross-role messaging only.'
             }, { status: 403 });
         }
 
-        // Allow cross-role messaging: PM ↔ Vendor
-        if (userRole === ROLES.PROJECT_MANAGER && recipientRole === ROLES.VENDOR) {
-            // PM can message any vendor (role-based, no project restriction)
-        } else if (userRole === ROLES.VENDOR && recipientRole === ROLES.PROJECT_MANAGER) {
-            // Vendor can message any PM
-        } else if (userRole === ROLES.ADMIN) {
-            // Admin can message anyone (optional: can restrict to vendors only if needed)
-        } else {
-            // Block any other combinations (e.g., Vendor → Vendor, PM → PM)
+        // 2. Enforce allowed communication paths
+        let flowAllowed = false;
+
+        // Paths involving PM (Central hub)
+        if (userRole === ROLES.PROJECT_MANAGER) {
+            // PM can message Vendors and Finance Users
+            if ([ROLES.VENDOR, ROLES.FINANCE_USER].includes(recipientRole)) flowAllowed = true;
+        } else if (recipientRole === ROLES.PROJECT_MANAGER) {
+            // Vendors and Finance Users can message PMs
+            if ([ROLES.VENDOR, ROLES.FINANCE_USER].includes(userRole)) flowAllowed = true;
+        }
+
+        // Admin paths (Can message anyone)
+        if (userRole === ROLES.ADMIN) flowAllowed = true;
+
+        if (!flowAllowed) {
             return NextResponse.json({
-                error: 'Not authorized to send message to this recipient'
+                error: `Communication not allowed between ${userRole} and ${recipientRole}. Only PM <-> Vendor and PM <-> Finance User flows are permitted.`
             }, { status: 403 });
         }
 

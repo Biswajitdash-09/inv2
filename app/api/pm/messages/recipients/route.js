@@ -15,48 +15,61 @@ export async function GET() {
         }
 
         const role = getNormalizedRole(user);
+        let recipients = [];
 
-        // Only allow PMs, Admins, and Vendors
-        if (![ROLES.PROJECT_MANAGER, ROLES.ADMIN, ROLES.VENDOR].includes(role)) {
+        // Only allow PMs, Admins, Vendors, and Finance Users
+        if (![ROLES.PROJECT_MANAGER, ROLES.ADMIN, ROLES.VENDOR, ROLES.FINANCE_USER].includes(role)) {
             return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
         }
 
-        let recipients = [];
-
-        // Fetch all users once; filter strictly to opposite role of the sender
+        // Fetch all users once; filter strictly based on role-based flow
         const allUsers = await db.getAllUsers();
 
-        if (role === ROLES.ADMIN || role === ROLES.PROJECT_MANAGER) {
-            // PM/Admin must only see Vendors
+        if (role === ROLES.ADMIN) {
+            // Admin can message any PM, Vendor, or Finance User
             recipients = allUsers
-                .filter(u => getNormalizedRole(u) === ROLES.VENDOR)
-                // Never include the current user, even if roles ever overlap
+                .filter(u => [ROLES.PROJECT_MANAGER, ROLES.VENDOR, ROLES.FINANCE_USER].includes(getNormalizedRole(u)))
                 .filter(u => String(u.id) !== String(user.id))
-                .map(v => ({
-                    id: v.id,
-                    name: v.name,
-                    linkedUserId: v.id,
-                    vendorId: v.vendorId,
-                    email: v.email,
-                    role: ROLES.VENDOR
+                .map(u => ({
+                    id: u.id,
+                    name: u.name,
+                    email: u.email,
+                    role: getNormalizedRole(u),
+                    type: getNormalizedRole(u) === ROLES.VENDOR ? 'Vendor' : (getNormalizedRole(u) === ROLES.PROJECT_MANAGER ? 'PM' : 'FU')
                 }));
-            console.log(
-                `[Messaging Recipients API] ${role} fetched ${recipients.length} vendor recipients`
-            );
+        } else if (role === ROLES.PROJECT_MANAGER) {
+            // PM can message Vendors and Finance Users
+            recipients = allUsers
+                .filter(u => [ROLES.VENDOR, ROLES.FINANCE_USER].includes(getNormalizedRole(u)))
+                .map(u => ({
+                    id: u.id,
+                    name: u.name,
+                    email: u.email,
+                    role: getNormalizedRole(u),
+                    type: getNormalizedRole(u) === ROLES.VENDOR ? 'Vendor' : 'FU'
+                }));
         } else if (role === ROLES.VENDOR) {
-            // Vendor must only see PMs
+            // Vendor can only message PMs
             recipients = allUsers
                 .filter(u => getNormalizedRole(u) === ROLES.PROJECT_MANAGER)
-                .filter(u => String(u.id) !== String(user.id))
-                .map(p => ({
-                    id: p.id,
-                    name: p.name,
-                    email: p.email,
-                    role: ROLES.PROJECT_MANAGER
+                .map(u => ({
+                    id: u.id,
+                    name: u.name,
+                    email: u.email,
+                    role: ROLES.PROJECT_MANAGER,
+                    type: 'PM'
                 }));
-            console.log(
-                `[Messaging Recipients API] Vendor fetched ${recipients.length} PM recipients`
-            );
+        } else if (role === ROLES.FINANCE_USER) {
+            // Finance User can only message PMs
+            recipients = allUsers
+                .filter(u => getNormalizedRole(u) === ROLES.PROJECT_MANAGER)
+                .map(u => ({
+                    id: u.id,
+                    name: u.name,
+                    email: u.email,
+                    role: ROLES.PROJECT_MANAGER,
+                    type: 'PM'
+                }));
         }
 
         return NextResponse.json(recipients);

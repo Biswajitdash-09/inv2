@@ -577,46 +577,7 @@ export default function PMApprovalQueuePage() {
                                                 <KV label="PO Number" value={reviewInvoice.poNumber} mono />
                                             </div>
 
-                                            {reviewInvoice.lineItems?.length > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Billing Line Items</p>
-                                                    <div className="rounded-xl border border-slate-100 overflow-hidden">
-                                                        <table className="w-full text-xs">
-                                                            <thead>
-                                                                <tr className="bg-slate-50 text-[10px] text-slate-400 uppercase tracking-widest">
-                                                                    <th className="py-2 pl-3 text-left font-bold">#</th>
-                                                                    <th className="py-2 text-left font-bold">Role</th>
-                                                                    <th className="py-2 text-left font-bold">Exp.</th>
-                                                                    <th className="py-2 text-left font-bold">Qty</th>
-                                                                    <th className="py-2 text-left font-bold">Rate</th>
-                                                                    <th className="py-2 pr-3 text-right font-bold">Amount</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {reviewInvoice.lineItems.map((li, i) => (
-                                                                    <tr key={i} className="border-t border-slate-50 hover:bg-slate-50/50">
-                                                                        <td className="py-2 pl-3 text-slate-400 font-mono">{i + 1}</td>
-                                                                        <td className="py-2 font-semibold text-slate-700">{li.role}</td>
-                                                                        <td className="py-2 text-slate-500">{li.experienceRange}</td>
-                                                                        <td className="py-2 text-slate-600">{li.quantity} {li.unit}</td>
-                                                                        <td className="py-2 text-slate-600">₹{Number(li.rate).toLocaleString()}</td>
-                                                                        <td className={`py-2 pr-3 text-right font-bold ${li.status === 'MISMATCH' ? 'text-rose-600' : 'text-emerald-700'}`}>
-                                                                            ₹{Number(li.amount).toLocaleString()}
-                                                                            {li.status === 'MISMATCH' && <span className="ml-1 text-[9px] bg-rose-100 text-rose-600 px-1 rounded">MISMATCH</span>}
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                            <tfoot>
-                                                                <tr className="border-t-2 border-slate-200 bg-slate-50/80">
-                                                                    <td colSpan={5} className="py-2 pl-3 text-[10px] font-bold text-slate-500 uppercase">Total</td>
-                                                                    <td className="py-2 pr-3 text-right font-black text-slate-800">{fmt(reviewInvoice.amount)}</td>
-                                                                </tr>
-                                                            </tfoot>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                            )}
+
                                         </Section>
 
                                         {/* 3. Vendor Documents */}

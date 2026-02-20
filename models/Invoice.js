@@ -18,14 +18,15 @@ const HILReviewSchema = new mongoose.Schema({
 
 const InvoiceDocumentSchema = new mongoose.Schema({
     documentId: { type: String },
-    type: { type: String }
+    type: { type: String },
+    fileName: { type: String }  // Original filename for file-type detection
 }, { _id: false });
 
 // Enhanced audit trail for comprehensive workflow tracking
 const AuditLogSchema = new mongoose.Schema({
     action: { type: String, required: true },           // Action performed (e.g., 'submitted', 'approved', 'rejected')
     actor: { type: String, required: true },            // Full name of person who performed the action
-   	actorId: { type: String, required: true },          // User ID of person who performed the action
+    actorId: { type: String, required: true },          // User ID of person who performed the action
     actorRole: { type: String, required: true },        // Role of person (Vendor, PM, Finance User, Admin)
     timestamp: { type: Date, default: Date.now },       // When the action occurred
     previousStatus: { type: String },                    // Invoice status before this action

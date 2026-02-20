@@ -44,9 +44,9 @@ export async function GET(request) {
 
         const andConditions = [];
 
-        // Only PM ↔ Vendor messages (exclude any admin-sender messages)
+        // Monitor all participant messages (exclude any admin-sender messages)
         andConditions.push({
-            senderRole: { $in: [ROLES.PROJECT_MANAGER, ROLES.VENDOR] }
+            senderRole: { $in: [ROLES.PROJECT_MANAGER, ROLES.VENDOR, ROLES.FINANCE_USER] }
         });
 
         if (search) {

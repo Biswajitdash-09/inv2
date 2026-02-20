@@ -43,17 +43,17 @@ export default function PMMessagesPage() {
 
             // Call the dedicated messaging recipients API
             const res = await fetch('/api/pm/messages/recipients', { cache: 'no-store' });
-            
+
             if (res.ok) {
                 const data = await res.json();
                 const recipientsData = Array.isArray(data) ? data : [];
-                
+
                 // Set the appropriate type based on logged-in user's role
-                if ([ROLES.PROJECT_MANAGER, ROLES.ADMIN].includes(role)) {
-                    // PM/Admin receive vendors (type: 'Vendor')
-                    allRecipients = recipientsData.map(v => ({ ...v, type: 'Vendor' }));
-                } else if (role === ROLES.VENDOR) {
-                    // Vendor receives PMs (type: 'PM') - already filtered in API
+                if (role === ROLES.ADMIN || role === ROLES.PROJECT_MANAGER) {
+                    // Admin/PM can see both Vendors and FUs
+                    allRecipients = recipientsData;
+                } else if (role === ROLES.VENDOR || role === ROLES.FINANCE_USER) {
+                    // Vendor/FU receives PMs
                     allRecipients = recipientsData.map(p => ({ ...p, type: 'PM' }));
                 }
             }
@@ -135,7 +135,9 @@ export default function PMMessagesPage() {
                 subtitle={
                     role === ROLES.VENDOR
                         ? 'Communicate with project managers'
-                        : 'Communicate with vendors'
+                        : role === ROLES.FINANCE_USER
+                            ? 'Communicate with project managers'
+                            : 'Communicate with vendors and finance users'
                 }
                 icon="Mail"
                 accent="purple"
@@ -281,9 +283,9 @@ export default function PMMessagesPage() {
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                                         <div>
                                             <label className="block text-[10px] font-black uppercase tracking-widest text-slate-400 mb-2 ml-1">
-                                                {role === ROLES.VENDOR
+                                                {role === ROLES.VENDOR || role === ROLES.FINANCE_USER
                                                     ? 'Recipient (Project Manager)'
-                                                    : 'Recipient (Vendor / Contact)'}
+                                                    : 'Recipient (Vendor / Finance User)'}
                                             </label>
                                             <select
                                                 required
@@ -292,16 +294,29 @@ export default function PMMessagesPage() {
                                                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-2xl text-slate-700 focus:outline-none focus:ring-4 focus:ring-purple-500/10 focus:border-purple-500 transition-all font-bold text-sm"
                                             >
                                                 <option value="">Select Recipient</option>
-                                                {/* Show Vendors only for PM and Admin users */}
-                                                {[ROLES.PROJECT_MANAGER, ROLES.ADMIN].includes(role) && recipients.filter(r => r.type === 'Vendor').length > 0 && (
-                                                    <optgroup label="Vendors">
-                                                        {recipients.filter(r => r.type === 'Vendor').map(r => (
-                                                            <option key={r.id} value={r.id || r.linkedUserId || r._id}>{r.name}</option>
-                                                        ))}
-                                                    </optgroup>
+
+                                                {/* PM and Admin View: Show Vendors and FUs */}
+                                                {[ROLES.PROJECT_MANAGER, ROLES.ADMIN].includes(role) && (
+                                                    <>
+                                                        {recipients.filter(r => r.type === 'Vendor').length > 0 && (
+                                                            <optgroup label="Vendors">
+                                                                {recipients.filter(r => r.type === 'Vendor').map(r => (
+                                                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                                                ))}
+                                                            </optgroup>
+                                                        )}
+                                                        {recipients.filter(r => r.type === 'FU').length > 0 && (
+                                                            <optgroup label="Finance Users">
+                                                                {recipients.filter(r => r.type === 'FU').map(r => (
+                                                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                                                ))}
+                                                            </optgroup>
+                                                        )}
+                                                    </>
                                                 )}
-                                                {/* Show PMs only for Vendor users */}
-                                                {role === ROLES.VENDOR && recipients.filter(r => r.type === 'PM').length > 0 && (
+
+                                                {/* Vendor and FU View: Show PMs */}
+                                                {[ROLES.VENDOR, ROLES.FINANCE_USER].includes(role) && recipients.filter(r => r.type === 'PM').length > 0 && (
                                                     <optgroup label="Project Managers">
                                                         {recipients.filter(r => r.type === 'PM').map(r => (
                                                             <option key={r.id} value={r.id}>{r.name}</option>
@@ -421,9 +436,11 @@ export default function PMMessagesPage() {
                                             </div>
                                         </div>
                                         <a
-                                            href={getNormalizedRole(user) === ROLES.VENDOR
+                                            href={role === ROLES.VENDOR
                                                 ? `/vendors?invoiceId=${selectedMessage.invoiceId}`
-                                                : `/pm/approvals?invoiceId=${selectedMessage.invoiceId}`
+                                                : role === ROLES.FINANCE_USER
+                                                    ? `/finance/approval-queue?invoiceId=${selectedMessage.invoiceId}`
+                                                    : `/pm/approvals?invoiceId=${selectedMessage.invoiceId}`
                                             }
                                             className="px-4 py-2 bg-white text-purple-600 border border-purple-100 rounded-xl font-black text-[10px] uppercase tracking-widest hover:bg-purple-600 hover:text-white transition-all shadow-sm"
                                         >

@@ -115,8 +115,8 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
 
       if (item.name === 'Messages') {
         if (role === ROLES.ADMIN) return { ...item, path: '/admin/messages' };
-        // PM and Vendor already use /pm/messages as shared messaging area
-        if (role === ROLES.PROJECT_MANAGER || role === ROLES.VENDOR) {
+        // PM, Vendor, and Finance User all share the /pm/messages area
+        if (role === ROLES.PROJECT_MANAGER || role === ROLES.VENDOR || role === ROLES.FINANCE_USER) {
           return { ...item, path: '/pm/messages' };
         }
       }
@@ -130,6 +130,12 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
       if (item.name === 'Hierarchy') {
         return { ...item, path: '/admin/hierarchy' };
       }
+
+      if (item.name === 'Approvals') {
+        if (role === ROLES.ADMIN) return { ...item, path: '/approvals' };
+        // PM already uses /pm/approvals (the default)
+      }
+
     }
 
     return item;

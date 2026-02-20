@@ -58,6 +58,8 @@ export async function GET(request) {
         const userRole = getNormalizedRole(session.user);
         const { searchParams } = new URL(request.url);
         const projectId = searchParams.get('projectId');
+        const invoiceId = searchParams.get('invoiceId'); // Filter by specific invoice
+        const uploadedBy = searchParams.get('uploadedBy'); // Filter by uploader ID
         const type = searchParams.get('type');
         const status = searchParams.get('status');
 
@@ -90,6 +92,8 @@ export async function GET(request) {
             query.projectId = projectId;
         }
 
+        if (invoiceId) query.invoiceId = invoiceId;
+        if (uploadedBy) query.uploadedBy = uploadedBy;
         if (type) query.type = type;
         if (status) query.status = status;
 

@@ -30,16 +30,21 @@ export async function GET(request) {
         const { searchParams } = new URL(request.url);
         const projectId = searchParams.get('projectId');
         const invoiceId = searchParams.get('invoiceId');
+        const uploadedBy = searchParams.get('uploadedBy'); // Filter by specific uploader (used by admin to scope FU docs)
         const type = searchParams.get('type');
         const status = searchParams.get('status');
 
         let query = {};
 
-        // Finance users and Admin see all documents (no project restriction)
-        // Unlike PMs who are restricted to their assigned projects
+        // Finance Users only see their own uploads — prevents PM docs from leaking in
+        if (userRole === ROLES.FINANCE_USER) {
+            query.uploadedBy = session.user.id;
+        }
 
         if (projectId) query.projectId = projectId;
-        if (invoiceId) query.invoiceId = invoiceId; // Filter by specific invoice
+        if (invoiceId) query.invoiceId = invoiceId;
+        // Admin can pass uploadedBy explicitly to scope to a specific FU
+        if (uploadedBy && userRole === ROLES.ADMIN) query.uploadedBy = uploadedBy;
         if (type) query.type = type;
         if (status) query.status = status;
 

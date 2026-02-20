@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import Icon from "@/components/Icon";
@@ -14,25 +14,7 @@ export default function SignupPage() {
     const [password, setPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
     const [role] = useState(ROLES.VENDOR);
-    const [pmId, setPmId] = useState("");
-    const [pms, setPms] = useState([]);
     const [error, setError] = useState("");
-
-    // Fetch available PMs for vendor assignment
-    useEffect(() => {
-        const fetchPMs = async () => {
-            try {
-                const res = await fetch('/api/users/by-role?role=PM', { cache: 'no-store' });
-                const data = await res.json();
-                if (res.ok && data.users) {
-                    setPms(data.users.filter(u => u.isActive !== false));
-                }
-            } catch (err) {
-                console.error('Error fetching PMs:', err);
-            }
-        };
-        fetchPMs();
-    }, []);
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -43,7 +25,7 @@ export default function SignupPage() {
         }
 
         try {
-            await signup(name, email, password, role, pmId || null);
+            await signup(name, email, password, role);
         } catch (err) {
             setError(err.message || "Failed to create account");
         }
@@ -138,26 +120,6 @@ export default function SignupPage() {
                                 </span>
                             </p>
                         </div>
-
-                        {/* PM Selection */}
-                        {pms.length > 0 && (
-                            <div className="space-y-2">
-                                <label className="text-sm font-semibold text-gray-900 ml-1">Assigned Project Manager</label>
-                                <div className="relative">
-                                    <Icon name="Users" size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
-                                    <select
-                                        value={pmId}
-                                        onChange={(e) => setPmId(e.target.value)}
-                                        className="input w-full pl-11 bg-white/50 border-gray-200 focus:bg-white focus:ring-2 focus:ring-primary/20 rounded-xl transition-all text-gray-900 appearance-none"
-                                    >
-                                        <option value="">-- Select your Project Manager (optional) --</option>
-                                        {pms.map(pm => (
-                                            <option key={pm.id} value={pm.id}>{pm.name}</option>
-                                        ))}
-                                    </select>
-                                </div>
-                            </div>
-                        )}
 
                         <button
                             type="submit"

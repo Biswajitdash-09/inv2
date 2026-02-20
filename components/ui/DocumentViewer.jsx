@@ -38,6 +38,7 @@ const DocumentViewer = ({
     fileName = "",
     spreadsheetData = null,
     customFileUrl = null,
+    forceSpreadsheet = false,
     onLoadingComplete = () => { }
 }) => {
     const [wordHtml, setWordHtml] = useState(null);
@@ -48,7 +49,7 @@ const DocumentViewer = ({
 
     const name = (fileName || "").toLowerCase();
 
-    const isSpreadsheet = name.endsWith('.xls') || name.endsWith('.xlsx') || name.endsWith('.csv');
+    const isSpreadsheet = forceSpreadsheet || name.endsWith('.xls') || name.endsWith('.xlsx') || name.endsWith('.csv');
     const isDocx = name.endsWith('.docx');
     const isDocLegacy = name.endsWith('.doc') && !isDocx;
     const isImage = /\.(jpg|jpeg|png|gif|webp|bmp|svg)$/.test(name);

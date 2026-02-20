@@ -86,7 +86,11 @@ export default function FinanceApprovalQueuePage() {
         let cancelled = false;
         (async () => {
             try {
-                const r = await fetch(`/api/invoices/${docViewer.invoiceId}/preview`, { cache: 'no-store' });
+                // docId = PM/FU uploaded doc; invoiceId = primary invoice
+                const url = docViewer.docId
+                    ? `/api/documents/${docViewer.docId}/preview`
+                    : `/api/invoices/${docViewer.invoiceId}/preview`;
+                const r = await fetch(url, { cache: 'no-store' });
                 const d = await r.json();
                 if (!cancelled && Array.isArray(d?.data)) setSpreadsheetData(d.data);
             } catch { }
@@ -96,6 +100,7 @@ export default function FinanceApprovalQueuePage() {
 
     // FU document upload
     const [fuDocs, setFuDocs] = useState([]); // uploaded docs for current invoice
+    const [pmUploadedDocs, setPmUploadedDocs] = useState([]); // PM-added docs for current invoice (non-INVOICE type)
     const [uploadForm, setUploadForm] = useState({ file: null, type: 'RINGI', description: '' });
     const [uploading, setUploading] = useState(false);
     const fileInputRef = useRef(null);
@@ -127,16 +132,20 @@ export default function FinanceApprovalQueuePage() {
         setActionType(null);
         setActionNotes('');
         setFuDocs([]);
+        setPmUploadedDocs([]);
         try {
-            // Fetch full invoice (with fileUrl + documents)
-            const [invRes, docsRes] = await Promise.all([
+            const pmQuery = `/api/pm/documents?invoiceId=${inv.id}${inv.assignedPM ? `&uploadedBy=${inv.assignedPM}` : ''}`;
+            const [invRes, docsRes, pmDocsRes] = await Promise.all([
                 fetch(`/api/invoices/${inv.id}`, { cache: 'no-store' }),
-                fetch(`/api/finance/documents?invoiceId=${inv.id}`, { cache: 'no-store' })
+                fetch(`/api/finance/documents?invoiceId=${inv.id}`, { cache: 'no-store' }),
+                fetch(pmQuery, { cache: 'no-store' })
             ]);
             const invData = await invRes.json();
             const docsData = await docsRes.json();
+            const pmDocsData = await pmDocsRes.json();
             if (invRes.ok) setReviewInvoice(invData);
             if (docsRes.ok) setFuDocs(docsData.documents || []);
+            if (pmDocsRes.ok) setPmUploadedDocs(pmDocsData.documents || []);
         } catch (e) { console.error('Review fetch error', e); }
         finally { setReviewLoading(false); }
     };
@@ -523,53 +532,17 @@ export default function FinanceApprovalQueuePage() {
                                                 <KV label="PO Number" value={reviewInvoice.poNumber} mono />
                                             </div>
 
-                                            {/* Line Items */}
-                                            {reviewInvoice.lineItems?.length > 0 && (
-                                                <div>
-                                                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Billing Line Items</p>
-                                                    <div className="rounded-xl border border-slate-100 overflow-hidden">
-                                                        <table className="w-full text-xs">
-                                                            <thead>
-                                                                <tr className="bg-slate-50 text-[10px] text-slate-400 uppercase tracking-widest">
-                                                                    <th className="py-2 pl-3 text-left font-bold">#</th>
-                                                                    <th className="py-2 text-left font-bold">Role</th>
-                                                                    <th className="py-2 text-left font-bold">Exp.</th>
-                                                                    <th className="py-2 text-left font-bold">Qty</th>
-                                                                    <th className="py-2 text-left font-bold">Rate</th>
-                                                                    <th className="py-2 pr-3 text-right font-bold">Amount</th>
-                                                                </tr>
-                                                            </thead>
-                                                            <tbody>
-                                                                {reviewInvoice.lineItems.map((li, i) => (
-                                                                    <tr key={i} className="border-t border-slate-50 hover:bg-slate-50/50">
-                                                                        <td className="py-2 pl-3 text-slate-400 font-mono">{i + 1}</td>
-                                                                        <td className="py-2 font-semibold text-slate-700">{li.role}</td>
-                                                                        <td className="py-2 text-slate-500">{li.experienceRange}</td>
-                                                                        <td className="py-2 text-slate-600">{li.quantity} {li.unit}</td>
-                                                                        <td className="py-2 text-slate-600">₹{Number(li.rate).toLocaleString()}</td>
-                                                                        <td className={`py-2 pr-3 text-right font-bold ${li.status === 'MISMATCH' ? 'text-rose-600' : 'text-emerald-700'}`}>
-                                                                            ₹{Number(li.amount).toLocaleString()}
-                                                                            {li.status === 'MISMATCH' && <span className="ml-1 text-[9px] bg-rose-100 text-rose-600 px-1 rounded">MISMATCH</span>}
-                                                                        </td>
-                                                                    </tr>
-                                                                ))}
-                                                            </tbody>
-                                                            <tfoot>
-                                                                <tr className="border-t-2 border-slate-200 bg-slate-50/80">
-                                                                    <td colSpan={5} className="py-2 pl-3 text-[10px] font-bold text-slate-500 uppercase">Total</td>
-                                                                    <td className="py-2 pr-3 text-right font-black text-slate-800">{fmt(reviewInvoice.amount)}</td>
-                                                                </tr>
-                                                            </tfoot>
-                                                        </table>
-                                                    </div>
-                                                </div>
-                                            )}
+
                                         </Section>
 
                                         {/* 3. PM Review Status */}
                                         <Section title="PM Review" icon="UserCheck" accent="violet">
                                             {(() => {
                                                 const pmSc = PM_STATUS_MAP[reviewInvoice.pmApproval?.status] || PM_STATUS_MAP.PENDING;
+                                                const seen = new Set();
+                                                const dedupedPmDocs = pmUploadedDocs
+                                                    .filter(d => d.type !== 'INVOICE')
+                                                    .filter(d => { const k = `${d.type}|${d.fileName}`; if (seen.has(k)) return false; seen.add(k); return true; });
                                                 return (
                                                     <div className="space-y-3">
                                                         <div className="flex items-center justify-between">
@@ -589,6 +562,36 @@ export default function FinanceApprovalQueuePage() {
                                                             <div className={`rounded-xl p-3 border text-sm ${pmSc.bg} ${pmSc.text} border-current/10`}>
                                                                 <p className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">PM Notes</p>
                                                                 <p className="font-medium">{reviewInvoice.pmApproval.notes}</p>
+                                                            </div>
+                                                        )}
+                                                        {dedupedPmDocs.length > 0 && (
+                                                            <div className="mt-2">
+                                                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Documents Added by PM</p>
+                                                                <div className="space-y-1.5">
+                                                                    {dedupedPmDocs.map((doc, i) => (
+                                                                        <div key={doc.id || i} className="flex items-center justify-between p-2.5 bg-violet-50 rounded-xl border border-violet-100">
+                                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                                <div className="w-7 h-7 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+                                                                                    <Icon name="File" size={13} />
+                                                                                </div>
+                                                                                <div className="min-w-0">
+                                                                                    <p className="text-xs font-bold text-slate-700 truncate">{doc.fileName || `Document ${i + 1}`}</p>
+                                                                                    <p className="text-[10px] text-slate-400">{doc.type}</p>
+                                                                                </div>
+                                                                            </div>
+                                                                            <div className="flex items-center gap-1.5 shrink-0">
+                                                                                <button onClick={() => setDocViewer({ docId: doc.id, fileName: doc.fileName, title: doc.type })}
+                                                                                    className="h-6 px-2.5 rounded-lg bg-white border border-violet-200 text-violet-600 text-[10px] font-bold hover:bg-violet-50 transition-all inline-flex items-center gap-1">
+                                                                                    <Icon name="Eye" size={10} /> View
+                                                                                </button>
+                                                                                <a href={`/api/documents/${doc.id}/file`} download={doc.fileName || doc.id}
+                                                                                    className="h-6 px-2.5 rounded-lg bg-white border border-violet-200 text-slate-600 text-[10px] font-bold hover:bg-slate-50 transition-all inline-flex items-center gap-1">
+                                                                                    <Icon name="Download" size={10} /> Download
+                                                                                </a>
+                                                                            </div>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
                                                             </div>
                                                         )}
                                                     </div>
@@ -635,15 +638,21 @@ export default function FinanceApprovalQueuePage() {
                                                                 <Icon name="File" size={14} />
                                                             </div>
                                                             <div className="min-w-0">
-                                                                <p className="text-xs font-bold text-slate-700 truncate">{doc.documentId || `Document ${i + 1}`}</p>
+                                                                <p className="text-xs font-bold text-slate-700 truncate">{doc.fileName || doc.documentId || `Document ${i + 1}`}</p>
                                                                 <p className="text-[10px] text-slate-400">{doc.type}</p>
                                                             </div>
                                                         </div>
-                                                        <button
-                                                            onClick={() => setDocViewer({ invoiceId: doc.documentId, fileName: doc.fileName || doc.documentId, title: doc.type, useDocApi: true })}
-                                                            className="h-7 px-3 rounded-lg bg-white border border-slate-200 text-violet-600 text-[10px] font-bold hover:bg-violet-50 transition-all inline-flex items-center gap-1 shrink-0">
-                                                            <Icon name="Eye" size={11} /> View
-                                                        </button>
+                                                        <div className="flex items-center gap-1.5 shrink-0">
+                                                            <button
+                                                                onClick={() => setDocViewer({ docId: doc.documentId, fileName: doc.fileName || doc.documentId, title: doc.type })}
+                                                                className="h-7 px-3 rounded-lg bg-white border border-slate-200 text-violet-600 text-[10px] font-bold hover:bg-violet-50 transition-all inline-flex items-center gap-1">
+                                                                <Icon name="Eye" size={11} /> View
+                                                            </button>
+                                                            <a href={`/api/documents/${doc.documentId}/file`} download={doc.fileName || doc.documentId}
+                                                                className="h-7 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[10px] font-bold hover:bg-slate-50 transition-all inline-flex items-center gap-1">
+                                                                <Icon name="Download" size={11} /> Download
+                                                            </a>
+                                                        </div>
                                                     </div>
                                                 ))}
                                                 {!reviewInvoice.fileUrl && !reviewInvoice.originalName && (!reviewInvoice.documents || reviewInvoice.documents.length === 0) && (
@@ -811,13 +820,11 @@ export default function FinanceApprovalQueuePage() {
                                     <p className="text-[10px] text-slate-400">{reviewInvoice?.vendorName}</p>
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    {!docViewer.useDocApi && (
-                                        <a href={`/api/invoices/${docViewer.invoiceId}/file`}
-                                            download={docViewer.fileName || 'document'}
-                                            className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-violet-50 hover:text-violet-600 transition-all inline-flex items-center gap-1.5">
-                                            <Icon name="Download" size={14} /> Download
-                                        </a>
-                                    )}
+                                    <a href={docViewer.docId ? `/api/documents/${docViewer.docId}/file` : `/api/invoices/${docViewer.invoiceId}/file`}
+                                        download={docViewer.fileName || 'document'}
+                                        className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-violet-50 hover:text-violet-600 transition-all inline-flex items-center gap-1.5">
+                                        <Icon name="Download" size={14} /> Download
+                                    </a>
                                     <button onClick={() => setDocViewer(null)}
                                         className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-all">
                                         <Icon name="X" size={18} />
@@ -830,6 +837,8 @@ export default function FinanceApprovalQueuePage() {
                                     invoiceId={docViewer.invoiceId}
                                     fileName={docViewer.fileName}
                                     spreadsheetData={spreadsheetData}
+                                    customFileUrl={docViewer.docId ? `/api/documents/${docViewer.docId}/file` : null}
+                                    forceSpreadsheet={docViewer.title === 'TIMESHEET'}
                                 />
                             </div>
                         </motion.div>

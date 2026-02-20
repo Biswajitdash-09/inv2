@@ -1,258 +1,635 @@
-"use client";
+'use client';
 
-import { useEffect, useState, Suspense } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import { ROLES, getNormalizedRole } from "@/constants/roles";
-import { getAllInvoices } from "@/lib/api";
-import Link from "next/link";
-import { motion } from "framer-motion";
-import Icon from "@/components/Icon";
-import PageHeader from "@/components/Layout/PageHeader";
+import { useState, useEffect, useRef, Suspense } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import Icon from '@/components/Icon';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
+import { ROLES, getNormalizedRole } from '@/constants/roles';
+import DocumentViewer from '@/components/ui/DocumentViewer';
 
-export default function ApprovalsPage() {
+/* ─── helpers ─────────────────────────────────────────────── */
+const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
+const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+const STATUS_MAP = {
+  'Submitted': { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400', label: 'Submitted' },
+  'Pending PM Approval': { bg: 'bg-violet-50', text: 'text-violet-700', dot: 'bg-violet-500', label: 'Pending PM' },
+  'PM Approved': { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-400', label: 'PM Approved' },
+  'PM Rejected': { bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-500', label: 'PM Rejected' },
+  'More Info Needed': { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'More Info Needed' },
+  'Pending Finance Review': { bg: 'bg-indigo-50', text: 'text-indigo-700', dot: 'bg-indigo-500', label: 'Pending Finance' },
+  'Finance Approved': { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Finance Approved' },
+  'Finance Rejected': { bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Finance Rejected' },
+};
+const getStatus = (s) => STATUS_MAP[s] || { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400', label: s?.replace(/_/g, ' ') || '—' };
+
+const APPROVAL_STATUS_MAP = {
+  APPROVED: { bg: 'bg-emerald-50', text: 'text-emerald-700', dot: 'bg-emerald-500', label: 'Approved' },
+  REJECTED: { bg: 'bg-rose-50', text: 'text-rose-700', dot: 'bg-rose-500', label: 'Rejected' },
+  PENDING: { bg: 'bg-amber-50', text: 'text-amber-700', dot: 'bg-amber-500', label: 'Pending' },
+  INFO_REQUESTED: { bg: 'bg-sky-50', text: 'text-sky-700', dot: 'bg-sky-500', label: 'Info Requested' },
+};
+const getApprovalStatus = (s) => APPROVAL_STATUS_MAP[s] || APPROVAL_STATUS_MAP.PENDING;
+
+/* ─── Section wrapper ─────────────────────────────────────── */
+function Section({ title, icon, children, accent = 'amber' }) {
+  const colors = {
+    amber: 'text-amber-600 bg-amber-50',
+    indigo: 'text-indigo-600 bg-indigo-50',
+    emerald: 'text-emerald-600 bg-emerald-50',
+    violet: 'text-violet-600 bg-violet-50',
+    sky: 'text-sky-600 bg-sky-50',
+    rose: 'text-rose-600 bg-rose-50',
+  };
   return (
-    <Suspense fallback={<div className="flex h-screen items-center justify-center">Loading approvals...</div>}>
-      <ApprovalsPageContent />
+    <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+      <div className="px-5 py-3.5 border-b border-slate-100 flex items-center gap-2.5 bg-slate-50/60">
+        <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${colors[accent]}`}>
+          <Icon name={icon} size={14} />
+        </div>
+        <h3 className="font-bold text-slate-700 text-sm">{title}</h3>
+      </div>
+      <div className="p-5">{children}</div>
+    </div>
+  );
+}
+
+function KV({ label, value, mono = false }) {
+  return (
+    <div>
+      <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-0.5">{label}</p>
+      <p className={`text-sm font-semibold text-slate-800 ${mono ? 'font-mono' : ''}`}>{value || '—'}</p>
+    </div>
+  );
+}
+
+/* ─── Doc Pill ────────────────────────────────────────────── */
+function DocRow({ doc, i, onView, accentColor = 'violet' }) {
+  return (
+    <div className={`flex items-center justify-between p-2.5 bg-${accentColor}-50 rounded-xl border border-${accentColor}-100`}>
+      <div className="flex items-center gap-2 min-w-0">
+        <div className={`w-7 h-7 rounded-lg bg-${accentColor}-100 text-${accentColor}-600 flex items-center justify-center shrink-0`}>
+          <Icon name="File" size={13} />
+        </div>
+        <div className="min-w-0">
+          <p className="text-xs font-bold text-slate-700 truncate">{doc.fileName || `Document ${i + 1}`}</p>
+          <p className="text-[10px] text-slate-400">{doc.type}</p>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button
+          onClick={() => onView(doc)}
+          className={`h-6 px-2.5 rounded-lg bg-white border border-${accentColor}-200 text-${accentColor}-600 text-[10px] font-bold hover:bg-${accentColor}-50 transition-all inline-flex items-center gap-1`}>
+          <Icon name="Eye" size={10} /> View
+        </button>
+        <a href={`/api/documents/${doc.id}/file`} download={doc.fileName || doc.id}
+          className={`h-6 px-2.5 rounded-lg bg-white border border-${accentColor}-200 text-slate-600 text-[10px] font-bold hover:bg-slate-50 transition-all inline-flex items-center gap-1`}>
+          <Icon name="Download" size={10} /> Download
+        </a>
+      </div>
+    </div>
+  );
+}
+
+/* ─── TABS config ─────────────────────────────────────────── */
+const TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'vendor', label: 'Vendor Stage', statuses: ['Submitted'] },
+  { key: 'pm', label: 'PM Review', statuses: ['Pending PM Approval', 'More Info Needed'] },
+  { key: 'finance', label: 'Finance Done', statuses: ['Pending Finance Review'] },
+  { key: 'approved', label: 'Fully Approved', statuses: ['Finance Approved', 'PM Approved'] },
+  { key: 'rejected', label: 'Rejected', statuses: ['PM Rejected', 'Finance Rejected'] },
+];
+
+/* ════════════════════════════════════════════════════════════
+   MAIN COMPONENT
+════════════════════════════════════════════════════════════ */
+export default function AdminApprovalsPage() {
+  return (
+    <Suspense fallback={<div className="flex h-screen items-center justify-center text-slate-400">Loading...</div>}>
+      <AdminApprovalsContent />
     </Suspense>
   );
 }
 
-function ApprovalsPageContent() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
+function AdminApprovalsContent() {
   const { user, isLoading: authLoading } = useAuth();
-  const [invoices, setInvoices] = useState([]);
+  const router = useRouter();
+
   const [allInvoices, setAllInvoices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [localStatusFilter, setLocalStatusFilter] = useState(searchParams?.get('status') || 'ALL');
-  const [sortOrder, setSortOrder] = useState('desc');
-  const [filterDropdownOpen, setFilterDropdownOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [search, setSearch] = useState('');
 
+  /* Drawer state */
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [reviewInvoice, setReviewInvoice] = useState(null);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [pmDocs, setPmDocs] = useState([]);
+  const [fuDocs, setFuDocs] = useState([]);
+
+  /* Doc viewer */
+  const [docViewer, setDocViewer] = useState(null);
+  const [spreadsheetData, setSpreadsheetData] = useState(null);
+
+  /* Auth guard */
   useEffect(() => {
-    if (!authLoading) {
-      if (!user) {
-        router.push("/login");
-      } else {
-        const role = getNormalizedRole(user);
-        if (![ROLES.ADMIN, ROLES.PROJECT_MANAGER].includes(role)) {
-          router.push("/dashboard");
-        }
-      }
+    if (!authLoading && !user) router.push('/login');
+    if (!authLoading && user) {
+      const role = getNormalizedRole(user);
+      if (role !== ROLES.ADMIN) router.push('/dashboard');
     }
   }, [user, authLoading, router]);
 
-  // Invoices needing managerial review (vendor submissions + pending approval)
-  const APPROVAL_WORKFLOW_STATUSES = [
-    "RECEIVED",
-    "DIGITIZING",
-    "VALIDATION_REQUIRED",
-    "VERIFIED",
-    "MATCH_DISCREPANCY",
-    "PENDING_APPROVAL",
-  ];
-
+  /* Escape key */
   useEffect(() => {
-    const loadData = async () => {
+    const handler = (e) => { if (e.key === 'Escape') { if (docViewer) setDocViewer(null); else closeDrawer(); } };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [docViewer]);
+
+  /* Spreadsheet effect */
+  useEffect(() => {
+    if (!docViewer) { setSpreadsheetData(null); return; }
+    const ext = (docViewer.fileName || '').toLowerCase();
+    const isSheet = ext.endsWith('.xls') || ext.endsWith('.xlsx') || ext.endsWith('.csv');
+    if (!isSheet && !docViewer.forceSpreadsheet) { setSpreadsheetData(null); return; }
+    let cancelled = false;
+    (async () => {
       try {
-        const allInvoices = await getAllInvoices();
-        const forReview = allInvoices.filter((inv) =>
-          APPROVAL_WORKFLOW_STATUSES.includes(inv.status)
-        );
-        setAllInvoices(forReview);
-        setInvoices(forReview);
-      } catch (error) {
-        console.error("Failed to load approvals", error);
-      } finally {
-        setLoading(false);
-      }
+        const url = docViewer.docId
+          ? `/api/documents/${docViewer.docId}/preview`
+          : `/api/invoices/${docViewer.invoiceId}/preview`;
+        const r = await fetch(url, { cache: 'no-store' });
+        const d = await r.json();
+        if (!cancelled && Array.isArray(d?.data)) setSpreadsheetData(d.data);
+      } catch { }
+    })();
+    return () => { cancelled = true; };
+  }, [docViewer]);
+
+  /* Fetch invoices */
+  useEffect(() => {
+    const load = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch(`/api/invoices?t=${Date.now()}`, { cache: 'no-store' });
+        const data = await res.json();
+        setAllInvoices(Array.isArray(data) ? data : (data.invoices || []));
+      } catch (e) { console.error(e); }
+      finally { setLoading(false); }
     };
-    loadData();
+    load();
   }, []);
 
-  // Apply filter and sort
-  const displayedInvoices = invoices
-    .filter(inv => localStatusFilter === 'ALL' || inv.status === localStatusFilter)
-    .sort((a, b) => {
-      const dateA = new Date(a.receivedAt || a.updatedAt || a.created_at || 0);
-      const dateB = new Date(b.receivedAt || b.updatedAt || b.created_at || 0);
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+  /* Tab filtering */
+  const tab = TABS.find(t => t.key === activeTab);
+  const filtered = allInvoices
+    .filter(inv => !tab.statuses || tab.statuses.includes(inv.status))
+    .filter(inv => {
+      if (!search.trim()) return true;
+      const q = search.toLowerCase();
+      return inv.invoiceNumber?.toLowerCase().includes(q) ||
+        inv.vendorName?.toLowerCase().includes(q) ||
+        inv.id?.toLowerCase().includes(q);
     });
 
-  const toggleFilterDropdown = () => {
-    setFilterDropdownOpen(!filterDropdownOpen);
+  /* Tab counts */
+  const counts = {};
+  TABS.forEach(t => {
+    counts[t.key] = t.statuses
+      ? allInvoices.filter(inv => t.statuses.includes(inv.status)).length
+      : allInvoices.length;
+  });
+
+  /* Open drawer */
+  const openReview = async (inv) => {
+    setDrawerOpen(true);
+    setReviewInvoice(inv);
+    setReviewLoading(true);
+    setPmDocs([]);
+    setFuDocs([]);
+    try {
+      const pmQuery = `/api/pm/documents?invoiceId=${inv.id}${inv.assignedPM ? `&uploadedBy=${inv.assignedPM}` : ''}`;
+      const fuQuery = `/api/finance/documents?invoiceId=${inv.id}${inv.assignedFinanceUser ? `&uploadedBy=${inv.assignedFinanceUser}` : ''}`;
+      const [invRes, pmRes, fuRes] = await Promise.all([
+        fetch(`/api/invoices/${inv.id}`, { cache: 'no-store' }),
+        fetch(pmQuery, { cache: 'no-store' }),
+        fetch(fuQuery, { cache: 'no-store' }),
+      ]);
+      const invData = await invRes.json();
+      const pmData = await pmRes.json();
+      const fuData = await fuRes.json();
+      if (invRes.ok) setReviewInvoice(invData);
+      if (pmRes.ok) {
+        const seen = new Set();
+        const deduped = (pmData.documents || [])
+          .filter(d => d.type !== 'INVOICE')
+          .filter(d => { const k = `${d.type}|${d.fileName}`; if (seen.has(k)) return false; seen.add(k); return true; });
+        setPmDocs(deduped);
+      }
+      if (fuRes.ok) setFuDocs(fuData.documents || []);
+    } catch (e) { console.error(e); }
+    finally { setReviewLoading(false); }
   };
 
-  const handleStatusFilter = (status) => {
-    setLocalStatusFilter(status);
-    setFilterDropdownOpen(false);
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setTimeout(() => { setReviewInvoice(null); setDocViewer(null); }, 300);
   };
 
-  const toggleSortOrder = () => {
-    setSortOrder(sortOrder === 'desc' ? 'asc' : 'desc');
-  };
+  const handleViewDoc = (doc) => setDocViewer({
+    docId: doc.id,
+    fileName: doc.fileName,
+    title: doc.type,
+    forceSpreadsheet: doc.type === 'TIMESHEET',
+  });
 
+  /* ── Render ── */
   return (
-    <div className="space-y-8 max-w-7xl mx-auto h-full pb-10">
-      <PageHeader
-        title="Admin Approval Workflow"
-        subtitle="Review and sign-off on pending invoices"
-        icon="Stamp"
-        accent="amber"
-      />
-      <div className="flex gap-2 justify-end relative">
-        {/* Filter Dropdown */}
-        <div className="relative">
-          <button
-            onClick={toggleFilterDropdown}
-            className={`btn btn-sm gap-2 ${localStatusFilter !== 'ALL' ? 'btn-warning bg-amber-500/20 border-amber-500/40 text-amber-700' : 'btn-ghost bg-white/40 border-white/60'} border shadow-sm`}
-          >
-            <Icon name="Filter" size={16} />
-            Filter
-            {localStatusFilter !== 'ALL' && <span className="badge badge-xs ml-1">1</span>}
-          </button>
-
-          {filterDropdownOpen && (
-            <div className="dropdown-menu dropdown-menu-end z-50 animate-in fade-in slide-in-from-top-2">
-              <ul className="p-1 bg-white/95 backdrop-blur-xl rounded-xl shadow-2xl border border-white/20 min-w-[200px]">
-                <li>
-                  <button
-                    onClick={() => handleStatusFilter('ALL')}
-                    className={`dropdown-item w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between ${localStatusFilter === 'ALL' ? 'bg-amber-500/20 text-amber-700 font-semibold' : 'hover:bg-white/60 text-gray-700'}`}
-                  >
-                    <span>All Statuses</span>
-                    {localStatusFilter === 'ALL' && <Icon name="Check" size={16} />}
-                  </button>
-                </li>
-                <li><div className="divider divider-gray-200 my-1"></div></li>
-                {APPROVAL_WORKFLOW_STATUSES.map((status) => (
-                  <li key={status}>
-                    <button
-                      onClick={() => handleStatusFilter(status)}
-                      className={`dropdown-item w-full text-left px-4 py-2.5 rounded-lg transition-all flex items-center justify-between ${localStatusFilter === status ? 'bg-amber-500/20 text-amber-700 font-semibold' : 'hover:bg-white/60 text-gray-700'}`}
-                    >
-                      <span>{status.replace(/_/g, ' ')}</span>
-                      {localStatusFilter === status && <Icon name="Check" size={16} />}
-                    </button>
-                  </li>
-                ))}
-              </ul>
+    <div className="min-h-screen">
+      {/* ── Page Header ── */}
+      <div className="mb-6">
+        <div className="flex items-center justify-between mb-1">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-600 flex items-center justify-center shadow-sm">
+              <Icon name="ShieldCheck" size={20} />
             </div>
-          )}
+            <div>
+              <h1 className="text-2xl font-black text-slate-800">Approval Workflow Tracker</h1>
+              <p className="text-xs text-slate-400">Real-time tracking of invoice approvals across all stages</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE
+            </span>
+          </div>
         </div>
 
-        {/* Sort Button */}
-        <button
-          onClick={toggleSortOrder}
-          className="btn btn-sm btn-ghost bg-white/40 border border-white/60 shadow-sm gap-2"
-        >
-          <Icon name={sortOrder === 'desc' ? 'SortDesc' : 'SortAsc'} size={16} />
-          Sort
-        </button>
+        {/* Stats bar */}
+        <div className="grid grid-cols-6 gap-3 mt-5">
+          {TABS.map(t => (
+            <button key={t.key} onClick={() => setActiveTab(t.key)}
+              className={`rounded-2xl p-4 text-center transition-all border ${activeTab === t.key ? 'bg-amber-500 text-white border-amber-500 shadow-md shadow-amber-200' : 'bg-white border-slate-100 hover:border-amber-200'}`}>
+              <p className={`text-2xl font-black ${activeTab === t.key ? 'text-white' : 'text-slate-800'}`}>{counts[t.key]}</p>
+              <p className={`text-[10px] font-bold uppercase tracking-widest mt-0.5 ${activeTab === t.key ? 'text-amber-100' : 'text-slate-400'}`}>{t.label}</p>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Main Content */}
-      <div className="min-h-[400px]">
-        {loading ? (
-          <div className="flex flex-col items-center justify-center h-64 space-y-4">
-            <span className="loading loading-bars loading-lg text-amber-500"></span>
-            <p className="text-gray-500 animate-pulse">Retrieving pending approvals...</p>
+      {/* ── Search ── */}
+      <div className="relative mb-4">
+        <Icon name="Search" size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+        <input
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Search by invoice number, vendor name, or ID…"
+          className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-sm text-slate-700 focus:outline-none focus:ring-2 focus:ring-amber-200 placeholder:text-slate-400"
+        />
+      </div>
+
+      {/* ── Tab strip ── */}
+      <div className="flex gap-1 bg-white border border-slate-100 rounded-2xl p-1 mb-4 overflow-x-auto">
+        {TABS.map(t => (
+          <button key={t.key} onClick={() => setActiveTab(t.key)}
+            className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${activeTab === t.key ? 'bg-amber-500 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-50'}`}>
+            {t.label}
+            <span className={`text-[10px] px-1.5 py-0.5 rounded-md font-black ${activeTab === t.key ? 'bg-amber-400 text-white' : 'bg-slate-100 text-slate-500'}`}>{counts[t.key]}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── Invoice List ── */}
+      {loading ? (
+        <div className="flex items-center justify-center h-64">
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-10 h-10 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin" />
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading invoices…</p>
           </div>
-        ) : invoices.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-96 text-gray-400 bg-white/20 rounded-2xl border border-white/40 backdrop-blur-md">
-            <Icon name="CheckCircle" size={48} className="mb-4 opacity-50 text-success" />
-            <p className="text-lg font-medium text-gray-600">All caught up!</p>
-            <p className="text-sm">No vendor submissions or invoices pending approval.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {displayedInvoices.map((invoice, index) => (
-              <motion.div
-                key={invoice.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.1 }}
-                className="group relative flex flex-col p-6 rounded-2xl bg-white/40 border border-white/50 shadow-lg hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-              >
-                {/* Header: status badge top-right */}
-                <div className="flex justify-end mb-3">
-                  <span className="badge badge-warning bg-amber-500/10 text-amber-700 border-none font-semibold text-[10px] uppercase tracking-wide whitespace-nowrap">
-                    {invoice.status?.replace(/_/g, " ") || "Pending"}
-                  </span>
-                </div>
+        </div>
+      ) : filtered.length === 0 ? (
+        <div className="flex flex-col items-center justify-center h-64 bg-white rounded-2xl border border-slate-100">
+          <Icon name="CheckCircle" size={40} className="text-slate-300 mb-3" />
+          <p className="font-bold text-slate-500">No invoices found</p>
+          <p className="text-xs text-slate-400 mt-1">Try a different tab or search term</p>
+        </div>
+      ) : (
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-slate-50 text-[10px] font-bold text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                <th className="py-3 pl-5 text-left">Invoice</th>
+                <th className="py-3 text-left">Vendor</th>
+                <th className="py-3 text-left">Assigned PM</th>
+                <th className="py-3 text-left">PM Status</th>
+                <th className="py-3 text-left">Finance Status</th>
+                <th className="py-3 text-right">Amount</th>
+                <th className="py-3 pr-5 text-right">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map((inv, i) => {
+                const sc = getStatus(inv.status);
+                const pmSc = getApprovalStatus(inv.pmApproval?.status);
+                const fuSc = getApprovalStatus(inv.financeApproval?.status);
+                return (
+                  <tr key={inv.id}
+                    onClick={() => openReview(inv)}
+                    className={`border-t border-slate-50 cursor-pointer transition-colors hover:bg-amber-50/40 ${reviewInvoice?.id === inv.id && drawerOpen ? 'bg-amber-50' : ''}`}>
+                    <td className="py-3 pl-5">
+                      <p className="font-bold text-slate-800 text-xs">{inv.invoiceNumber || inv.id}</p>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{inv.originalName || '—'}</p>
+                    </td>
+                    <td className="py-3">
+                      <p className="font-semibold text-slate-700 text-xs">{inv.vendorName}</p>
+                      {inv.vendorCode && <p className="text-[10px] text-slate-400 font-mono">{inv.vendorCode}</p>}
+                    </td>
+                    <td className="py-3">
+                      <p className="text-xs text-slate-600">{inv.assignedPMName || inv.assignedPM || '—'}</p>
+                    </td>
+                    <td className="py-3">
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg ${pmSc.bg} ${pmSc.text}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${pmSc.dot}`} />{pmSc.label}
+                      </span>
+                    </td>
+                    <td className="py-3">
+                      <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg ${fuSc.bg} ${fuSc.text}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${fuSc.dot}`} />{fuSc.label}
+                      </span>
+                    </td>
+                    <td className="py-3 text-right font-bold text-slate-800 text-xs">{fmt(inv.amount)}</td>
+                    <td className="py-3 pr-5 text-right text-[10px] text-slate-400">{fmtDate(inv.receivedAt || inv.created_at)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
 
-                {/* Identity block: icon + stacked invoice name, inv-id, vendor-id, vendor name */}
-                <div className="flex gap-3 mb-4">
-                  <div className="w-12 h-12 shrink-0 rounded-full bg-amber-500/10 text-amber-600 flex items-center justify-center border border-amber-500/20">
-                    <Icon name="FileClock" size={24} />
+      {/* ══════════════════════════════════════════════
+                REVIEW DRAWER
+            ══════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {drawerOpen && (
+          <>
+            {/* Backdrop */}
+            <motion.div
+              initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black/30 backdrop-blur-sm z-40"
+              onClick={closeDrawer}
+            />
+
+            {/* Drawer */}
+            <motion.div
+              initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 280 }}
+              className="fixed right-0 top-0 h-full w-full max-w-[520px] bg-slate-50 shadow-2xl z-50 flex flex-col">
+
+              {/* ── Drawer Header ── */}
+              <div className="px-6 py-4 bg-white border-b border-slate-100 shrink-0">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Invoice Review</p>
+                    <h2 className="font-black text-slate-800 text-lg">{reviewInvoice?.invoiceNumber || reviewInvoice?.id || '—'}</h2>
                   </div>
-                  <div className="min-w-0 flex-1 space-y-2">
-                    <div>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Invoice name</p>
-                      <p className="font-bold text-gray-800 text-sm leading-tight line-clamp-2 mt-0.5" title={invoice.originalName || invoice.vendorName}>
-                        {invoice.originalName || invoice.vendorName || "—"}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Invoice ID</p>
-                      <p className="font-mono text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded border border-indigo-100 inline-block mt-0.5">
-                        {invoice.id}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Vendor ID</p>
-                      <p className="mt-0.5">
-                        {invoice.vendorCode ? (
-                          <span className="font-mono text-xs font-bold text-purple-600 bg-purple-50 px-2 py-1 rounded border border-purple-100">
-                            {invoice.vendorCode}
-                          </span>
-                        ) : (
-                          <span className="text-gray-400 text-xs">—</span>
-                        )}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Vendor name</p>
-                      <p className="text-sm font-medium text-gray-700 truncate mt-0.5">{invoice.vendorName || "—"}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Details: aligned label | value grid */}
-                <div className="flex-1 mb-5">
-                  <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-2.5 text-sm">
-                    <dt className="text-gray-500 min-w-[5rem]">Amount</dt>
-                    <dd className="text-right font-bold text-gray-800">
-                      {invoice.amount != null
-                        ? new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR" }).format(invoice.amount)
-                        : "—"}
-                    </dd>
-                    <dt className="text-gray-500">Submitted</dt>
-                    <dd className="text-right text-gray-700">
-                      {invoice.receivedAt ? new Date(invoice.receivedAt).toLocaleDateString() : invoice.dueDate || "—"}
-                    </dd>
-                    <dt className="text-gray-500">Category</dt>
-                    <dd className="text-right text-gray-700">{invoice.category || "—"}</dd>
-                  </dl>
-                </div>
-
-                {/* Action: only Review & Approve */}
-                <div className="mt-2">
-                  <Link href={`/approvals/${invoice.id}`} className="w-full block">
-                    <button className="btn btn-warning btn-outline w-full hover:text-white! shadow-lg shadow-warning/10 group-hover:scale-[1.02] transition-transform gap-2">
-                      Review & Approve
-                      <Icon name="ArrowRight" size={18} />
+                  <div className="flex items-center gap-2">
+                    {reviewInvoice && (
+                      <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl ${getStatus(reviewInvoice.status).bg} ${getStatus(reviewInvoice.status).text}`}>
+                        <span className={`w-2 h-2 rounded-full ${getStatus(reviewInvoice.status).dot}`} />
+                        {getStatus(reviewInvoice.status).label}
+                      </span>
+                    )}
+                    <button onClick={closeDrawer}
+                      className="w-8 h-8 rounded-xl hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-all">
+                      <Icon name="X" size={18} />
                     </button>
-                  </Link>
+                  </div>
                 </div>
+              </div>
 
-                {/* Decorative corner */}
-                <div className="absolute top-0 right-0 w-20 h-20 bg-linear-to-br from-white/20 to-transparent rounded-tr-2xl pointer-events-none -z-10" aria-hidden></div>
-              </motion.div>
-            ))}
-          </div>
+              {/* ── Drawer Body ── */}
+              <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 min-h-0">
+                {reviewLoading ? (
+                  <div className="flex flex-col items-center justify-center h-48 gap-3">
+                    <div className="w-8 h-8 border-4 border-amber-200 border-t-amber-500 rounded-full animate-spin" />
+                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Loading…</p>
+                  </div>
+                ) : reviewInvoice ? (
+                  <>
+                    {/* 1. Vendor Details */}
+                    <Section title="Vendor Details" icon="Building2" accent="amber">
+                      <div className="grid grid-cols-2 gap-4">
+                        <KV label="Vendor Name" value={reviewInvoice.vendorName} />
+                        <KV label="Vendor ID / Code" value={reviewInvoice.vendorCode || reviewInvoice.vendorId} mono />
+                        <KV label="Invoice Number" value={reviewInvoice.invoiceNumber} mono />
+                        <KV label="PO Number" value={reviewInvoice.poNumber} mono />
+                        <KV label="Project" value={reviewInvoice.project} />
+                        <KV label="Submitted" value={fmtDate(reviewInvoice.receivedAt)} />
+                      </div>
+                    </Section>
+
+                    {/* 2. Vendor Documents */}
+                    <Section title="Vendor Documents" icon="Paperclip" accent="indigo">
+                      <div className="space-y-2">
+                        {/* Primary invoice file */}
+                        {(reviewInvoice.fileUrl || reviewInvoice.originalName) ? (
+                          <div className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-600 flex items-center justify-center shrink-0">
+                                <Icon name="FileText" size={14} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-700 truncate">{reviewInvoice.originalName || 'Invoice Document'}</p>
+                                <p className="text-[10px] text-slate-400">Primary Invoice</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button onClick={() => setDocViewer({ invoiceId: reviewInvoice.id, fileName: reviewInvoice.originalName, title: 'Invoice' })}
+                                className="h-7 px-3 rounded-lg bg-white border border-slate-200 text-indigo-600 text-[10px] font-bold hover:bg-indigo-50 transition-all inline-flex items-center gap-1">
+                                <Icon name="Eye" size={11} /> View
+                              </button>
+                              <a href={`/api/invoices/${reviewInvoice.id}/file`} download={reviewInvoice.originalName || 'invoice'}
+                                className="h-7 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[10px] font-bold hover:bg-slate-50 transition-all inline-flex items-center gap-1">
+                                <Icon name="Download" size={11} /> Download
+                              </a>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-slate-400 italic">No primary invoice file.</p>
+                        )}
+                        {/* Additional vendor docs (Annex, Timesheet, etc.) */}
+                        {reviewInvoice.documents?.map((doc, i) => (
+                          <div key={i} className="flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-slate-100">
+                            <div className="flex items-center gap-2 min-w-0">
+                              <div className="w-8 h-8 rounded-lg bg-violet-100 text-violet-600 flex items-center justify-center shrink-0">
+                                <Icon name="File" size={14} />
+                              </div>
+                              <div className="min-w-0">
+                                <p className="text-xs font-bold text-slate-700 truncate">{doc.fileName || doc.documentId || `Document ${i + 1}`}</p>
+                                <p className="text-[10px] text-slate-400">{doc.type}</p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button onClick={() => setDocViewer({ docId: doc.documentId, fileName: doc.fileName || doc.documentId, title: doc.type, forceSpreadsheet: doc.type === 'TIMESHEET' })}
+                                className="h-7 px-3 rounded-lg bg-white border border-slate-200 text-violet-600 text-[10px] font-bold hover:bg-violet-50 transition-all inline-flex items-center gap-1">
+                                <Icon name="Eye" size={11} /> View
+                              </button>
+                              <a href={`/api/documents/${doc.documentId}/file`} download={doc.fileName || doc.documentId}
+                                className="h-7 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[10px] font-bold hover:bg-slate-50 transition-all inline-flex items-center gap-1">
+                                <Icon name="Download" size={11} /> Download
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                        {!reviewInvoice.fileUrl && !reviewInvoice.originalName && (!reviewInvoice.documents || reviewInvoice.documents.length === 0) && (
+                          <p className="text-xs text-slate-400 italic text-center py-3">No documents attached by vendor.</p>
+                        )}
+                      </div>
+                    </Section>
+
+
+                    {/* 3. PM Review */}
+                    <Section title="PM Review" icon="UserCheck" accent="violet">
+                      {(() => {
+                        const pmSc = getApprovalStatus(reviewInvoice.pmApproval?.status);
+                        return (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Project Manager</p>
+                                <p className="font-bold text-slate-800">{reviewInvoice.assignedPMName || reviewInvoice.assignedPM || '—'}</p>
+                              </div>
+                              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl ${pmSc.bg} ${pmSc.text}`}>
+                                <span className={`w-2 h-2 rounded-full ${pmSc.dot}`} />
+                                {pmSc.label}
+                              </span>
+                            </div>
+                            {reviewInvoice.pmApproval?.approvedAt && (
+                              <p className="text-xs text-slate-400">Reviewed on {fmtDate(reviewInvoice.pmApproval.approvedAt)}</p>
+                            )}
+                            {reviewInvoice.pmApproval?.notes && (
+                              <div className={`rounded-xl p-3 border text-sm ${pmSc.bg} ${pmSc.text} border-current/10`}>
+                                <p className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">PM Notes</p>
+                                <p className="font-medium">{reviewInvoice.pmApproval.notes}</p>
+                              </div>
+                            )}
+                            {pmDocs.length > 0 && (
+                              <div className="mt-1">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Documents Added by PM</p>
+                                <div className="space-y-1.5">
+                                  {pmDocs.map((doc, i) => (
+                                    <DocRow key={doc.id || i} doc={doc} i={i} onView={handleViewDoc} accentColor="violet" />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {pmDocs.length === 0 && !reviewInvoice.pmApproval?.notes && (
+                              <p className="text-xs text-slate-400 italic">No PM review yet.</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </Section>
+
+                    {/* 4. FU Review */}
+                    <Section title="Finance Review" icon="Landmark" accent="sky">
+                      {(() => {
+                        const fuSc = getApprovalStatus(reviewInvoice.financeApproval?.status);
+                        return (
+                          <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Finance User</p>
+                                <p className="font-bold text-slate-800">{reviewInvoice.assignedFinanceUser || '—'}</p>
+                              </div>
+                              <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl ${fuSc.bg} ${fuSc.text}`}>
+                                <span className={`w-2 h-2 rounded-full ${fuSc.dot}`} />
+                                {fuSc.label}
+                              </span>
+                            </div>
+                            {reviewInvoice.financeApproval?.approvedAt && (
+                              <p className="text-xs text-slate-400">Reviewed on {fmtDate(reviewInvoice.financeApproval.approvedAt)}</p>
+                            )}
+                            {reviewInvoice.financeApproval?.notes && (
+                              <div className={`rounded-xl p-3 border text-sm ${fuSc.bg} ${fuSc.text} border-current/10`}>
+                                <p className="text-[10px] font-bold uppercase tracking-widest mb-1 opacity-70">Finance Notes</p>
+                                <p className="font-medium">{reviewInvoice.financeApproval.notes}</p>
+                              </div>
+                            )}
+                            {fuDocs.length > 0 && (
+                              <div className="mt-1">
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Documents Added by Finance</p>
+                                <div className="space-y-1.5">
+                                  {fuDocs.map((doc, i) => (
+                                    <DocRow key={doc.id || i} doc={doc} i={i} onView={handleViewDoc} accentColor="sky" />
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                            {fuDocs.length === 0 && !reviewInvoice.financeApproval?.notes && (
+                              <p className="text-xs text-slate-400 italic">No finance review yet.</p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </Section>
+                  </>
+                ) : (
+                  <p className="text-sm text-slate-400 text-center py-20">No invoice selected.</p>
+                )}
+              </div>
+            </motion.div>
+          </>
         )}
-      </div>
+      </AnimatePresence>
+
+      {/* ══════════════════════════════════════════════
+                DOCUMENT VIEWER MODAL
+            ══════════════════════════════════════════════ */}
+      <AnimatePresence>
+        {docViewer && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-[60] p-4"
+            onClick={() => setDocViewer(null)}>
+            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              onClick={e => e.stopPropagation()}
+              className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] shadow-2xl border border-slate-100 overflow-hidden flex flex-col">
+              {/* Header */}
+              <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/70 shrink-0">
+                <div>
+                  <h3 className="font-bold text-slate-800 text-sm">{docViewer.title || 'Document'}</h3>
+                  <p className="text-[10px] text-slate-400">{reviewInvoice?.vendorName}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <a href={docViewer.docId ? `/api/documents/${docViewer.docId}/file` : `/api/invoices/${docViewer.invoiceId}/file`}
+                    download={docViewer.fileName || 'document'}
+                    className="h-8 px-3 rounded-lg bg-white border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-amber-50 hover:text-amber-600 transition-all inline-flex items-center gap-1.5">
+                    <Icon name="Download" size={14} /> Download
+                  </a>
+                  <button onClick={() => setDocViewer(null)}
+                    className="w-8 h-8 rounded-lg hover:bg-slate-200 flex items-center justify-center text-slate-400 hover:text-slate-700 transition-all">
+                    <Icon name="X" size={18} />
+                  </button>
+                </div>
+              </div>
+              {/* Viewer */}
+              <div className="flex-1 bg-slate-100 relative min-h-0 overflow-y-auto" style={{ minHeight: '60vh' }}>
+                <DocumentViewer
+                  invoiceId={docViewer.invoiceId}
+                  fileName={docViewer.fileName}
+                  spreadsheetData={spreadsheetData}
+                  customFileUrl={docViewer.docId ? `/api/documents/${docViewer.docId}/file` : null}
+                  forceSpreadsheet={docViewer.forceSpreadsheet}
+                />
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

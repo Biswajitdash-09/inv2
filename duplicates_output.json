@@ -1,0 +1,22 @@
+{
+  "target": "finance.user1@company.com",
+  "exactMatches": [
+    {
+      "_id": "6996abc58ac613002d96987e",
+      "id": "fu-001",
+      "email": "finance.user1@company.com",
+      "passwordHash": "$2b$10$UBKR10rBlWzOsU36lMamKematN0XtQtBQB2x.oIPVMTYQKzjjm0xW",
+      "passwordHashLength": 60,
+      "role": "Finance User"
+    }
+  ],
+  "looseMatches": [
+    {
+      "_id": "6996abc58ac613002d96987e",
+      "id": "fu-001",
+      "email": "finance.user1@company.com",
+      "passwordHash": "$2b$10$UBKR10rBlWzOsU36lMamKematN0XtQtBQB2x.oIPVMTYQKzjjm0xW",
+      "role": "Finance User"
+    }
+  ]
+}

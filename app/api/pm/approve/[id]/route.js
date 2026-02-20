@@ -220,8 +220,31 @@ export async function POST(request, { params }) {
             userAgent: userAgent
         };
 
+        // Resolve Finance User from hierarchy when PM approves.
+        // The PM's `managedBy` field in the User model points to their Finance User.
+        // Without this, the invoice will never appear in any FU's queue.
+        let resolvedFinanceUserId = invoice.assignedFinanceUser || null; // preserve if already set
+        if (action === 'APPROVE' && !resolvedFinanceUserId) {
+            const pmUser = await db.getUserById(session.user.id);
+            if (pmUser?.managedBy) {
+                // Confirm that the managedBy user is indeed a Finance User
+                const fuUser = await db.getUserById(pmUser.managedBy);
+                if (fuUser && [ROLES.FINANCE_USER].includes(getNormalizedRole(fuUser))) {
+                    resolvedFinanceUserId = fuUser.id;
+                    console.log(`[PM Approve] Auto-assigned Finance User ${fuUser.id} (${fuUser.name}) from PM hierarchy.`);
+                } else {
+                    // managedBy might point to an Admin or PM — still safe to set
+                    // so the invoice at minimum appears somewhere. Log it.
+                    console.warn(`[PM Approve] PM managedBy user ${pmUser.managedBy} is not a Finance User role (role: ${fuUser?.role}). Will not auto-assign.`);
+                }
+            } else {
+                console.warn(`[PM Approve] PM user ${session.user.id} has no managedBy set. Invoice will not appear in any FU queue.`);
+            }
+        }
+
         const updatedInvoice = await db.saveInvoice(id, {
             pmApproval,
+            assignedFinanceUser: resolvedFinanceUserId,
             status: newStatus,
             auditUsername: session.user.name || session.user.email,
             auditAction: `PM_${action}`,
@@ -295,7 +318,8 @@ export async function POST(request, { params }) {
         // Notify Finance User about PM decision (approve or reject)
         try {
             await connectToDatabase();
-            const financeUserId = invoice.assignedFinanceUser;
+            // Use the resolved FU ID (which may have just been set above)
+            const financeUserId = resolvedFinanceUserId || invoice.assignedFinanceUser;
             if (financeUserId) {
                 const financeUser = await db.getUserById(financeUserId);
                 const invoiceLabel = updatedInvoice.invoiceNumber || updatedInvoice.id.slice(-6);

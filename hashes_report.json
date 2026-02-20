@@ -1,0 +1,107 @@
+[
+  {
+    "email": "admin@company.com",
+    "role": "Admin",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "finance.user1@company.com",
+    "role": "Finance User",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$UBK..."
+  },
+  {
+    "email": "finance.user2@company.com",
+    "role": "Finance User",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$FSE..."
+  },
+  {
+    "email": "pm.sales@company.com",
+    "role": "PM",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "pm.marketing@company.com",
+    "role": "PM",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "pm.operations@company.com",
+    "role": "PM",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "vendor@technovasolutions.com",
+    "role": "Vendor",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "vendor@blupeakent.com",
+    "role": "Vendor",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "vendor@meridianglobal.com",
+    "role": "Vendor",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "vendor@apexdigitalworks.com",
+    "role": "Vendor",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "vendor@stellarsupplies.com",
+    "role": "Vendor",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "vendor@crestlineind.com",
+    "role": "Vendor",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "vendor@horizontradegroup.com",
+    "role": "Vendor",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "vendor@nexbridgepartners.com",
+    "role": "Vendor",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  },
+  {
+    "email": "test@test.com",
+    "role": "Vendor",
+    "hashLength": 60,
+    "isTruncated": false,
+    "hashPrefix": "$2b$10$PM1..."
+  }
+]

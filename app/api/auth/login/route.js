@@ -41,6 +41,7 @@ export async function POST(request) {
 
         // Verify password
         const isValid = await bcrypt.compare(password, user.password_hash);
+
         if (!isValid) {
             return NextResponse.json(
                 { error: 'Incorrect password. Please try again.' },

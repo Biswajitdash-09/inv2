@@ -97,7 +97,7 @@ const TABS = [
   { key: 'all', label: 'All' },
   { key: 'vendor', label: 'Vendor Stage', statuses: ['Submitted'] },
   { key: 'pm', label: 'PM Review', statuses: ['Pending PM Approval', 'More Info Needed'] },
-  { key: 'finance', label: 'Finance Done', statuses: ['Pending Finance Review'] },
+  { key: 'finance', label: 'Pending Finance', statuses: ['Pending Finance Review'] },
   { key: 'approved', label: 'Fully Approved', statuses: ['Finance Approved', 'PM Approved'] },
   { key: 'rejected', label: 'Rejected', statuses: ['PM Rejected', 'Finance Rejected'] },
 ];
@@ -132,6 +132,10 @@ function AdminApprovalsContent() {
   /* Doc viewer */
   const [docViewer, setDocViewer] = useState(null);
   const [spreadsheetData, setSpreadsheetData] = useState(null);
+
+  /* Auto-refresh polling */
+  const pollIntervalRef = useRef(null);
+  const POLL_INTERVAL = 8000; // 8 seconds
 
   /* Auth guard */
   useEffect(() => {
@@ -169,18 +173,36 @@ function AdminApprovalsContent() {
     return () => { cancelled = true; };
   }, [docViewer]);
 
-  /* Fetch invoices */
+  /* Fetch invoices with auto-refresh */
+  const fetchInvoices = async (silent = false) => {
+    try {
+      if (!silent) setLoading(true);
+      const res = await fetch(`/api/invoices?t=${Date.now()}`, { cache: 'no-store' });
+      const data = await res.json();
+      setAllInvoices(Array.isArray(data) ? data : (data.invoices || []));
+    } catch (e) { 
+      if (!silent) console.error('Failed to fetch invoices:', e); 
+    }
+    finally { 
+      if (!silent) setLoading(false); 
+    }
+  };
+
   useEffect(() => {
-    const load = async () => {
-      try {
-        setLoading(true);
-        const res = await fetch(`/api/invoices?t=${Date.now()}`, { cache: 'no-store' });
-        const data = await res.json();
-        setAllInvoices(Array.isArray(data) ? data : (data.invoices || []));
-      } catch (e) { console.error(e); }
-      finally { setLoading(false); }
+    // Initial load
+    fetchInvoices();
+    
+    // Set up auto-refresh polling
+    pollIntervalRef.current = setInterval(() => {
+      fetchInvoices(true); // Silent refresh
+    }, POLL_INTERVAL);
+
+    // Cleanup on unmount
+    return () => {
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+      }
     };
-    load();
   }, []);
 
   /* Tab filtering */
@@ -262,6 +284,13 @@ function AdminApprovalsContent() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => fetchInvoices()}
+              className="inline-flex items-center gap-1.5 text-[10px] font-bold text-slate-600 bg-slate-50 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-100 transition-colors"
+              title="Refresh invoices"
+            >
+              <Icon name="RefreshCw" size={12} /> Refresh
+            </button>
             <span className="inline-flex items-center gap-1.5 text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-1.5 rounded-xl border border-emerald-200">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" /> LIVE
             </span>

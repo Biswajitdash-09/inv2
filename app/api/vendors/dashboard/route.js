@@ -3,7 +3,33 @@ import { getCurrentUser } from '@/lib/server-auth';
 import { db } from '@/lib/db';
 import { ROLES } from '@/constants/roles';
 import connectToDatabase from '@/lib/mongodb';
+import connectToDatabase from '@/lib/mongodb';
 import DocumentUpload from '@/models/DocumentUpload';
+import RateCard from '@/models/RateCard';
+
+// Helper to log to DB for production debugging
+const logToDb = async (level, message, details = {}) => {
+    try {
+        console.log(`[${level}] ${message}`, details); // Consoles for Vercel logs
+        // Also save to a debug collection for persistence
+        await connectToDatabase();
+        if (db && db.createDebugLog) {
+             await db.createDebugLog({ level, message, details, timestamp: new Date() });
+        } else {
+             // Fallback if db helper helper missing, direct insert if possible or just console
+             const mongoose = await import('mongoose');
+             const DebugLog = mongoose.models.DebugLog || mongoose.model('DebugLog', new mongoose.Schema({
+                 level: String,
+                 message: String,
+                 details: Object,
+                 timestamp: Date
+             }));
+             await DebugLog.create({ level, message, details, timestamp: new Date() });
+        }
+    } catch (e) {
+        console.error('Failed to log to DB:', e);
+    }
+};
 
 export const dynamic = 'force-dynamic';
 
@@ -13,8 +39,10 @@ export async function GET(request) {
         const user = await getCurrentUser();
 
         if (!user) {
+            await logToDb('WARN', 'Unauthorized access attempt in /api/vendors/dashboard');
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
         }
+        await logToDb('INFO', `Vendor dashboard access`, { userId: user.id, email: user.email, role: user.role });
 
         // Verify user has Vendor role or is an Admin
         const role = user.role;
@@ -24,6 +52,7 @@ export async function GET(request) {
 
         // Fetch invoices with RBAC filtering (Vendor only sees their own invoices via submittedByUserId)
         const invoices = await db.getInvoices(user);
+        await logToDb('INFO', `Fetched invoices for vendor`, { count: invoices.length, userId: user.id });
 
         // Fetch additional documents for all invoices
         await connectToDatabase();
@@ -57,11 +86,28 @@ export async function GET(request) {
             totalBillingVolume: invoices.reduce((sum, inv) => sum + (inv.amount || 0), 0)
         };
 
-        // Fetch active rate cards for the vendor
-        const rateCardRes = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/vendor/rate-cards`, {
-            headers: { cookie: request.headers.get('cookie') || '' }
-        });
-        const rateCards = rateCardRes.ok ? await rateCardRes.json() : [];
+        // Fetch active rate cards for the vendor directly from DB (avoid self-fetch)
+        let rateCards = [];
+        try {
+            if (user.vendorId) {
+                const conditions = [
+                    { vendorId: user.vendorId },
+                    { status: 'ACTIVE' },
+                    {
+                        $or: [
+                            { effectiveTo: null },
+                            { effectiveTo: { $exists: false } },
+                            { effectiveTo: { $gte: new Date() } }
+                        ]
+                    }
+                ];
+                rateCards = await RateCard.find({ $and: conditions }).sort({ projectId: -1, effectiveFrom: -1 }).lean();
+            }
+        } catch (rcError) {
+            console.error('Failed to fetch rate cards directly:', rcError);
+            await logToDb('ERROR', `Rate card fetch failed`, { error: rcError.message });
+            // Don't crash dashboard if rate cards fail
+        }
 
         // Return stats, filtered invoices, and rate cards
         return NextResponse.json({
@@ -72,6 +118,7 @@ export async function GET(request) {
 
     } catch (error) {
         console.error('Vendor dashboard API error:', error);
+        await logToDb('ERROR', `Vendor dashboard API crash: ${error.message}`, { stack: error.stack });
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
     }
 }

@@ -10,6 +10,7 @@ import DocumentViewer from '@/components/ui/DocumentViewer';
 /* ─── helpers ─────────────────────────────────────────────── */
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
 const STATUS_STYLES = {
     [INVOICE_STATUS.PENDING_PM_APPROVAL]: { bg: 'bg-indigo-50', text: 'text-indigo-700', dot: 'bg-indigo-500', label: 'Pending Your Review' },
@@ -370,11 +371,21 @@ export default function PMApprovalQueuePage() {
                                                     <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg ${pmBadge}`}>
                                                         <Icon name={pmIcon} size={10} /> {pmLabel}
                                                     </span>
+                                                    {inv.pmApproval?.approvedAt && (
+                                                        <p className="text-[9px] text-slate-400 mt-1">
+                                                            {inv.pmApproval?.approvedByName || 'PM'} · {fmtDateTime(inv.pmApproval.approvedAt)}
+                                                        </p>
+                                                    )}
                                                 </td>
                                                 <td className="py-3 pr-5 text-center">
                                                     <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-lg ${fuBadge}`}>
                                                         <Icon name={fuIcon} size={10} /> {fuLabel}
                                                     </span>
+                                                    {inv.financeApproval?.approvedAt && (
+                                                        <p className="text-[9px] text-slate-400 mt-1">
+                                                            {inv.financeApproval?.approvedByName || 'Finance'} · {fmtDateTime(inv.financeApproval.approvedAt)}
+                                                        </p>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );
@@ -805,9 +816,16 @@ export default function PMApprovalQueuePage() {
                                 <div className="border-t border-slate-200 bg-white px-6 py-4 shrink-0">
                                     <div className={`flex items-center gap-2 p-3 rounded-xl ${reviewInvoice.pmApproval?.status === 'APPROVED' ? 'bg-emerald-50 border border-emerald-200 text-emerald-700' : 'bg-rose-50 border border-rose-200 text-rose-700'}`}>
                                         <Icon name={reviewInvoice.pmApproval?.status === 'APPROVED' ? 'CheckCircle2' : 'XCircle'} size={16} />
-                                        <span className="text-sm font-bold">
-                                            {reviewInvoice.pmApproval?.status === 'APPROVED' ? 'You approved this invoice — forwarded to Finance' : 'You rejected this invoice'}
-                                        </span>
+                                        <div>
+                                            <span className="text-sm font-bold">
+                                                {reviewInvoice.pmApproval?.status === 'APPROVED' ? 'You approved this invoice — forwarded to Finance' : 'You rejected this invoice'}
+                                            </span>
+                                            {reviewInvoice.pmApproval?.approvedAt && (
+                                                <p className="text-[10px] opacity-70 mt-0.5">
+                                                    {fmtDateTime(reviewInvoice.pmApproval.approvedAt)}
+                                                </p>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             )}

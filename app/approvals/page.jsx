@@ -11,6 +11,7 @@ import DocumentViewer from '@/components/ui/DocumentViewer';
 /* ─── helpers ─────────────────────────────────────────────── */
 const fmt = (n) => `₹${Number(n || 0).toLocaleString('en-IN')}`;
 const fmtDate = (d) => d ? new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+const fmtDateTime = (d) => d ? new Date(d).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
 
 const STATUS_MAP = {
   'Submitted': { bg: 'bg-slate-100', text: 'text-slate-600', dot: 'bg-slate-400', label: 'Submitted' },
@@ -383,11 +384,25 @@ function AdminApprovalsContent() {
                       <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg ${pmSc.bg} ${pmSc.text}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${pmSc.dot}`} />{pmSc.label}
                       </span>
+                      {inv.pmApproval?.approvedAt && (
+                        <div className="mt-1">
+                          <p className="text-[9px] text-slate-400 leading-tight">
+                            {inv.pmApproval?.approvedByName || 'PM'} · {fmtDateTime(inv.pmApproval.approvedAt)}
+                          </p>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3">
                       <span className={`inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-lg ${fuSc.bg} ${fuSc.text}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${fuSc.dot}`} />{fuSc.label}
                       </span>
+                      {inv.financeApproval?.approvedAt && (
+                        <div className="mt-1">
+                          <p className="text-[9px] text-slate-400 leading-tight">
+                            {inv.financeApproval?.approvedByName || 'Finance'} · {fmtDateTime(inv.financeApproval.approvedAt)}
+                          </p>
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 text-right font-bold text-slate-800 text-xs">{fmt(inv.amount)}</td>
                     <td className="py-3 pr-5 text-right text-[10px] text-slate-400">{fmtDate(inv.receivedAt || inv.created_at)}</td>
@@ -538,7 +553,7 @@ function AdminApprovalsContent() {
                               </span>
                             </div>
                             {reviewInvoice.pmApproval?.approvedAt && (
-                              <p className="text-xs text-slate-400">Reviewed on {fmtDate(reviewInvoice.pmApproval.approvedAt)}</p>
+                              <p className="text-xs text-slate-400">{reviewInvoice.pmApproval?.approvedByName || 'PM'} · {fmtDateTime(reviewInvoice.pmApproval.approvedAt)}</p>
                             )}
                             {reviewInvoice.pmApproval?.notes && (
                               <div className={`rounded-xl p-3 border text-sm ${pmSc.bg} ${pmSc.text} border-current/10`}>
@@ -581,7 +596,7 @@ function AdminApprovalsContent() {
                               </span>
                             </div>
                             {reviewInvoice.financeApproval?.approvedAt && (
-                              <p className="text-xs text-slate-400">Reviewed on {fmtDate(reviewInvoice.financeApproval.approvedAt)}</p>
+                              <p className="text-xs text-slate-400">{reviewInvoice.financeApproval?.approvedByName || 'Finance'} · {fmtDateTime(reviewInvoice.financeApproval.approvedAt)}</p>
                             )}
                             {reviewInvoice.financeApproval?.notes && (
                               <div className={`rounded-xl p-3 border text-sm ${fuSc.bg} ${fuSc.text} border-current/10`}>

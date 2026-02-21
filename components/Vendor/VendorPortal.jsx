@@ -216,6 +216,18 @@ const VendorPortal = ({ onUploadClick }) => {
                                                             )}
                                                         </div>
                                                     )}
+                                                    {/* Show PM approval timestamp */}
+                                                    {inv.pmApproval?.approvedAt && inv.pmApproval?.status !== 'INFO_REQUESTED' && (
+                                                        <p className="text-[9px] text-slate-400 mt-1">
+                                                            PM: {inv.pmApproval?.approvedByName || 'PM'} · {new Date(inv.pmApproval.approvedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    )}
+                                                    {/* Show Finance approval timestamp */}
+                                                    {inv.financeApproval?.approvedAt && (
+                                                        <p className="text-[9px] text-slate-400 mt-0.5">
+                                                            Finance: {inv.financeApproval?.approvedByName || 'Finance'} · {new Date(inv.financeApproval.approvedAt).toLocaleString('en-IN', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                                                        </p>
+                                                    )}
                                                 </div>
                                             </td>
                                             <td className="px-8 py-6 text-right">

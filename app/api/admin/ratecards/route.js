@@ -63,7 +63,7 @@ export async function POST(request) {
             return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
         }
 
-        const roleCheck = requireRole([ROLES.ADMIN, ROLES.PROJECT_MANAGER])(session.user);
+        const roleCheck = requireRole([ROLES.ADMIN])(session.user);
         if (!roleCheck.allowed) {
             return NextResponse.json({ error: roleCheck.reason }, { status: 403 });
         }

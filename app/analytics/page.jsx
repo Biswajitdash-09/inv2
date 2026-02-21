@@ -3,8 +3,30 @@
 import { motion } from "framer-motion";
 import Icon from "@/components/Icon";
 import AnalyticsDashboard from "@/components/Analytics/AnalyticsDashboard";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES, getNormalizedRole } from "@/constants/roles";
+import { useEffect } from "react";
 
 export default function AnalyticsPage() {
+  const router = useRouter();
+  const { user, isLoading: authLoading } = useAuth();
+  const role = getNormalizedRole(user);
+
+  useEffect(() => {
+    if (!authLoading && (!user || role !== ROLES.ADMIN)) {
+      router.push("/dashboard");
+    }
+  }, [user, authLoading, role, router]);
+
+  if (authLoading || !user || role !== ROLES.ADMIN) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <span className="loading loading-spinner loading-lg text-primary"></span>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8 max-w-7xl mx-auto h-full pb-10">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">

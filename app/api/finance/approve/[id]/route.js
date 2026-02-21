@@ -120,6 +120,7 @@ export async function POST(request, { params }) {
         const financeApproval = {
             status: statusMap[action],
             approvedBy: session.user.id,
+            approvedByName: session.user.name || session.user.email,
             approvedByRole: role,
             approvedAt: new Date().toISOString(),
             notes: notes || null

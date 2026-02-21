@@ -190,6 +190,7 @@ export async function POST(request, { params }) {
         const pmApproval = {
             status: statusMap[action],
             approvedBy: session.user.id,
+            approvedByName: session.user.name || session.user.email,
             approvedByRole: userRole,
             approvedAt: new Date().toISOString(),
             notes: notes || null

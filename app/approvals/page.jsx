@@ -577,7 +577,7 @@ function AdminApprovalsContent() {
                                 </div>
                               </div>
                             )}
-                            {pmDocs.length === 0 && !reviewInvoice.pmApproval?.notes && (
+                            {pmDocs.length === 0 && !reviewInvoice.pmApproval?.notes && (!reviewInvoice.pmApproval?.status || reviewInvoice.pmApproval?.status === 'PENDING') && (
                               <p className="text-xs text-slate-400 italic">No PM review yet.</p>
                             )}
                           </div>

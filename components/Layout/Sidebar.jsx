@@ -60,7 +60,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     };
 
     fetchUnread();
-    const interval = setInterval(fetchUnread, 8000); // Sync with dashboard (8s)
+    const interval = setInterval(fetchUnread, 30000);
     return () => clearInterval(interval);
   }, [user]);
 
@@ -83,7 +83,7 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
     };
 
     fetchRecheckUnread();
-    const interval = setInterval(fetchRecheckUnread, 8000); // Sync with dashboard (8s)
+    const interval = setInterval(fetchRecheckUnread, 30000);
     return () => clearInterval(interval);
   }, [user]);
 

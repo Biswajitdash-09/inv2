@@ -53,7 +53,7 @@ const NotificationLog = ({ relatedEntityId }) => {
         };
 
         fetchAll();
-        const interval = setInterval(fetchAll, 5000);
+        const interval = setInterval(fetchAll, 30000);
         return () => clearInterval(interval);
     }, [relatedEntityId]);
 

@@ -5,8 +5,15 @@ import api from "@/lib/axios";
 import { toast } from "sonner";
 import Icon from "@/components/Icon";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
+import { ROLES, getNormalizedRole } from "@/constants/roles";
 
 export default function AuditLogPage() {
+    const router = useRouter();
+    const { user, isLoading: authLoading } = useAuth();
+    const role = getNormalizedRole(user);
+
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState("");
@@ -16,8 +23,16 @@ export default function AuditLogPage() {
     const itemsPerPage = 20;
 
     useEffect(() => {
-        fetchLogs();
-    }, []);
+        if (!authLoading && (!user || role !== ROLES.ADMIN)) {
+            router.push("/dashboard");
+        }
+    }, [user, authLoading, role, router]);
+
+    useEffect(() => {
+        if (role === ROLES.ADMIN) {
+            fetchLogs();
+        }
+    }, [role]);
 
     const fetchLogs = async () => {
         try {
@@ -167,6 +182,14 @@ export default function AuditLogPage() {
             setExporting(false);
         }
     };
+
+    if (authLoading || !user || role !== ROLES.ADMIN) {
+        return (
+            <div className="min-h-screen flex items-center justify-center">
+                <span className="loading loading-spinner loading-lg text-primary"></span>
+            </div>
+        );
+    }
 
     return (
         <div className="px-4 sm:px-8 py-6 sm:py-8 max-w-7xl mx-auto">

@@ -110,7 +110,7 @@ export default function FinanceDashboardPage() {
             label: 'MTD Spend', value: `₹${thisMonthSpend.toLocaleString('en-IN')}`,
             subtitle: 'Month-to-date total', icon: 'IndianRupee',
             border: 'border-emerald-200', iconBg: 'bg-emerald-50', iconColor: 'text-emerald-600',
-            link: '/analytics', isAmount: true
+            link: null, isAmount: true
         },
         {
             label: 'Processed (WoW)', value: processedThisWeek,
@@ -130,15 +130,7 @@ export default function FinanceDashboardPage() {
         {
             label: 'Approval Queue', icon: 'CheckCircle2', desc: 'Review pending invoices', link: '/finance/approval-queue',
             iconClasses: 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'
-        },
-        ...(role === ROLES.FINANCE_USER ? [{
-            label: 'Manual Entry', icon: 'FilePlus2', desc: 'Create invoice record', link: '/finance/manual-entry',
-            iconClasses: 'bg-violet-50 text-violet-600 group-hover:bg-violet-600 group-hover:text-white'
-        }] : []),
-        {
-            label: 'Analytics', icon: 'BarChart3', desc: 'View financial reports', link: '/analytics',
-            iconClasses: 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white'
-        },
+        }
     ];
 
     return (

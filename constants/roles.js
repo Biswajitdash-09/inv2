@@ -63,12 +63,12 @@ export const MENU_PERMISSIONS = {
     'PM Approval Queue': [ROLES.PROJECT_MANAGER],
     'Documents': [ROLES.FINANCE_USER, ROLES.PROJECT_MANAGER],
     'Messages': [ROLES.ADMIN, ROLES.PROJECT_MANAGER, ROLES.VENDOR, ROLES.FINANCE_USER],
-    'Analytics': [ROLES.ADMIN, ROLES.FINANCE_USER],
+    'Analytics': [ROLES.ADMIN],
     'Finance Approval Queue': [ROLES.FINANCE_USER],
-    'Manual Entry': [ROLES.FINANCE_USER],
+    'Manual Entry': [ROLES.ADMIN],
     'Configuration': [ROLES.ADMIN],
     'User Management': [ROLES.ADMIN],
-    'Audit Logs': [ROLES.ADMIN, ROLES.FINANCE_USER],
+    'Audit Logs': [ROLES.ADMIN],
     'Rate Cards': [ROLES.ADMIN, ROLES.PROJECT_MANAGER, ROLES.FINANCE_USER, ROLES.VENDOR],
     'Hierarchy': [ROLES.ADMIN],
     'Re-check Requests': [ROLES.VENDOR]
@@ -104,12 +104,13 @@ export const hasPermission = (user, action, resource = null) => {
             return [ROLES.ADMIN, ROLES.FINANCE_USER].includes(effectiveRole);
 
         case 'PROCESS_DISCREPANCIES':
-        case 'MANUAL_ENTRY':
             return effectiveRole === ROLES.FINANCE_USER;
+        case 'MANUAL_ENTRY':
+            return effectiveRole === ROLES.ADMIN;
 
         case 'VIEW_AUDIT_LOGS':
         case 'VIEW_COMPLIANCE':
-            return [ROLES.ADMIN, ROLES.FINANCE_USER].includes(effectiveRole);
+            return effectiveRole === ROLES.ADMIN;
 
         case 'SUBMIT_INVOICE':
             return [ROLES.VENDOR, ROLES.FINANCE_USER].includes(effectiveRole);

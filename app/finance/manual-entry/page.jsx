@@ -44,7 +44,7 @@ const ManualInvoiceEntryPage = () => {
     };
 
     useEffect(() => {
-        if (!authLoading && (!user || role !== ROLES.FINANCE_USER)) {
+        if (!authLoading && (!user || role !== ROLES.ADMIN)) {
             router.push('/dashboard');
         }
     }, [user, authLoading, role, router]);
@@ -129,7 +129,7 @@ const ManualInvoiceEntryPage = () => {
     const labelClass = 'block text-sm font-medium text-slate-700 mb-2';
     const requiredSpan = <span className="text-rose-500">*</span>;
 
-    if (authLoading || !user || role !== ROLES.FINANCE_USER) {
+    if (authLoading || !user || role !== ROLES.ADMIN) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <span className="loading loading-spinner loading-lg text-primary"></span>

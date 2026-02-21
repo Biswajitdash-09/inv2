@@ -252,7 +252,13 @@ function AdminApprovalsContent() {
           .filter(d => { const k = `${d.type}|${d.fileName}`; if (seen.has(k)) return false; seen.add(k); return true; });
         setPmDocs(deduped);
       }
-      if (fuRes.ok) setFuDocs(fuData.documents || []);
+      if (fuRes.ok) {
+        const seen = new Set();
+        const deduped = (fuData.documents || [])
+          .filter(d => d.type !== 'INVOICE')
+          .filter(d => { const k = `${d.type}|${d.fileName}`; if (seen.has(k)) return false; seen.add(k); return true; });
+        setFuDocs(deduped);
+      }
     } catch (e) { console.error(e); }
     finally { setReviewLoading(false); }
   };
@@ -588,7 +594,7 @@ function AdminApprovalsContent() {
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">Finance User</p>
-                                <p className="font-bold text-slate-800">{reviewInvoice.assignedFinanceUser || '—'}</p>
+                                <p className="font-bold text-slate-800">{reviewInvoice.assignedFinanceUserName || reviewInvoice.financeApproval?.approvedByName || '—'}</p>
                               </div>
                               <span className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl ${fuSc.bg} ${fuSc.text}`}>
                                 <span className={`w-2 h-2 rounded-full ${fuSc.dot}`} />

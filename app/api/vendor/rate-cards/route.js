@@ -41,20 +41,11 @@ export async function GET(request) {
         // Build query:
         // - Must match this vendor
         // - Must be ACTIVE status
-        // - Must not be expired (effectiveTo is null, missing, or in the future)
         // - Optionally filter by projectId (with fallback to global cards)
 
         const conditions = [
             { vendorId: vendorId },
-            { status: 'ACTIVE' },
-            // Handle effectiveTo: null (field exists with null value), missing field, or future date
-            {
-                $or: [
-                    { effectiveTo: null },
-                    { effectiveTo: { $exists: false } },
-                    { effectiveTo: { $gte: new Date() } }
-                ]
-            }
+            { status: 'ACTIVE' }
         ];
 
         // If projectId is specified, return both project-specific and global cards

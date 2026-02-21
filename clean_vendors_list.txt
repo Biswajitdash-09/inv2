@@ -1,0 +1,9 @@
+Found 8 vendors:
+- Apex Digital Works (VEN-AD) ID: 69988e809a4337a411a83a35
+- BluePeak Enterprises (VEN-BP) ID: 69988e809a4337a411a83a29
+- Crestline Industries (VEN-CI) ID: 69988e819a4337a411a83a41
+- Horizon Trade Group (VEN-HT) ID: 69988e819a4337a411a83a47
+- Meridian Global Corp (VEN-MG) ID: 69988e809a4337a411a83a2f
+- NexBridge Partners (VEN-NB) ID: 69988e819a4337a411a83a4d
+- Stellar Supplies Co. (VEN-SS) ID: 69988e809a4337a411a83a3b
+- TechNova Solutions (VEN-TN) ID: 69988e7f9a4337a411a83a23

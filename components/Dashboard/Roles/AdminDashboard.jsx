@@ -62,7 +62,6 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
     const quickActions = [
         { name: "User Management", icon: "Users", path: "/users", color: "from-blue-500 to-blue-600", desc: "Manage system users" },
         { name: "Rate Cards", icon: "CreditCard", path: "/admin/ratecards", color: "from-indigo-500 to-purple-600", desc: "Manage vendor rates" },
-        { name: "Configuration", icon: "Settings", path: "/config", color: "from-purple-500 to-purple-600", desc: "System settings" },
         { name: "Audit Logs", icon: "FileText", path: "/audit", color: "from-teal-500 to-teal-600", desc: "Activity history" },
     ];
 
@@ -232,8 +231,8 @@ const AdminDashboard = ({ invoices = [], onRefresh }) => {
 
                         <div className="flex justify-between items-center text-sm py-1">
                             <span className="text-slate-600">OCR Engine</span>
-                            <span className="flex items-center gap-1.5 text-rose-600 font-medium text-xs">
-                                <span className="w-2 h-2 rounded-full bg-rose-500" /> Disconnected
+                            <span className="flex items-center gap-1.5 text-emerald-600 font-medium text-xs">
+                                <span className="w-2 h-2 rounded-full bg-emerald-500" /> Connected
                             </span>
                         </div>
                         <div className="flex justify-between items-center text-sm py-1">

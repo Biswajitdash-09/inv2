@@ -142,6 +142,7 @@ export default function ConfigurationPage() {
                             <option value="azure">Azure Form Recognizer</option>
                             <option value="aws">AWS Textract</option>
                             <option value="google">Google Document AI</option>
+                            <option value="mindee">MINDEE</option>
                         </select>
                     </div>
                 </div>

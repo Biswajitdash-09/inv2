@@ -115,9 +115,6 @@ export default function ConfigurationPage() {
                             onChange={(e) => setSettings({ ...settings, ocrEngine: e.target.value })}
                             className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
                         >
-                            <option value="azure">Azure Form Recognizer</option>
-                            <option value="aws">AWS Textract</option>
-                            <option value="google">Google Document AI</option>
                             <option value="mindee">MINDEE</option>
                         </select>
                     </div>

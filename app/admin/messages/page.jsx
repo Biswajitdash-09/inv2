@@ -133,7 +133,6 @@ export default function AdminMessagesPage() {
         <div className="pb-10">
             <PageHeader
                 title="Messages Monitor"
-                subtitle="Read-only view of PM ↔ Vendor conversations"
                 icon="Mail"
                 accent="purple"
                 // Admin is already the logged-in role, so no extra actions/sign-out changes needed

@@ -92,30 +92,6 @@ export default function ConfigurationPage() {
                     <p className="text-gray-500 mt-2">Application settings, integrations, and system preferences</p>
                 </div>
             </div>
-            {/* General Settings */}
-            <section className="bg-white/80 backdrop-blur-xl rounded-3xl border border-white/20 shadow-xl p-8">
-                <div className="flex items-center gap-4 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-                        <Icon name="Settings" size={24} />
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-900">General Settings</h2>
-                </div>
-
-                <div className="space-y-5">
-                    <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl">
-                        <div>
-                            <h3 className="font-semibold text-gray-900">Email Notifications</h3>
-                            <p className="text-sm text-gray-500">Send workflow notifications via email</p>
-                        </div>
-                        <button
-                            onClick={() => handleToggle('emailNotifications')}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.emailNotifications ? 'bg-primary' : 'bg-gray-300'}`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow ${settings.emailNotifications ? 'left-7' : 'left-1'}`} />
-                        </button>
-                    </div>
-                </div>
-            </section>
 
             {/* Matching & OCR Settings */}
             <section className="bg-white/80 backdrop-blur-xl rounded-3xl border border-white/20 shadow-xl p-8">
@@ -332,57 +308,7 @@ export default function ConfigurationPage() {
                 </div>
             </section>
 
-            {/* Data & Backup */}
-            <section className="bg-white/80 backdrop-blur-xl rounded-3xl border border-white/20 shadow-xl p-8">
-                <div className="flex items-center gap-4 mb-6">
-                    <div className="w-10 h-10 rounded-xl bg-teal-50 flex items-center justify-center text-teal-600">
-                        <Icon name="HardDrive" size={24} />
-                    </div>
-                    <h2 className="text-xl font-bold text-gray-900">Data & Backup</h2>
-                </div>
 
-                <div className="space-y-5">
-                    <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl">
-                        <div>
-                            <h3 className="font-semibold text-gray-900">Automatic Backup</h3>
-                            <p className="text-sm text-gray-500">Daily incremental backups to cloud storage</p>
-                        </div>
-                        <button
-                            onClick={() => handleToggle('autoBackup')}
-                            className={`w-12 h-6 rounded-full transition-colors relative ${settings.autoBackup ? 'bg-primary' : 'bg-gray-300'}`}
-                        >
-                            <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform shadow ${settings.autoBackup ? 'left-7' : 'left-1'}`} />
-                        </button>
-                    </div>
-
-                    <div className="flex items-center justify-between p-4 bg-gray-50/50 rounded-2xl">
-                        <div>
-                            <h3 className="font-semibold text-gray-900">Audit Log Retention</h3>
-                            <p className="text-sm text-gray-500">Duration to keep detailed audit trails (SOX/IFRS Compliance)</p>
-                        </div>
-                        <select
-                            value={settings.auditRetentionYears}
-                            onChange={(e) => setSettings({ ...settings, auditRetentionYears: parseInt(e.target.value) })}
-                            className="bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary/20"
-                        >
-                            <option value="5">5 Years</option>
-                            <option value="7">7 Years (Recommended)</option>
-                            <option value="10">10 Years</option>
-                        </select>
-                    </div>
-
-                    <div className="pt-4 flex justify-end gap-4">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 rounded-xl hover:bg-gray-50 transition-all">
-                            <Icon name="RefreshCw" size={18} />
-                            Restore from Backup
-                        </button>
-                        <button className="flex items-center gap-2 px-4 py-2 bg-gray-900 text-white rounded-xl shadow-lg shadow-gray-900/20 hover:bg-gray-800 transition-all">
-                            <Icon name="DownloadCloud" size={18} />
-                            Trigger Manual Backup
-                        </button>
-                    </div>
-                </div>
-            </section>
         </div>
     );
 }

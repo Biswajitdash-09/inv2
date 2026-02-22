@@ -9,7 +9,7 @@ import clsx from "clsx";
 import { APP_VERSION } from "@/lib/version";
 import { useAuth } from "@/context/AuthContext";
 import { canSeeMenuItem, ROLES, getNormalizedRole } from "@/constants/roles";
-import { useRouter } from "next/navigation";
+
 import ThemeToggle from "@/components/Layout/ThemeToggle";
 
 const SIDEBAR_COLLAPSED_KEY = "invoiceflow-sidebar-collapsed";
@@ -30,8 +30,8 @@ const menuItems = [
 
 const Sidebar = ({ mobileOpen, setMobileOpen }) => {
   const pathname = usePathname();
-  const router = useRouter();
-  const { user, logout } = useAuth();
+
+  const { user } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [recheckUnreadCount, setRecheckUnreadCount] = useState(0);
@@ -152,17 +152,17 @@ const Sidebar = ({ mobileOpen, setMobileOpen }) => {
           "flex-col h-screen sticky top-0 z-50 pt-6 pb-6 transition-[width,transform] duration-300 ease-in-out",
           // Desktop styles
           "hidden lg:flex pl-6 pr-0",
-          !mobileOpen && (collapsed ? "w-[5.5rem]" : "w-72"),
+          !mobileOpen && (collapsed ? "w-22" : "w-72"),
           // Mobile Styles (Drawer mode)
-          mobileOpen ? "!flex fixed inset-y-0 left-0 w-[280px] sx:w-80 p-4 lg:p-6 bg-slate-50/10 dark:bg-slate-950/20 backdrop-blur-xl" : "-translate-x-full lg:translate-x-0"
+          mobileOpen ? "flex! fixed inset-y-0 left-0 w-[280px] sx:w-80 p-4 lg:p-6 bg-slate-50/10 dark:bg-slate-950/20 backdrop-blur-xl" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <div className="glass-panel h-full rounded-3xl flex flex-col justify-between overflow-hidden p-3 relative border border-white/20 dark:border-white/8 shadow-xl bg-white/80 dark:bg-slate-900/80">
 
           {/* Brand + Toggle */}
-          <div className={clsx("shrink-0 min-h-[4.5rem] mb-4 relative z-10 flex items-center", collapsed ? "flex-col justify-center gap-2" : "flex-row justify-between gap-2 px-2")}>
+          <div className={clsx("shrink-0 min-h-18 mb-4 relative z-10 flex items-center", collapsed ? "flex-col justify-center gap-2" : "flex-row justify-between gap-2 px-2")}>
             <Link href="/dashboard" className={clsx("flex items-center gap-3 min-w-0", collapsed && "justify-center")}>
-              <div className="w-11 h-11 shrink-0 rounded-xl bg-linear-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30 ring-1 ring-black/5 flex-shrink-0">
+              <div className="w-11 h-11 shrink-0 rounded-xl bg-linear-to-br from-primary to-accent flex items-center justify-center shadow-lg shadow-primary/30 ring-1 ring-black/5">
                 <Icon name="Zap" className="text-white shrink-0" size={26} strokeWidth={2.5} />
               </div>
               <AnimatePresence initial={false}>

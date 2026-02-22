@@ -25,7 +25,7 @@ const Background3D = () => {
 
       {/* Floating Orb 1 - Top Left */}
       <motion.div
-        className="absolute -top-20 -left-20 w-[40rem] h-[40rem] rounded-full bg-purple-300/30 dark:bg-purple-700/15 blur-3xl"
+        className="absolute -top-20 -left-20 w-160 h-160 rounded-full bg-purple-300/30 dark:bg-purple-700/15 blur-3xl"
         animate={{
           x: mousePosition.x * 30,
           y: mousePosition.y * 30,
@@ -35,7 +35,7 @@ const Background3D = () => {
 
       {/* Floating Orb 2 - Bottom Right */}
       <motion.div
-        className="absolute top-1/2 -right-20 w-[30rem] h-[30rem] rounded-full bg-blue-300/20 dark:bg-blue-700/10 blur-3xl"
+        className="absolute top-1/2 -right-20 w-120 h-120 rounded-full bg-blue-300/20 dark:bg-blue-700/10 blur-3xl"
         animate={{
           x: mousePosition.x * -40,
           y: mousePosition.y * -40,
@@ -45,7 +45,7 @@ const Background3D = () => {
 
       {/* Floating Orb 3 - Center dynamic */}
       <motion.div
-        className="absolute bottom-0 left-1/3 w-[25rem] h-[25rem] rounded-full bg-pink-300/20 dark:bg-pink-800/10 blur-3xl"
+        className="absolute bottom-0 left-1/3 w-100 h-100 rounded-full bg-pink-300/20 dark:bg-pink-800/10 blur-3xl"
         animate={{
           x: mousePosition.x * 20,
           y: mousePosition.y * 20,
